@@ -1,4 +1,3 @@
-import BookList from "../components/BookList";
 import useAppSettings from "../hooks/useAppSettings";
 import useLibraryData from "../hooks/useLibraryData";
 import useInstallPrompt from "../hooks/useInstallPrompt";
@@ -231,8 +230,6 @@ export default function Home() {
             </div>
           </div>
         </section>
-
-        <BookList />
       </div>
     </div>
   );

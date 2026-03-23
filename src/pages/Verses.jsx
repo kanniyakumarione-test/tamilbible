@@ -1,6 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
-import html2canvas from "html2canvas";
 
 import bible from "../utils/loadBible";
 import booksList from "../data/Books.json";
@@ -31,7 +30,8 @@ export default function Verses() {
   const t = getUIText(settings.language);
   const [bookQuery, setBookQuery] = useState("");
   const readingPaneRef = useRef(null);
-  const autoScrollIntervalRef = useRef(null);
+  const autoScrollFrameRef = useRef(null);
+  const lastAutoScrollTimeRef = useRef(null);
 
   const decodedBook = decodeURIComponent(book);
 
@@ -50,6 +50,39 @@ export default function Verses() {
     "linear-gradient(to right, #0f2027, #203a43, #2c5364)",
     "linear-gradient(to right, #000428, #004e92)",
   ];
+
+  const getScrollMetrics = () => {
+    if (window.innerWidth < 768) {
+      const scrollElement =
+        document.scrollingElement || document.documentElement;
+
+      return {
+        currentTop: window.scrollY,
+        maxScrollTop: Math.max(
+          scrollElement.scrollHeight - window.innerHeight,
+          0
+        ),
+        setTop: (value) => window.scrollTo(0, value),
+      };
+    }
+
+    const container = readingPaneRef.current;
+
+    if (!container) {
+      return null;
+    }
+
+    return {
+      currentTop: container.scrollTop,
+      maxScrollTop: Math.max(
+        container.scrollHeight - container.clientHeight,
+        0
+      ),
+      setTop: (value) => {
+        container.scrollTop = value;
+      },
+    };
+  };
 
   const bookData = bible[decodedBook];
   const chapterData = bookData?.chapters.find((ch) => ch.chapter === chapter);
@@ -72,64 +105,90 @@ export default function Verses() {
 
   useEffect(() => {
     setAutoScrollDirection(null);
+    lastAutoScrollTimeRef.current = null;
 
-    if (readingPaneRef.current) {
+    if (window.innerWidth < 768) {
+      window.scrollTo(0, 0);
+    } else if (readingPaneRef.current) {
       readingPaneRef.current.scrollTop = 0;
     }
   }, [decodedBook, chapter]);
 
   useEffect(() => {
     if (!autoScrollDirection) {
-      if (autoScrollIntervalRef.current) {
-        window.clearInterval(autoScrollIntervalRef.current);
-        autoScrollIntervalRef.current = null;
+      if (autoScrollFrameRef.current) {
+        window.cancelAnimationFrame(autoScrollFrameRef.current);
+        autoScrollFrameRef.current = null;
       }
+      lastAutoScrollTimeRef.current = null;
       return;
     }
 
-    autoScrollIntervalRef.current = window.setInterval(() => {
-      const container = readingPaneRef.current;
+    const step = (timestamp) => {
+      const metrics = getScrollMetrics();
 
-      if (!container) {
+      if (!metrics) {
         setAutoScrollDirection(null);
         return;
       }
 
-      const speed = 0.5;
+      if (lastAutoScrollTimeRef.current === null) {
+        lastAutoScrollTimeRef.current = timestamp;
+      }
+
+      const delta = timestamp - lastAutoScrollTimeRef.current;
+      lastAutoScrollTimeRef.current = timestamp;
+      const speed = 0.18;
       const direction = autoScrollDirection === "down" ? 1 : -1;
-      const nextTop = container.scrollTop + speed * direction;
-      const maxScrollTop = container.scrollHeight - container.clientHeight;
+      const nextTop = metrics.currentTop + delta * speed * direction;
 
       if (nextTop <= 0) {
-        container.scrollTop = 0;
+        metrics.setTop(0);
         setAutoScrollDirection(null);
         return;
       }
 
-      if (nextTop >= maxScrollTop) {
-        container.scrollTop = maxScrollTop;
+      if (nextTop >= metrics.maxScrollTop) {
+        metrics.setTop(metrics.maxScrollTop);
         setAutoScrollDirection(null);
         return;
       }
 
-      container.scrollTop = nextTop;
-    }, 16);
+      metrics.setTop(nextTop);
+      autoScrollFrameRef.current = window.requestAnimationFrame(step);
+    };
+
+    autoScrollFrameRef.current = window.requestAnimationFrame(step);
 
     return () => {
-      if (autoScrollIntervalRef.current) {
-        window.clearInterval(autoScrollIntervalRef.current);
-        autoScrollIntervalRef.current = null;
+      if (autoScrollFrameRef.current) {
+        window.cancelAnimationFrame(autoScrollFrameRef.current);
+        autoScrollFrameRef.current = null;
       }
+      lastAutoScrollTimeRef.current = null;
     };
   }, [autoScrollDirection]);
 
   useEffect(() => {
     return () => {
-      if (autoScrollIntervalRef.current) {
-        window.clearInterval(autoScrollIntervalRef.current);
+      if (autoScrollFrameRef.current) {
+        window.cancelAnimationFrame(autoScrollFrameRef.current);
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!selectedVerse || window.innerWidth >= 768) {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selectedVerse]);
 
   const getVerseItem = (verse) => ({
     id: getVerseId(decodedBook, chapter, verse.verse),
@@ -141,6 +200,36 @@ export default function Verses() {
     text: verse.text,
   });
 
+  const getMobilePopupVerseStyle = (text) => {
+    const length = text?.length || 0;
+
+    if (length > 320) {
+      return {
+        fontSize: "14px",
+        lineHeight: 1.42,
+      };
+    }
+
+    if (length > 220) {
+      return {
+        fontSize: "15px",
+        lineHeight: 1.46,
+      };
+    }
+
+    if (length > 140) {
+      return {
+        fontSize: "16px",
+        lineHeight: 1.5,
+      };
+    }
+
+    return {
+      fontSize: `${Math.min(Math.max(settings.fontSize - 10, 15), 18)}px`,
+      lineHeight: 1.52,
+    };
+  };
+
   const handleNote = (item) => {
     const currentNote = libraryData.notes[item.id]?.text || "";
     const nextNote = window.prompt(t.notePrompt, currentNote);
@@ -148,49 +237,56 @@ export default function Verses() {
     saveNote(item, nextNote);
   };
 
-  const openVerse = (verse) => {
-    recordHistory(getVerseItem(verse));
-    if (window.innerWidth >= 768) {
-      navigate(
-        `/reader/${encodeURIComponent(decodedBook)}/${chapter}/${verse.verse}`
-      );
-    } else {
-      setSelectedVerse(verse);
+  const handleMobileVerseShare = async (verse) => {
+    const shareText = `${bookData?.book.tamil} ${chapter}:${verse.verse}\n\n${verse.text}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${bookData?.book.tamil} ${chapter}:${verse.verse}`,
+          text: shareText,
+        });
+        return;
+      } catch {
+        return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareText);
+    } catch {
+      window.prompt(t.share, shareText);
     }
   };
 
-  const handleShare = async () => {
-    const card = document.getElementById("verse-card");
-    const canvas = await html2canvas(card);
-    const image = canvas.toDataURL("image/png");
+  const openVerse = (verse) => {
+    recordHistory(getVerseItem(verse));
 
-    const link = document.createElement("a");
-    link.href = image;
-    link.download = "verse.png";
-    link.click();
+    if (window.innerWidth < 768) {
+      setSelectedVerse(verse);
+      return;
+    }
+
+    navigate(`/reader/${encodeURIComponent(decodedBook)}/${chapter}/${verse.verse}`);
   };
 
   const toggleAutoScroll = (direction) => {
-    const container = readingPaneRef.current;
+    const metrics = getScrollMetrics();
 
-    if (!container) return;
+    if (!metrics) return;
 
     setAutoScrollDirection((current) => {
       if (current === direction) {
         return null;
       }
 
-      const immediateStep = direction === "down" ? 16 : -16;
-      const maxScrollTop = Math.max(
-        container.scrollHeight - container.clientHeight,
-        0
-      );
+      const immediateStep = direction === "down" ? 36 : -36;
       const nextTop = Math.min(
-        Math.max(container.scrollTop + immediateStep, 0),
-        maxScrollTop
+        Math.max(metrics.currentTop + immediateStep, 0),
+        metrics.maxScrollTop
       );
 
-      container.scrollTop = nextTop;
+      metrics.setTop(nextTop);
       return direction;
     });
   };
@@ -473,18 +569,17 @@ export default function Verses() {
         </main>
       </div>
 
-      {selectedVerse && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-black/95">
+      {selectedVerse ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm md:hidden">
           <button
+            type="button"
+            aria-label="Close verse preview"
+            className="absolute inset-0"
             onClick={() => setSelectedVerse(null)}
-            className="absolute right-4 top-4 z-10 rounded-full border border-white/10 bg-black/40 px-3 py-1 text-lg text-white"
-          >
-            {settings.language === "en" ? "X" : "X"}
-          </button>
+          />
 
           <div
-            id="verse-card"
-            className="flex flex-1 items-end justify-center px-2 pb-2 pt-14 sm:items-stretch sm:px-3 sm:pb-3 sm:pt-14"
+            className="relative z-10 w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/10 p-5 shadow-2xl shadow-black/40"
             style={{
               background:
                 settings.bgType === "custom" && settings.customBackground
@@ -493,112 +588,55 @@ export default function Verses() {
                   ? gradients[settings.bgIndex]
                   : `url(${backgrounds[settings.bgIndex]})`,
               backgroundSize: "cover",
+              backgroundPosition: "center",
             }}
           >
             <div
-              className="flex h-[min(82vh,720px)] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border border-white/10 shadow-2xl shadow-black/30 backdrop-blur-md sm:h-auto sm:min-h-[60vh]"
+              className="absolute inset-0"
               style={{
-                maxWidth: `${Math.min(settings.readerWidth || 960, 760)}px`,
-                background: `rgba(0, 0, 0, ${settings.cardOpacity ?? 0.5})`,
-                textAlign:
-                  window.innerWidth < 640
-                    ? "left"
-                    : settings.textAlign || "center",
+                background:
+                  "linear-gradient(180deg, rgba(7, 17, 31, 0.42), rgba(7, 17, 31, 0.58))",
+                backdropFilter: "blur(1px)",
               }}
-            >
-              {settings.showReference !== false && (
-                <div className="border-b border-white/10 px-4 py-4 sm:px-6">
-                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/45">
-                    {t.verse}
-                  </p>
-                  <p className="mt-2 text-sm font-bold text-white/80 sm:text-lg">
-                    {bookData?.book.tamil} {chapter}:{selectedVerse.verse}
-                  </p>
-                </div>
-              )}
-
-              <div data-lenis-prevent className="min-h-0 flex-1 overflow-y-auto px-4 py-5 custom-scroll sm:px-6 sm:py-6">
-                <p
-                  style={{
-                    fontSize: `${Math.min(Math.max(settings.fontSize, 20), 34)}px`,
-                    lineHeight: settings.lineHeight || 1.8,
-                  }}
-                  className="font-semibold text-white"
-                >
-                  {selectedVerse.text}
+            />
+            <div className="relative z-10">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
+                  {t.verse}
                 </p>
-
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {(() => {
-                    const verseItem = getVerseItem(selectedVerse);
-                    const bookmarked = isBookmarked(libraryData, verseItem.id);
-                    const favorited = isFavorited(libraryData, verseItem.id);
-                    const highlighted = libraryData.highlights[verseItem.id];
-                    const note = libraryData.notes[verseItem.id];
-
-                    return (
-                      <>
-                        <button
-                          onClick={() => toggleBookmark(verseItem)}
-                          className={`rounded-full px-3 py-2 text-xs font-semibold ${
-                            bookmarked
-                              ? "bg-white text-slate-950"
-                              : "border border-white/10 bg-white/5 text-slate-100"
-                          }`}
-                        >
-                          {t.bookmark}
-                        </button>
-                        <button
-                          onClick={() => toggleFavorite(verseItem)}
-                          className={`rounded-full px-3 py-2 text-xs font-semibold ${
-                            favorited
-                              ? "bg-rose-400 text-slate-950"
-                              : "border border-white/10 bg-white/5 text-slate-100"
-                          }`}
-                        >
-                          {t.favorite}
-                        </button>
-                        <button
-                          onClick={() => cycleHighlight(verseItem)}
-                          className="rounded-full px-3 py-2 text-xs font-semibold text-white"
-                          style={{
-                            background: highlighted?.color || "rgba(255,255,255,0.06)",
-                            border: highlighted ? "none" : "1px solid rgba(255,255,255,0.1)",
-                          }}
-                        >
-                          {t.highlight}
-                        </button>
-                        <button
-                          onClick={() => handleNote(verseItem)}
-                          className={`rounded-full px-3 py-2 text-xs font-semibold ${
-                            note
-                              ? "bg-amber-300 text-slate-950"
-                              : "border border-white/10 bg-white/5 text-slate-100"
-                          }`}
-                        >
-                          {t.note}
-                        </button>
-                      </>
-                    );
-                  })()}
-                </div>
+                <p className="mt-2 text-sm font-bold text-white">
+                  {bookData?.book.tamil} {chapter}:{selectedVerse.verse}
+                </p>
               </div>
+              <button
+                type="button"
+                onClick={() => setSelectedVerse(null)}
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-white"
+              >
+                X
+              </button>
+            </div>
 
-              <div className="border-t border-white/10 p-3 sm:p-4">
-                <button
-                  onClick={handleShare}
-                  className="w-full rounded-2xl p-3.5 text-sm font-semibold text-white shadow-lg"
-                  style={{
-                    background: "linear-gradient(135deg, #2563eb, #38bdf8)",
-                  }}
-                >
-                  {t.share}
-                </button>
-              </div>
+            <p
+              className="mt-5 break-words text-left font-semibold text-white"
+              style={getMobilePopupVerseStyle(selectedVerse.text)}
+            >
+              {selectedVerse.text}
+            </p>
+
+            <button
+              type="button"
+              onClick={() => handleMobileVerseShare(selectedVerse)}
+              className="mt-5 w-full rounded-2xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-4 py-3 text-sm font-semibold text-white shadow-lg"
+            >
+              {t.share}
+            </button>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
+
     </div>
   );
 }

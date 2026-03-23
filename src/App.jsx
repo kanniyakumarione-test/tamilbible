@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 
 import Home from "./pages/Home";
+import Books from "./pages/Books";
 import Chapters from "./pages/Chapters";
 import Verses from "./pages/Verses";
 import Search from "./pages/Search";
@@ -22,6 +23,7 @@ function Layout() {
         <Routes>
           {/* Main */}
           <Route path="/" element={<Home />} />
+          <Route path="/books" element={<Books />} />
           <Route path="/search" element={<Search />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/advanced-presentation" element={<AdvancedPresentation />} />

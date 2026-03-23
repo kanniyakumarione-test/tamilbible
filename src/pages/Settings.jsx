@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import { defaultSettings } from "../utils/settings";
 import useAppSettings from "../hooks/useAppSettings";
@@ -53,24 +53,72 @@ function Segmented({ options, value, onChange }) {
   );
 }
 
-function SliderControl({ label, valueLabel, min, max, step, value, onChange }) {
+function StepperControl({
+  label,
+  valueLabel,
+  min,
+  max,
+  step,
+  value,
+  onChange,
+  presets = [],
+}) {
+  const updateValue = (direction) => {
+    const nextValue = Math.min(
+      max,
+      Math.max(min, Number((value + step * direction).toFixed(2)))
+    );
+
+    onChange(nextValue);
+  };
+
   return (
-    <div>
-      <div className="mb-2 flex items-center justify-between gap-3">
+    <div className="rounded-[1.4rem] border border-white/10 bg-black/20 p-4">
+      <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-slate-300">{label}</p>
         <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
           {valueLabel}
         </span>
       </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-800 accent-indigo-400"
-      />
+
+      <div className="mt-4 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => updateValue(-1)}
+          className="h-11 w-11 rounded-2xl border border-white/10 bg-white/5 text-lg font-bold text-white transition hover:bg-white/10"
+        >
+          -
+        </button>
+        <div className="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-sm font-semibold text-white">
+          {valueLabel}
+        </div>
+        <button
+          type="button"
+          onClick={() => updateValue(1)}
+          className="h-11 w-11 rounded-2xl border border-white/10 bg-white/5 text-lg font-bold text-white transition hover:bg-white/10"
+        >
+          +
+        </button>
+      </div>
+
+      {presets.length ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {presets.map((preset) => (
+            <button
+              key={preset.value}
+              type="button"
+              onClick={() => onChange(preset.value)}
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                value === preset.value
+                  ? "bg-gradient-to-br from-indigo-500 to-sky-500 text-white"
+                  : "border border-white/10 bg-white/5 text-slate-300"
+              }`}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -126,22 +174,33 @@ async function resizeImage(file) {
   }
 }
 
+function areSettingsEqual(left, right) {
+  if (left === right) {
+    return true;
+  }
+
+  return Object.keys(defaultSettings).every((key) => left[key] === right[key]);
+}
+
 export default function Settings() {
   const [settings, update] = useAppSettings();
   const { canInstall, isInstalled, promptInstall } = useInstallPrompt();
   const [draft, setDraft] = useState(settings);
   const backgroundInputRef = useRef(null);
+  const previewDraft = useDeferredValue(draft);
 
   useEffect(() => {
-    setDraft(settings);
+    if (!areSettingsEqual(settings, draft)) {
+      setDraft(settings);
+    }
   }, [settings]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      if (JSON.stringify(draft) !== JSON.stringify(settings)) {
+      if (!areSettingsEqual(draft, settings)) {
         update(draft);
       }
-    }, 160);
+    }, 280);
 
     return () => clearTimeout(timeout);
   }, [draft, settings, update]);
@@ -149,14 +208,14 @@ export default function Settings() {
   const t = getUIText(draft.language);
 
   const previewBackground = useMemo(() => {
-    if (draft.bgType === "custom" && draft.customBackground) {
-      return `url(${draft.customBackground})`;
+    if (previewDraft.bgType === "custom" && previewDraft.customBackground) {
+      return `url(${previewDraft.customBackground})`;
     }
 
-    return draft.bgType === "gradient"
-      ? gradients[draft.bgIndex]
-      : `url(${backgrounds[draft.bgIndex]})`;
-  }, [draft]);
+    return previewDraft.bgType === "gradient"
+      ? gradients[previewDraft.bgIndex]
+      : `url(${backgrounds[previewDraft.bgIndex]})`;
+  }, [previewDraft.bgIndex, previewDraft.bgType, previewDraft.customBackground]);
 
   const updateDraft = (patch) => setDraft((current) => ({ ...current, ...patch }));
 
@@ -220,7 +279,7 @@ export default function Settings() {
             <Section title="Reading Experience" subtitle="Keep the primary controls together so the page is easier to scan and adjust.">
               <div className="grid gap-6 lg:grid-cols-2">
                 <div className="space-y-5">
-                  <SliderControl
+                  <StepperControl
                     label={t.fontSize}
                     value={draft.fontSize}
                     valueLabel={`${draft.fontSize}px`}
@@ -228,9 +287,15 @@ export default function Settings() {
                     max={42}
                     step={1}
                     onChange={(fontSize) => updateDraft({ fontSize })}
+                    presets={[
+                      { value: 20, label: "20" },
+                      { value: 24, label: "24" },
+                      { value: 28, label: "28" },
+                      { value: 32, label: "32" },
+                    ]}
                   />
 
-                  <SliderControl
+                  <StepperControl
                     label={t.lineSpacing}
                     value={draft.lineHeight}
                     valueLabel={`${draft.lineHeight.toFixed(1)}x`}
@@ -238,9 +303,15 @@ export default function Settings() {
                     max={2.4}
                     step={0.1}
                     onChange={(lineHeight) => updateDraft({ lineHeight })}
+                    presets={[
+                      { value: 1.4, label: "1.4x" },
+                      { value: 1.6, label: "1.6x" },
+                      { value: 1.8, label: "1.8x" },
+                      { value: 2.0, label: "2.0x" },
+                    ]}
                   />
 
-                  <SliderControl
+                  <StepperControl
                     label={t.readerWidth}
                     value={draft.readerWidth}
                     valueLabel={`${draft.readerWidth}px`}
@@ -248,11 +319,17 @@ export default function Settings() {
                     max={1200}
                     step={20}
                     onChange={(readerWidth) => updateDraft({ readerWidth })}
+                    presets={[
+                      { value: 720, label: "720" },
+                      { value: 860, label: "860" },
+                      { value: 960, label: "960" },
+                      { value: 1100, label: "1100" },
+                    ]}
                   />
                 </div>
 
                 <div className="space-y-5">
-                  <SliderControl
+                  <StepperControl
                     label={t.cardOpacity}
                     value={draft.cardOpacity}
                     valueLabel={`${Math.round(draft.cardOpacity * 100)}%`}
@@ -260,6 +337,12 @@ export default function Settings() {
                     max={0.9}
                     step={0.05}
                     onChange={(cardOpacity) => updateDraft({ cardOpacity })}
+                    presets={[
+                      { value: 0.3, label: "30%" },
+                      { value: 0.5, label: "50%" },
+                      { value: 0.7, label: "70%" },
+                      { value: 0.85, label: "85%" },
+                    ]}
                   />
 
                   <div>
@@ -455,15 +538,15 @@ export default function Settings() {
                 <div
                   className="mx-auto rounded-[1.7rem] border border-white/15 px-5 py-7 shadow-xl"
                   style={{
-                    maxWidth: `${draft.readerWidth}px`,
-                    background: `rgba(0, 0, 0, ${draft.cardOpacity})`,
+                    maxWidth: `${previewDraft.readerWidth}px`,
+                    background: `rgba(0, 0, 0, ${previewDraft.cardOpacity})`,
                   }}
                 >
-                  {draft.showReference && (
+                  {previewDraft.showReference && (
                     <p
                       className="mb-4 text-sm font-bold text-white"
                       style={{
-                        textAlign: draft.textAlign,
+                        textAlign: previewDraft.textAlign,
                         textShadow: "0 2px 10px rgba(0, 0, 0, 0.65)",
                       }}
                     >
@@ -474,9 +557,9 @@ export default function Settings() {
                   <p
                     className="font-bold text-white"
                     style={{
-                      fontSize: `${draft.fontSize}px`,
-                      lineHeight: draft.lineHeight,
-                      textAlign: draft.textAlign,
+                      fontSize: `${previewDraft.fontSize}px`,
+                      lineHeight: previewDraft.lineHeight,
+                      textAlign: previewDraft.textAlign,
                       textShadow: "0 2px 14px rgba(0, 0, 0, 0.5)",
                     }}
                   >
