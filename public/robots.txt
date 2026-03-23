@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://tamilbible.kanniyakumarione.com/sitemap.xml

@@ -315,7 +315,7 @@ export default function Verses() {
   }
 
   return (
-    <div className="min-h-screen bg-[#07111f] text-white md:h-screen md:overflow-hidden">
+    <div className="min-h-screen overflow-x-hidden bg-[#07111f] text-white md:h-screen md:overflow-hidden">
       <div className="md:flex md:h-screen">
         <aside data-lenis-prevent className="hidden w-[300px] shrink-0 overflow-y-auto border-r border-white/10 bg-[linear-gradient(180deg,_rgba(8,17,32,0.98),_rgba(10,18,30,0.94))] p-4 custom-scroll md:flex md:flex-col">
           <div className="mb-4 rounded-[1.75rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.22),_transparent_34%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(10,18,30,0.94))] p-4">
@@ -406,7 +406,7 @@ export default function Verses() {
         <main
           ref={readingPaneRef}
           data-lenis-prevent
-          className="app-shell relative flex-1 overflow-y-auto p-4 pb-24 md:h-screen md:p-6"
+          className="app-shell relative flex-1 overflow-x-hidden overflow-y-auto p-4 pb-24 md:h-screen md:p-6"
         >
           <div className="mx-auto max-w-5xl">
             <section className="mb-5 overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.2),_transparent_28%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(8,17,32,0.96))] px-5 py-6 shadow-2xl shadow-black/30 md:px-6">
@@ -444,7 +444,7 @@ export default function Verses() {
                 return (
                   <div
                     key={v.verse}
-                    className="rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(30,41,59,0.88),_rgba(15,23,42,0.86))] p-4 transition hover:border-sky-400/25 hover:bg-slate-800 md:p-5"
+                    className="min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(30,41,59,0.88),_rgba(15,23,42,0.86))] p-4 transition hover:border-sky-400/25 hover:bg-slate-800 md:p-5"
                     style={{
                       lineHeight: settings.lineHeight || 1.8,
                       boxShadow: highlighted
@@ -452,13 +452,13 @@ export default function Verses() {
                         : undefined,
                     }}
                   >
-                    <button onClick={() => openVerse(v)} className="block w-full text-left">
+                    <button onClick={() => openVerse(v)} className="block min-w-0 w-full overflow-hidden text-left">
                       <span
-                        className="mr-2 text-sm font-bold text-white md:text-base"
+                        className="mr-2 inline text-sm font-bold text-white md:text-base"
                       >
                         {v.verse}.
                       </span>
-                      <span className="text-base text-slate-100 md:text-lg">
+                      <span className="whitespace-normal break-words text-base text-slate-100 md:text-lg">
                         {v.text}
                       </span>
                     </button>
@@ -507,7 +507,7 @@ export default function Verses() {
                     </div>
 
                     {note ? (
-                      <p className="mt-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm leading-6 text-slate-300">
+                      <p className="mt-3 break-words rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm leading-6 text-slate-300">
                         {note.text}
                       </p>
                     ) : null}
