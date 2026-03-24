@@ -8,7 +8,9 @@ const rootDir = path.resolve(__dirname, "..");
 const publicDir = path.join(rootDir, "public");
 const dataDir = path.join(rootDir, "src", "data");
 
-const siteUrl = (process.env.VITE_SITE_URL || "https://example.com").replace(/\/+$/, "");
+const siteUrl = (
+  process.env.VITE_SITE_URL || "https://tamilbible.kanniyakumarione.com"
+).replace(/\/+$/, "");
 const now = new Date().toISOString().split("T")[0];
 
 function readJson(filePath) {

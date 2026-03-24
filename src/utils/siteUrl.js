@@ -9,7 +9,7 @@ export function getSiteUrl() {
     return window.location.origin.replace(/\/+$/, "");
   }
 
-  return "https://example.com";
+  return "https://tamilbible.kanniyakumarione.com";
 }
 
 export function toAbsoluteUrl(pathname = "/") {
