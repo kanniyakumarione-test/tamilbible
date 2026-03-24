@@ -188,6 +188,13 @@ export default function Verses() {
   const readingPaneRef = useRef(null);
   const autoScrollFrameRef = useRef(null);
   const lastAutoScrollTimeRef = useRef(null);
+  const isMobileView = typeof window !== "undefined" && window.innerWidth < 768;
+  const mobileHighlightFolders = HIGHLIGHT_FOLDERS.filter(
+    (folder) => folder.value === "promise" || folder.value === "memory"
+  );
+  const availableHighlightFolders = isMobileView
+    ? mobileHighlightFolders
+    : HIGHLIGHT_FOLDERS;
 
   const decodedBook = decodeURIComponent(book);
 
@@ -604,10 +611,16 @@ export default function Verses() {
 
   const handleHighlight = (item) => {
     const currentHighlight = libraryData.highlights[item.id];
+    const defaultFolder = availableHighlightFolders.some(
+      (folder) => folder.value === currentHighlight?.folder
+    )
+      ? currentHighlight?.folder
+      : availableHighlightFolders[0].value;
+
     setHighlightEditor({
       item,
       color: currentHighlight?.color || HIGHLIGHT_COLORS[0],
-      folder: currentHighlight?.folder || HIGHLIGHT_FOLDERS[0].value,
+      folder: defaultFolder,
     });
   };
 
@@ -1359,7 +1372,7 @@ export default function Verses() {
             <div className="mt-5">
               <p className="text-sm text-slate-300">Folder</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                {HIGHLIGHT_FOLDERS.map((folder) => (
+                {availableHighlightFolders.map((folder) => (
                   <button
                     key={folder.value}
                     type="button"

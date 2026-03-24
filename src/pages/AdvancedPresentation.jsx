@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import useAppSettings from "../hooks/useAppSettings";
@@ -40,7 +40,7 @@ function AccordionSection({ title, defaultOpen = true, children }) {
   );
 }
 
-function SelectControl({ label, value, onChange, options }) {
+const SelectControl = memo(function SelectControl({ label, value, onChange, options }) {
   return (
     <label className="block">
       <p className="mb-2 text-sm text-slate-300">{label}</p>
@@ -54,12 +54,12 @@ function SelectControl({ label, value, onChange, options }) {
             {option.label}
           </option>
         ))}
-      </select>
-    </label>
-  );
-}
+        </select>
+      </label>
+    );
+  });
 
-function CheckboxControl({ label, checked, onChange }) {
+const CheckboxControl = memo(function CheckboxControl({ label, checked, onChange }) {
   return (
     <label className="flex items-center gap-3 text-sm text-slate-200">
       <input
@@ -67,13 +67,13 @@ function CheckboxControl({ label, checked, onChange }) {
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
         className="h-4 w-4 rounded border-white/20 bg-black/20 accent-sky-400"
-      />
-      <span>{label}</span>
-    </label>
-  );
-}
+        />
+        <span>{label}</span>
+      </label>
+    );
+  });
 
-function ColorChip({ label, value, onChange }) {
+const ColorChip = memo(function ColorChip({ label, value, onChange }) {
   return (
     <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200">
       <input
@@ -81,13 +81,13 @@ function ColorChip({ label, value, onChange }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="h-8 w-8 cursor-pointer rounded border-0 bg-transparent p-0"
-      />
-      <span>{label}</span>
-    </label>
-  );
-}
+        />
+        <span>{label}</span>
+      </label>
+    );
+  });
 
-function BackgroundTile({ active, onClick, children }) {
+const BackgroundTile = memo(function BackgroundTile({ active, onClick, children }) {
   return (
     <button
       onClick={onClick}
@@ -98,7 +98,7 @@ function BackgroundTile({ active, onClick, children }) {
       {children}
     </button>
   );
-}
+});
 
 function getScreenValue(screen, index) {
   return String(screen?.label ?? screen?.id ?? `screen-${index}`);
@@ -135,7 +135,7 @@ async function getPresentationScreens() {
   ];
 }
 
-async function openPresentationWindow(path, targetScreenValue) {
+async function openPresentationWindow(path, targetScreenValue, windowName) {
   const features = ["noopener=yes", "noreferrer=yes"];
 
   if ("getScreenDetails" in window) {
@@ -158,7 +158,7 @@ async function openPresentationWindow(path, targetScreenValue) {
     }
   }
 
-  window.open(path, "_blank", features.join(","));
+  window.open(path, windowName, features.join(","));
 }
 
 async function resizeImage(file) {
@@ -191,6 +191,15 @@ async function resizeImage(file) {
 export default function AdvancedPresentation() {
   const [settings, update] = useAppSettings();
   const libraryData = useLibraryData();
+  const previewTextRef = useRef(null);
+  const previewContainerRef = useRef(null);
+  const [previewFontSize, setPreviewFontSize] = useState(
+    Math.min(settings.presentationMaxFontSize || 80, 42)
+  );
+
+  const stagePreviewTextRef = useRef(null);
+  const stagePreviewContainerRef = useRef(null);
+  const [stagePreviewFontSize, setStagePreviewFontSize] = useState(24);
   const [screenOptions, setScreenOptions] = useState([
     {
       value: "current-screen",
@@ -276,6 +285,91 @@ export default function AdvancedPresentation() {
     event.target.value = "";
   };
 
+  useEffect(() => {
+    let mounted = true;
+    let rafId = null;
+
+    const fitPreview = () => {
+      const container = previewContainerRef.current;
+      const textEl = previewTextRef.current;
+      if (!container || !textEl) return;
+
+      const max = Math.min(settings.presentationMaxFontSize || 80, 42);
+      const min = 18;
+
+      // binary search for best font size
+      let lo = min;
+      let hi = max;
+      let best = min;
+
+      while (lo <= hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        textEl.style.fontSize = `${mid}px`;
+        const fits = textEl.scrollHeight <= container.clientHeight && textEl.scrollWidth <= container.clientWidth;
+
+        if (fits) {
+          best = mid;
+          lo = mid + 1;
+        } else {
+          hi = mid - 1;
+        }
+      }
+
+      textEl.style.fontSize = `${best}px`;
+      if (mounted) {
+        setPreviewFontSize(best);
+      }
+    };
+
+    rafId = window.requestAnimationFrame(fitPreview);
+
+    return () => {
+      mounted = false;
+      if (rafId) window.cancelAnimationFrame(rafId);
+    };
+  }, [previewItem.text, settings.presentationMaxFontSize, settings.presentationTwoLines, settings.presentationJustify]);
+
+  useEffect(() => {
+    let mounted = true;
+    let rafId = null;
+
+    const fitStagePreview = () => {
+      const container = stagePreviewContainerRef.current;
+      const textEl = stagePreviewTextRef.current;
+      if (!container || !textEl) return;
+
+      const max = Math.min((settings.presentationMaxFontSize || 80) * 0.5, 36);
+      const min = 14;
+
+      let lo = min;
+      let hi = Math.floor(max);
+      let best = min;
+
+      while (lo <= hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        textEl.style.fontSize = `${mid}px`;
+        const fits = textEl.scrollHeight <= container.clientHeight && textEl.scrollWidth <= container.clientWidth;
+
+        if (fits) {
+          best = mid;
+          lo = mid + 1;
+        } else {
+          hi = mid - 1;
+        }
+      }
+
+      textEl.style.fontSize = `${best}px`;
+      if (mounted) setStagePreviewFontSize(best);
+    };
+
+    rafId = window.requestAnimationFrame(fitStagePreview);
+
+    return () => {
+      mounted = false;
+      if (rafId) window.cancelAnimationFrame(rafId);
+    };
+  }, [previewItem.text, settings.presentationMaxFontSize, settings.presentationTwoLines, settings.presentationJustify]);
+
   return (
     <div className="hidden px-4 pb-24 pt-4 md:block md:px-6 md:pt-6">
       <div className="mx-auto max-w-7xl space-y-5">
@@ -294,7 +388,11 @@ export default function AdvancedPresentation() {
             <button
               type="button"
               onClick={() =>
-                openPresentationWindow("/presentation/main", settings.mainPresentationScreen)
+                openPresentationWindow(
+                  "/presentation/main",
+                  settings.mainPresentationScreen,
+                  "tamil-bible-presentation-main"
+                )
               }
               className="rounded-2xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-5 py-3 text-sm font-semibold text-white shadow-lg"
             >
@@ -303,7 +401,11 @@ export default function AdvancedPresentation() {
             <button
               type="button"
               onClick={() =>
-                openPresentationWindow("/presentation/stage", settings.stagePresentationScreen)
+                openPresentationWindow(
+                  "/presentation/stage",
+                  settings.stagePresentationScreen,
+                  "tamil-bible-presentation-stage"
+                )
               }
               className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
             >
@@ -490,6 +592,13 @@ export default function AdvancedPresentation() {
 
         <div className="grid gap-5 md:grid-cols-2">
           <div className="rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.92),_rgba(8,17,32,0.94))] p-4">
+            <div className="mb-4">
+              <CheckboxControl
+                label={t.enableMainPresentation}
+                checked={settings.enableMainPresentation}
+                onChange={(value) => updateSettings({ enableMainPresentation: value })}
+              />
+            </div>
             <SelectControl
               label={t.mainPresentationScreen}
               value={settings.mainPresentationScreen}
@@ -499,6 +608,13 @@ export default function AdvancedPresentation() {
           </div>
 
           <div className="rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.92),_rgba(8,17,32,0.94))] p-4">
+            <div className="mb-4">
+              <CheckboxControl
+                label={t.enableStagePresentation}
+                checked={settings.enableStagePresentation}
+                onChange={(value) => updateSettings({ enableStagePresentation: value })}
+              />
+            </div>
             <SelectControl
               label={t.stageviewScreen}
               value={settings.stagePresentationScreen}
@@ -617,19 +733,23 @@ export default function AdvancedPresentation() {
                           {previewReference}
                         </p>
                       )}
-                      <p
-                        className="font-bold text-white"
-                        style={{
-                          fontSize: `${Math.min(settings.presentationMaxFontSize, 42)}px`,
-                          lineHeight: settings.presentationTwoLines ? 1.14 : 1.28,
-                          textAlign: settings.presentationJustify,
-                          textTransform: settings.presentationUppercase ? "uppercase" : "none",
-                          textShadow: settings.presentationShadow ? "0 2px 10px rgba(0,0,0,0.75)" : "none",
-                          whiteSpace: "pre-line",
-                        }}
-                      >
-                        {previewItem.text}
-                      </p>
+                      <div ref={previewContainerRef} style={{ width: "100%", height: "100%" }}>
+                        <p
+                          ref={previewTextRef}
+                          className="font-bold text-white"
+                          style={{
+                            fontSize: `${previewFontSize}px`,
+                            lineHeight: settings.presentationTwoLines ? 1.14 : 1.28,
+                            textAlign: settings.presentationJustify,
+                            textTransform: settings.presentationUppercase ? "uppercase" : "none",
+                            textShadow: settings.presentationShadow ? "0 2px 10px rgba(0,0,0,0.75)" : "none",
+                            whiteSpace: "pre-line",
+                            margin: 0,
+                          }}
+                        >
+                          {previewItem.text}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -716,19 +836,23 @@ export default function AdvancedPresentation() {
                             >
                               {previewReference}
                             </p>
-                            <p
-                              className="mt-4 font-bold"
-                              style={{
-                                fontSize: "1.6rem",
-                                lineHeight: settings.presentationTwoLines ? 1.15 : 1.28,
-                                textAlign: settings.presentationJustify || "center",
-                                textTransform: settings.presentationUppercase ? "uppercase" : "none",
-                                textShadow: settings.presentationShadow ? "0 4px 16px rgba(0,0,0,0.55)" : "none",
-                                color: settings.stageTextColor1 || "#ffffff",
-                              }}
-                            >
-                              {previewItem.text}
-                            </p>
+                            <div ref={stagePreviewContainerRef} style={{ width: "100%", height: "100%" }}>
+                              <p
+                                ref={stagePreviewTextRef}
+                                className="mt-4 font-bold"
+                                style={{
+                                  fontSize: `${stagePreviewFontSize}px`,
+                                  lineHeight: settings.presentationTwoLines ? 1.15 : 1.28,
+                                  textAlign: settings.presentationJustify || "center",
+                                  textTransform: settings.presentationUppercase ? "uppercase" : "none",
+                                  textShadow: settings.presentationShadow ? "0 4px 16px rgba(0,0,0,0.55)" : "none",
+                                  color: settings.stageTextColor1 || "#ffffff",
+                                  margin: 0,
+                                }}
+                              >
+                                {previewItem.text}
+                              </p>
+                            </div>
                           </>
                         )}
                       </div>

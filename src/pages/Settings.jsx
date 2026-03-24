@@ -23,7 +23,7 @@ const gradients = [
 
 function Section({ title, subtitle, children, className = "" }) {
   return (
-    <section className={`rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.9),_rgba(8,17,32,0.92))] p-4 shadow-xl shadow-black/20 ${className}`}>
+    <section className={`rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.9),_rgba(8,17,32,0.92))] p-4 shadow ${className}`}>
       <div className="mb-4">
         <h3 className="text-base font-semibold text-white md:text-lg">{title}</h3>
         <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
@@ -187,7 +187,10 @@ export default function Settings() {
   const { canInstall, isInstalled, promptInstall } = useInstallPrompt();
   const [draft, setDraft] = useState(settings);
   const backgroundInputRef = useRef(null);
+  const previewCardRef = useRef(null);
+  const previewTextRef = useRef(null);
   const previewDraft = useDeferredValue(draft);
+  const [previewFontSize, setPreviewFontSize] = useState(draft.fontSize);
 
   useEffect(() => {
     if (!areSettingsEqual(settings, draft)) {
@@ -197,8 +200,9 @@ export default function Settings() {
 
       return () => window.cancelAnimationFrame(syncFrame);
     }
+
     return undefined;
-  }, [draft, settings]);
+  }, [settings]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -226,6 +230,62 @@ export default function Settings() {
 
   const resetSettings = () => setDraft(defaultSettings);
 
+  useEffect(() => {
+    let mounted = true;
+    let rafId = null;
+
+    const fitPreviewText = () => {
+      const container = previewCardRef.current;
+      const textEl = previewTextRef.current;
+
+      if (!container || !textEl) {
+        return;
+      }
+
+      const max = Math.max(previewDraft.fontSize || 24, 18);
+      const min = 18;
+      let lo = min;
+      let hi = max;
+      let best = min;
+
+      while (lo <= hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        textEl.style.fontSize = `${mid}px`;
+        const fits =
+          textEl.scrollHeight <= container.clientHeight &&
+          textEl.scrollWidth <= container.clientWidth;
+
+        if (fits) {
+          best = mid;
+          lo = mid + 1;
+        } else {
+          hi = mid - 1;
+        }
+      }
+
+      textEl.style.fontSize = `${best}px`;
+
+      if (mounted) {
+        setPreviewFontSize(best);
+      }
+    };
+
+    rafId = window.requestAnimationFrame(fitPreviewText);
+
+    return () => {
+      mounted = false;
+      if (rafId) {
+        window.cancelAnimationFrame(rafId);
+      }
+    };
+  }, [
+    previewDraft.fontSize,
+    previewDraft.lineHeight,
+    previewDraft.textAlign,
+    previewDraft.language,
+    t.previewVerse,
+  ]);
+
   const handleBackgroundUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -240,347 +300,224 @@ export default function Settings() {
   };
 
   const activeBackgrounds = draft.bgType === "gradient" ? gradients : backgrounds;
+  const [tab, setTab] = useState("reading");
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 768 : false));
 
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile && tab === "presentation") {
+      setTab("reading");
+    }
+  }, [isMobile, tab]);
   return (
-    <div className="app-shell px-4 pb-24 pt-4 md:px-6 md:pt-6">
-      <div className="mx-auto max-w-7xl">
-        <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-          <div className="space-y-5">
-            <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.26),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(56,189,248,0.16),_transparent_24%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(8,17,32,0.98))] p-5 shadow-2xl shadow-black/30 md:p-7">
-              <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.34em] text-slate-400">
-                    {t.readingSetup}
-                  </p>
-                  <h1 className="mt-3 text-3xl font-bold text-white md:text-5xl">
-                    {t.settingsTitle}
-                  </h1>
-                  <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
-                    {t.settingsIntro}
-                  </p>
-                </div>
+    <div className="app-shell px-4 pb-16 pt-4 md:px-6 md:pt-6">
+      <div className="mx-auto max-w-6xl">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <p className="text-xs font-semibold uppercase text-slate-400">{t.readingSetup}</p>
+            <h1 className="mt-2 text-2xl font-bold text-white">{t.settingsTitle}</h1>
+            <p className="mt-1 text-sm text-slate-300 max-w-xl">{t.settingsIntro}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={resetSettings} className="rounded px-3 py-2 bg-slate-800 text-sm text-white">{t.resetSettings}</button>
+          </div>
+        </div>
 
-                <button
-                  onClick={resetSettings}
-                  className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-100 transition hover:bg-white/10"
-                >
-                  {t.resetSettings}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2">
+            <div className="flex gap-3 mb-4">
+              <button onClick={() => setTab("reading")} className={`px-4 py-2 rounded ${tab === "reading" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-200"}`}>Reading</button>
+              <button onClick={() => setTab("visual")} className={`px-4 py-2 rounded ${tab === "visual" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-200"}`}>Visual</button>
+              {!isMobile && (
+                <button onClick={() => setTab("presentation")} className={`px-4 py-2 rounded ${tab === "presentation" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-200"}`}>
+                  Presentation
                 </button>
-              </div>
+              )}
+            </div>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                <InfoPill label={t.fontSize} value={`${draft.fontSize}px`} />
-                <InfoPill
-                  label={t.cardOpacity}
-                  value={`${Math.round(draft.cardOpacity * 100)}%`}
-                />
-                <InfoPill
-                  label={t.language}
-                  value={draft.language === "en" ? t.english : t.tamil}
-                />
-              </div>
-            </section>
-
-            <Section title="Reading Experience" subtitle="Keep the primary controls together so the page is easier to scan and adjust.">
-              <div className="grid gap-6 lg:grid-cols-2">
+            <div className="space-y-5">
+              {tab === "reading" && (
                 <div className="space-y-5">
-                  <StepperControl
-                    label={t.fontSize}
-                    value={draft.fontSize}
-                    valueLabel={`${draft.fontSize}px`}
-                    min={18}
-                    max={42}
-                    step={1}
-                    onChange={(fontSize) => updateDraft({ fontSize })}
-                    presets={[
-                      { value: 20, label: "20" },
-                      { value: 24, label: "24" },
-                      { value: 28, label: "28" },
-                      { value: 32, label: "32" },
-                    ]}
-                  />
-
-                  <StepperControl
-                    label={t.lineSpacing}
-                    value={draft.lineHeight}
-                    valueLabel={`${draft.lineHeight.toFixed(1)}x`}
-                    min={1.3}
-                    max={2.4}
-                    step={0.1}
-                    onChange={(lineHeight) => updateDraft({ lineHeight })}
-                    presets={[
-                      { value: 1.4, label: "1.4x" },
-                      { value: 1.6, label: "1.6x" },
-                      { value: 1.8, label: "1.8x" },
-                      { value: 2.0, label: "2.0x" },
-                    ]}
-                  />
-
-                  <StepperControl
-                    label={t.readerWidth}
-                    value={draft.readerWidth}
-                    valueLabel={`${draft.readerWidth}px`}
-                    min={640}
-                    max={1200}
-                    step={20}
-                    onChange={(readerWidth) => updateDraft({ readerWidth })}
-                    presets={[
-                      { value: 720, label: "720" },
-                      { value: 860, label: "860" },
-                      { value: 960, label: "960" },
-                      { value: 1100, label: "1100" },
-                    ]}
-                  />
-                </div>
-
-                <div className="space-y-5">
-                  <StepperControl
-                    label={t.cardOpacity}
-                    value={draft.cardOpacity}
-                    valueLabel={`${Math.round(draft.cardOpacity * 100)}%`}
-                    min={0.2}
-                    max={0.9}
-                    step={0.05}
-                    onChange={(cardOpacity) => updateDraft({ cardOpacity })}
-                    presets={[
-                      { value: 0.3, label: "30%" },
-                      { value: 0.5, label: "50%" },
-                      { value: 0.7, label: "70%" },
-                      { value: 0.85, label: "85%" },
-                    ]}
-                  />
-
-                  <div>
-                    <p className="mb-2 text-sm text-slate-300">{t.textAlign}</p>
-                    <Segmented
-                      value={draft.textAlign}
-                      onChange={(textAlign) => updateDraft({ textAlign })}
-                      options={[
-                        { value: "left", label: t.left },
-                        { value: "center", label: t.center },
-                        { value: "justify", label: t.justify },
-                      ]}
-                    />
-                  </div>
-
-                  <div>
-                    <p className="mb-2 text-sm text-slate-300">{t.showReference}</p>
-                    <Segmented
-                      value={String(draft.showReference)}
-                      onChange={(value) => updateDraft({ showReference: value === "true" })}
-                      options={[
-                        { value: "true", label: t.yes },
-                        { value: "false", label: t.no },
-                      ]}
-                    />
-                  </div>
-
-                  <div>
-                    <p className="mb-2 text-sm text-slate-300">{t.language}</p>
-                    <Segmented
-                      value={draft.language}
-                      onChange={(language) => updateDraft({ language })}
-                      options={[
-                        { value: "ta", label: t.tamil },
-                        { value: "en", label: t.english },
-                      ]}
-                    />
-                  </div>
-                </div>
-              </div>
-            </Section>
-
-            <Section
-              title="Visual Setup"
-              subtitle="Background choices and uploads are grouped here so the visual workflow feels simpler."
-              className="[content-visibility:auto] [contain-intrinsic-size:900px]"
-            >
-              <div className="space-y-5">
-                <div>
-                  <p className="mb-2 text-sm text-slate-300">Background Type</p>
-                  <Segmented
-                    value={draft.bgType === "gradient" ? "gradient" : "image"}
-                    onChange={(mode) =>
-                      updateDraft({
-                        bgType: mode,
-                        bgIndex: draft.bgIndex ?? 0,
-                      })
-                    }
-                    options={[
-                      { value: "image", label: t.imageBackgrounds },
-                      { value: "gradient", label: t.gradientBackgrounds },
-                    ]}
-                  />
-                </div>
-
-                <div className="grid gap-5 lg:grid-cols-[0.92fr_1.08fr]">
-                  <div className="space-y-4">
-                    <div className="rounded-[1.6rem] border border-white/10 bg-black/20 p-4">
-                      <p className="text-sm font-semibold text-white">{t.customBackground}</p>
-                      <p className="mt-1 text-sm leading-6 text-slate-400">
-                        {t.customBackgroundIntro}
-                      </p>
-                      <div className="mt-4 flex flex-wrap gap-3">
-                        <button
-                          onClick={() => backgroundInputRef.current?.click()}
-                          className="rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-950/30"
-                        >
-                          {t.uploadImage}
-                        </button>
-                        {draft.customBackground ? (
-                          <button
-                            onClick={() =>
-                              updateDraft({
-                                customBackground: null,
-                                bgType: "image",
-                                bgIndex: 0,
-                              })
-                            }
-                            className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 transition hover:bg-white/10"
-                          >
-                            {t.removeImage}
-                          </button>
-                        ) : null}
-                      </div>
-
-                      <input
-                        ref={backgroundInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleBackgroundUpload}
-                        className="hidden"
-                      />
-
-                      <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-black/30">
-                        {draft.customBackground ? (
-                          <img
-                            src={draft.customBackground}
-                            alt="Custom background"
-                            className="h-44 w-full object-cover"
-                            loading="lazy"
-                            decoding="async"
-                          />
-                        ) : (
-                          <div className="flex h-44 items-center justify-center text-sm text-slate-500">
-                            {t.uploadImage}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <Section
-                      title={t.installApp}
-                      subtitle={t.installAppIntro}
-                      className="border-0 bg-[linear-gradient(180deg,_rgba(7,15,28,0.85),_rgba(7,15,28,0.92))] p-0 shadow-none"
-                    >
+                  <Section title="Reading Experience" subtitle="Adjust font, spacing, and layout.">
+                    <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-4">
-                        <button
-                          onClick={promptInstall}
-                          disabled={!canInstall}
-                          className={`w-full rounded-2xl px-4 py-3 text-sm font-semibold text-white shadow-lg ${
-                            canInstall
-                              ? "bg-gradient-to-br from-indigo-500 to-sky-500 shadow-indigo-950/30"
-                              : "cursor-not-allowed bg-slate-800 text-slate-400 shadow-none"
-                          }`}
-                        >
-                          {isInstalled ? t.installed : t.installNow}
-                        </button>
+                        <StepperControl label={t.fontSize} value={draft.fontSize} valueLabel={`${draft.fontSize}px`} min={18} max={42} step={1} onChange={(fontSize) => updateDraft({ fontSize })} />
+                        <StepperControl label={t.lineSpacing} value={draft.lineHeight} valueLabel={`${draft.lineHeight.toFixed(1)}x`} min={1.3} max={2.4} step={0.1} onChange={(lineHeight) => updateDraft({ lineHeight })} />
+                        <StepperControl label={t.readerWidth} value={draft.readerWidth} valueLabel={`${draft.readerWidth}px`} min={640} max={1200} step={20} onChange={(readerWidth) => updateDraft({ readerWidth })} />
+                      </div>
 
-                        <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-7 text-slate-300">
-                          {isInstalled ? t.installed : t.installHelp}
+                      <div className="space-y-4">
+                        <StepperControl label={t.cardOpacity} value={draft.cardOpacity} valueLabel={`${Math.round(draft.cardOpacity * 100)}%`} min={0.2} max={0.9} step={0.05} onChange={(cardOpacity) => updateDraft({ cardOpacity })} />
+                        <div>
+                          <p className="mb-2 text-sm text-slate-300">{t.textAlign}</p>
+                          <Segmented value={draft.textAlign} onChange={(textAlign) => updateDraft({ textAlign })} options={[{ value: "left", label: t.left }, { value: "center", label: t.center }, { value: "justify", label: t.justify }]} />
+                        </div>
+                        <div>
+                          <p className="mb-2 text-sm text-slate-300">{t.language}</p>
+                          <Segmented value={draft.language} onChange={(language) => updateDraft({ language })} options={[{ value: "ta", label: t.tamil }, { value: "en", label: t.english }]} />
                         </div>
                       </div>
-                    </Section>
-                  </div>
-
-                  <div>
-                    <p className="mb-3 text-sm text-slate-300">
-                      {draft.bgType === "gradient"
-                        ? t.gradientBackgroundsIntro
-                        : t.imageBackgroundsIntro}
-                    </p>
-                    <div className="grid grid-cols-2 gap-3">
-                      {activeBackgrounds.map((item, i) => (
-                        <BackgroundTile
-                          key={`${draft.bgType}-${i}`}
-                          active={draft.bgIndex === i}
-                          onClick={() => updateDraft({ bgIndex: i })}
-                        >
-                          {draft.bgType === "gradient" ? (
-                            <div className="h-28 w-full" style={{ background: item }} />
-                          ) : (
-                            <img
-                              src={item}
-                              alt={`Background ${i + 1}`}
-                              className="h-28 w-full object-cover"
-                              loading="lazy"
-                              decoding="async"
-                            />
-                          )}
-                        </BackgroundTile>
-                      ))}
                     </div>
-                  </div>
+                  </Section>
                 </div>
-              </div>
-            </Section>
+              )}
+
+              {tab === "visual" && (
+                <div className="space-y-5">
+                  <Section title="Visual Setup" subtitle="Backgrounds, uploads and quick visual tweaks.">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <p className="mb-2 text-sm text-slate-300">Background Type</p>
+                        <Segmented value={draft.bgType === "gradient" ? "gradient" : "image"} onChange={(mode) => updateDraft({ bgType: mode, bgIndex: draft.bgIndex ?? 0 })} options={[{ value: "image", label: t.imageBackgrounds }, { value: "gradient", label: t.gradientBackgrounds }]} />
+
+                        <div className="mt-4 space-y-3">
+                          <div className="rounded p-3 bg-slate-800">
+                            <p className="text-sm font-semibold text-white">{t.customBackground}</p>
+                            <div className="mt-3 flex gap-2">
+                              <button onClick={() => backgroundInputRef.current?.click()} className="px-3 py-2 rounded bg-indigo-600 text-white">{t.uploadImage}</button>
+                              {draft.customBackground ? (<button onClick={() => updateDraft({ customBackground: null, bgType: "image", bgIndex: 0 })} className="px-3 py-2 rounded bg-slate-700 text-white">{t.removeImage}</button>) : null}
+                            </div>
+                            <input ref={backgroundInputRef} type="file" accept="image/*" onChange={handleBackgroundUpload} className="hidden" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="mb-2 text-sm text-slate-300">{draft.bgType === "gradient" ? t.gradientBackgroundsIntro : t.imageBackgroundsIntro}</p>
+                        <div className="grid grid-cols-3 gap-3">
+                          {activeBackgrounds.map((item, i) => {
+                            const isGradientItem = typeof item === "string" && item.startsWith("linear-gradient");
+                            return (
+                              <BackgroundTile key={`${draft.bgType}-${i}`} active={draft.bgIndex === i} onClick={() => updateDraft({ bgType: isGradientItem ? "gradient" : "image", bgIndex: i })}>
+                                {isGradientItem ? <div className="h-20 w-full" style={{ background: item }} /> : <img src={item} alt={`bg-${i}`} className="h-20 w-full object-cover" />}
+                              </BackgroundTile>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </Section>
+                </div>
+              )}
+
+              {tab === "presentation" && (
+                <div className="space-y-5">
+                  <Section title="Presentation" subtitle="Settings for live displays and stage screens.">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block">
+                          <p className="mb-2 text-sm text-slate-300">{t.presets}</p>
+                          <select
+                            value={draft.presentationPreset}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const presetMap = {
+                                horizontal: {
+                                  presentationJustify: "center",
+                                  presentationMaxFontSize: 80,
+                                  presentationShadow: true,
+                                  presentationBox: true,
+                                  presentationHeaderBox: true,
+                                  presentationUppercase: false,
+                                },
+                                primary: {
+                                  presentationJustify: "center",
+                                  presentationMaxFontSize: 100,
+                                  presentationShadow: true,
+                                  presentationBox: false,
+                                  presentationHeaderBox: true,
+                                },
+                                stretch: {
+                                  presentationJustify: "justify",
+                                  presentationMaxFontSize: 140,
+                                  presentationShadow: false,
+                                  presentationBox: false,
+                                  presentationHeaderBox: false,
+                                  presentationLineWrap: false,
+                                },
+                                center: {
+                                  presentationJustify: "center",
+                                  presentationMaxFontSize: 90,
+                                  presentationShadow: true,
+                                  presentationBox: true,
+                                  presentationUppercase: true,
+                                },
+                                minimal: {
+                                  presentationJustify: "center",
+                                  presentationMaxFontSize: 60,
+                                  presentationShadow: false,
+                                  presentationBox: false,
+                                  presentationHeaderBox: false,
+                                  presentationOutline: true,
+                                },
+                              };
+
+                              updateDraft({ presentationPreset: val, ...(presetMap[val] || {}) });
+                            }}
+                            className="w-full rounded px-3 py-2 bg-slate-800 text-white"
+                          >
+                            <option value="horizontal">{t.fullScreenHorizontal}</option>
+                            <option value="primary">{t.fullScreenPrimary}</option>
+                            <option value="stretch">Stretch (fill)</option>
+                            <option value="center">Center Focus</option>
+                            <option value="minimal">Minimal</option>
+                          </select>
+                        </label>
+                      </div>
+                      <div>
+                        <label>
+                          <p className="mb-2 text-sm text-slate-300">{t.maximumFontSize}</p>
+                          <input type="number" min={30} max={180} value={settings.presentationMaxFontSize} onChange={(e) => updateDraft({ presentationMaxFontSize: Number(e.target.value) || 0 })} className="w-full rounded px-3 py-2 bg-slate-800 text-white" />
+                        </label>
+                      </div>
+                    </div>
+                  </Section>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="xl:sticky xl:top-6 xl:self-start">
-            <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_32%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(8,17,32,0.96))] p-4 shadow-2xl shadow-black/30 md:p-5">
-              <div className="mb-4 flex items-center justify-between">
+          <div>
+            <div className="rounded p-4 bg-slate-900">
+              <div className="flex items-center justify-between mb-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-400">
-                    {t.livePreview}
-                  </p>
-                  <p className="mt-2 text-sm text-slate-400">{t.applyNow}</p>
+                  <p className="text-xs text-slate-400">{t.livePreview}</p>
+                  <p className="text-sm text-slate-300">{t.applyNow}</p>
                 </div>
-                <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300">
-                  {draft.language === "en" ? "EN" : "TA"}
-                </div>
+                <div className="text-xs text-slate-300 rounded bg-slate-800 px-3 py-1">{draft.language === "en" ? "EN" : "TA"}</div>
               </div>
 
-              <div
-                className="overflow-hidden rounded-[1.8rem] border border-white/10 p-4 md:p-5"
-                style={{
-                  background: previewBackground,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                }}
-              >
+              <div className="rounded p-4" style={{ background: previewBackground, backgroundSize: 'cover', backgroundPosition: 'center' }}>
                 <div
-                  className="mx-auto rounded-[1.7rem] border border-white/15 px-5 py-7 shadow-xl"
+                  ref={previewCardRef}
+                  className="rounded p-4"
                   style={{
                     maxWidth: `${previewDraft.readerWidth}px`,
-                    background: `rgba(0, 0, 0, ${previewDraft.cardOpacity})`,
+                    background: `rgba(0,0,0,${previewDraft.cardOpacity})`,
+                    minHeight: "20rem",
                   }}
                 >
-                  {previewDraft.showReference && (
-                    <p
-                      className="mb-4 text-sm font-bold text-white"
-                      style={{
-                        textAlign: previewDraft.textAlign,
-                        textShadow: "0 2px 10px rgba(0, 0, 0, 0.65)",
-                      }}
-                    >
-                      {t.previewRef}
-                    </p>
-                  )}
-
+                  {previewDraft.showReference && <p className="text-sm font-bold text-white" style={{ textAlign: previewDraft.textAlign }}>{t.previewRef}</p>}
                   <p
+                    ref={previewTextRef}
                     className="font-bold text-white"
                     style={{
-                      fontSize: `${previewDraft.fontSize}px`,
+                      fontSize: `${previewFontSize}px`,
                       lineHeight: previewDraft.lineHeight,
                       textAlign: previewDraft.textAlign,
-                      textShadow: "0 2px 14px rgba(0, 0, 0, 0.5)",
+                      overflowWrap: "break-word",
                     }}
                   >
                     {t.previewVerse}
                   </p>
                 </div>
               </div>
-            </section>
+            </div>
           </div>
         </div>
       </div>

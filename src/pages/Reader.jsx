@@ -1,5 +1,5 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useRef, useState, useMemo } from "react";
 
 import bible from "../utils/loadBible";
 import useAppSettings from "../hooks/useAppSettings";
@@ -13,16 +13,26 @@ import { getUIText } from "../utils/uiText";
 export default function Reader() {
   const { book, chapter, verse } = useParams();
   const navigate = useNavigate();
-
   const decodedBook = decodeURIComponent(book);
+  const chapterPath = `/${encodeURIComponent(decodedBook)}/${chapter}`;
 
   const [settings] = useAppSettings();
   const libraryData = useLibraryData();
   const t = getUIText(settings.language);
   const [fade, setFade] = useState(true);
+  const [isFullscreenActive, setIsFullscreenActive] = useState(
+    () => Boolean(document.fullscreenElement)
+  );
+  const [fullscreenCheckComplete, setFullscreenCheckComplete] = useState(false);
+  const readerFrameRef = useRef(null);
+  const navigatedRef = useRef(false);
   const scrollContainerRef = useRef(null);
   const autoScrollFrameRef = useRef(null);
   const lastAutoScrollTimeRef = useRef(null);
+  const verseChangeTimeoutRef = useRef(null);
+  const isDesktopRef = useRef(
+    typeof window !== "undefined" ? window.innerWidth >= 768 : true
+  );
 
   const backgrounds = [
     "/bg/bg1.jpg",
@@ -41,69 +51,165 @@ export default function Reader() {
   ];
 
   const bookData = bible[decodedBook];
-  const chapterData = bookData?.chapters.find((ch) => ch.chapter === chapter);
+  const chapterData = bookData?.chapters.find(
+    (ch) => String(ch.chapter) === String(chapter)
+  );
   const verses = chapterData?.verses || [];
-  const currentVerseIndex = verses.findIndex((v) => v.verse === verse);
+  const currentVerseIndex = verses.findIndex(
+    (v) => String(v.verse) === String(verse)
+  );
+  const verseData = verses[currentVerseIndex];
+  const verseItem = useMemo(() => {
+    if (!verseData) return null;
+
+    return {
+      id: getVerseId(decodedBook, chapter, verseData.verse),
+      type: "verse",
+      bookEnglish: decodedBook,
+      bookTamil: bookData?.book.tamil || decodedBook,
+      chapter,
+      verse: verseData.verse,
+      text: verseData.text,
+    };
+  }, [decodedBook, chapter, verseData?.verse, verseData?.text, bookData?.book.tamil]);
 
   useEffect(() => {
-    const elem = document.documentElement;
-    elem.requestFullscreen?.().catch(() => {});
+    if (!isDesktopRef.current || !fullscreenCheckComplete || isFullscreenActive || navigatedRef.current) {
+      return;
+    }
 
-    const onExit = () => {
-      if (!document.fullscreenElement) navigate(-1);
+    navigate(chapterPath, { replace: true });
+  }, [chapterPath, fullscreenCheckComplete, isFullscreenActive, navigate]);
+
+  useEffect(() => {
+    if (!isDesktopRef.current) {
+      return undefined;
+    }
+
+    const frame = readerFrameRef.current;
+
+    if (!frame) {
+      return undefined;
+    }
+
+    const requestFullscreen = () => {
+      if (document.fullscreenElement === frame) {
+        setIsFullscreenActive(true);
+        setFullscreenCheckComplete(true);
+        return;
+      }
+
+      frame.requestFullscreen?.()
+        .then(() => {
+          setIsFullscreenActive(true);
+          setFullscreenCheckComplete(true);
+        })
+        .catch(() => {
+          setIsFullscreenActive(false);
+          setFullscreenCheckComplete(true);
+        });
     };
 
-    document.addEventListener("fullscreenchange", onExit);
-    return () => document.removeEventListener("fullscreenchange", onExit);
-  }, [navigate]);
+    const fullscreenRequestId = window.requestAnimationFrame(requestFullscreen);
+
+    const handleFullscreenChange = () => {
+      if (navigatedRef.current) {
+        return;
+      }
+
+      const active = document.fullscreenElement === frame;
+      setIsFullscreenActive(active);
+      setFullscreenCheckComplete(true);
+    };
+
+    const handleFullscreenError = () => {
+      setIsFullscreenActive(false);
+      setFullscreenCheckComplete(true);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("fullscreenerror", handleFullscreenError);
+
+    return () => {
+      window.cancelAnimationFrame(fullscreenRequestId);
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("fullscreenerror", handleFullscreenError);
+    };
+  }, []);
 
   useEffect(() => {
+    return () => {
+      if (verseChangeTimeoutRef.current) {
+        window.clearTimeout(verseChangeTimeoutRef.current);
+        verseChangeTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const closeReader = () => {
+      navigatedRef.current = true;
+
+      if (document.fullscreenElement && document.fullscreenElement === readerFrameRef.current) {
+        document
+          .exitFullscreen?.()
+          .then(() => {
+            navigate(chapterPath, { replace: true });
+          })
+          .catch(() => {
+            navigate(chapterPath, { replace: true });
+          });
+
+        return;
+      }
+
+      navigate(chapterPath, { replace: true });
+    };
+
     const changeVerse = (newIndex) => {
       const nextVerse = verses[newIndex];
 
-      if (!nextVerse) {
+      if (!nextVerse || verseChangeTimeoutRef.current) {
         return;
       }
 
       setFade(false);
-      setTimeout(() => {
-        navigate(
-          `/reader/${encodeURIComponent(decodedBook)}/${chapter}/${nextVerse.verse}`
-        );
+      verseChangeTimeoutRef.current = window.setTimeout(() => {
+        navigate(`/reader/${encodeURIComponent(decodedBook)}/${chapter}/${nextVerse.verse}`, {
+          replace: true,
+        });
         setFade(true);
+        verseChangeTimeoutRef.current = null;
       }, 150);
     };
 
     const handleKey = (e) => {
       if (e.key === "ArrowRight" && currentVerseIndex < verses.length - 1) {
+        e.preventDefault();
         changeVerse(currentVerseIndex + 1);
       }
 
       if (e.key === "ArrowLeft" && currentVerseIndex > 0) {
+        e.preventDefault();
         changeVerse(currentVerseIndex - 1);
       }
 
       if (e.key === "Escape") {
-        document.exitFullscreen?.();
+        e.preventDefault();
+        closeReader();
       }
     };
 
     window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [chapter, currentVerseIndex, decodedBook, navigate, verses]);
-
-  const verseData = verses[currentVerseIndex];
-  const verseItem = verseData
-    ? {
-        id: getVerseId(decodedBook, chapter, verseData.verse),
-        type: "verse",
-        bookEnglish: decodedBook,
-        bookTamil: bookData?.book.tamil || decodedBook,
-        chapter,
-        verse: verseData.verse,
-        text: verseData.text,
+    return () => {
+      window.removeEventListener("keydown", handleKey);
+      if (verseChangeTimeoutRef.current) {
+        window.clearTimeout(verseChangeTimeoutRef.current);
+        verseChangeTimeoutRef.current = null;
+        setFade(true);
       }
-    : null;
+    };
+  }, [chapter, chapterPath, currentVerseIndex, decodedBook, navigate, verses]);
 
   useEffect(() => {
     if (verseItem) {
@@ -184,6 +290,7 @@ export default function Reader() {
 
   return (
     <div
+      ref={readerFrameRef}
       className="flex h-screen w-screen items-center justify-center overflow-hidden px-4 text-white"
       style={{
         background:

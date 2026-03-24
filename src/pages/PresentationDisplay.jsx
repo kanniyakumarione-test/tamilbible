@@ -136,6 +136,18 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
   }
 
   if (isStage) {
+    const textStyle = {
+      fontSize: `${Math.max(Math.min(settings.presentationMaxFontSize || 90, 140), 40)}px`,
+      lineHeight: settings.presentationTwoLines ? 1.15 : 1.28,
+      textAlign: settings.presentationJustify || "center",
+      textTransform: settings.presentationUppercase ? "uppercase" : "none",
+      textShadow: settings.presentationShadow ? "0 4px 16px rgba(0,0,0,0.55)" : "none",
+      color: settings.stageTextColor1 || "#ffffff",
+      WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
+      whiteSpace: settings.presentationLineWrap ? "normal" : "nowrap",
+      overflowWrap: settings.presentationLineWrap ? "break-word" : "normal",
+    };
+
     return (
       <div className="relative z-10 grid min-h-screen gap-6 px-8 py-8 xl:grid-cols-[1.3fr,0.7fr]">
         <div className="flex flex-col justify-center rounded-[2rem] border border-white/10 bg-black/25 px-10 py-12 backdrop-blur-md">
@@ -153,17 +165,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
               >
                 {activeItem.bookTamil} {activeItem.chapter}:{activeItem.verse}
               </p>
-              <p
-                className="mt-10 font-bold"
-                style={{
-                  fontSize: `${Math.max(Math.min(settings.presentationMaxFontSize || 90, 110), 54)}px`,
-                  lineHeight: settings.presentationTwoLines ? 1.15 : 1.28,
-                  textAlign: settings.presentationJustify || "center",
-                  textTransform: settings.presentationUppercase ? "uppercase" : "none",
-                  textShadow: settings.presentationShadow ? "0 4px 16px rgba(0,0,0,0.55)" : "none",
-                  color: settings.stageTextColor1 || "#ffffff",
-                }}
-              >
+              <p className="mt-10 font-bold" style={textStyle}>
                 {activeItem.text}
               </p>
             </>
@@ -226,7 +228,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
             : "none",
         }}
       >
-        {activeItem ? (
+          {activeItem ? (
           <>
             <p className="text-base font-semibold uppercase tracking-[0.36em] text-slate-300">
               Live Presentation
@@ -234,18 +236,32 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
             <p className="mt-5 text-3xl font-bold text-white">
               {activeItem.bookTamil} {activeItem.chapter}:{activeItem.verse}
             </p>
-            <p
-              className="mt-10 font-bold text-white"
-              style={{
-                fontSize: `${Math.max(Math.min(settings.presentationMaxFontSize || 90, 120), 52)}px`,
-                lineHeight: settings.presentationTwoLines ? 1.14 : 1.28,
-                textAlign: settings.presentationJustify || "center",
-                textTransform: settings.presentationUppercase ? "uppercase" : "none",
-                textShadow: settings.presentationShadow ? "0 4px 18px rgba(0,0,0,0.52)" : "none",
-              }}
-            >
-              {activeItem.text}
-            </p>
+              {(() => {
+                const mainTextStyle = {
+                  fontSize: `${Math.max(Math.min(settings.presentationMaxFontSize || 90, 140), 48)}px`,
+                  lineHeight: settings.presentationTwoLines ? 1.14 : 1.28,
+                  textAlign: settings.presentationJustify || "center",
+                  textTransform: settings.presentationUppercase ? "uppercase" : "none",
+                  textShadow: settings.presentationShadow ? "0 4px 18px rgba(0,0,0,0.52)" : "none",
+                  WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
+                  whiteSpace: settings.presentationLineWrap ? "normal" : "nowrap",
+                  overflowWrap: settings.presentationLineWrap ? "break-word" : "normal",
+                };
+
+                return (
+                  <div>
+                    {settings.presentationHeaderBox ? (
+                      <div className="inline-block rounded px-3 py-1" style={{ background: "rgba(255,255,255,0.04)" }}>
+                        <p className="text-base font-semibold uppercase tracking-[0.36em] text-slate-300">Live Presentation</p>
+                      </div>
+                    ) : null}
+
+                    <p className="mt-6 font-bold text-white" style={mainTextStyle}>
+                      {activeItem.text}
+                    </p>
+                  </div>
+                );
+              })()}
           </>
         ) : (
           <div className="py-16 text-center">
@@ -264,6 +280,7 @@ export default function PresentationDisplay() {
   const { mode = "main" } = useParams();
   const [settings] = useAppSettings();
   const libraryData = useLibraryData();
+  const displayRef = useRef(null);
 
   const queue = libraryData.sermon.queue;
   const activeItem = libraryData.sermon.activeItem || queue[0] || null;
@@ -272,11 +289,32 @@ export default function PresentationDisplay() {
     currentIndex >= 0 && currentIndex < queue.length - 1 ? queue[currentIndex + 1] : null;
 
   const isStage = mode === "stage";
+  const isEnabled = isStage
+    ? settings.enableStagePresentation
+    : settings.enableMainPresentation;
   const background = isStage ? getStageBackground(settings) : getReaderBackground(settings);
   const overlayColor = settings.stageOverlayColor || "#000000";
   const displayMode = libraryData.sermon.displayMode || "live";
   const [controlsVisible, setControlsVisible] = useState(true);
   const hideControlsTimerRef = useRef(null);
+
+  useEffect(() => {
+    const displayElement = displayRef.current;
+
+    if (!displayElement || document.fullscreenElement) {
+      return undefined;
+    }
+
+    const requestDisplayFullscreen = () => {
+      displayElement.requestFullscreen?.().catch(() => {});
+    };
+
+    const fullscreenRequestId = window.requestAnimationFrame(requestDisplayFullscreen);
+
+    return () => {
+      window.cancelAnimationFrame(fullscreenRequestId);
+    };
+  }, []);
 
   useEffect(() => {
     const showControls = () => {
@@ -330,6 +368,7 @@ export default function PresentationDisplay() {
 
   return (
     <div
+      ref={displayRef}
       className="relative min-h-screen overflow-hidden text-white"
       style={{
         background: displayMode === "black" ? "#000000" : background,
@@ -348,13 +387,29 @@ export default function PresentationDisplay() {
         />
       ) : null}
 
-      <DisplayBody
-        isStage={isStage}
-        settings={settings}
-        activeItem={activeItem}
-        nextItem={nextItem}
-        displayMode={displayMode}
-      />
+      {isEnabled ? (
+        <DisplayBody
+          isStage={isStage}
+          settings={settings}
+          activeItem={activeItem}
+          nextItem={nextItem}
+          displayMode={displayMode}
+        />
+      ) : (
+        <div className="relative z-10 flex min-h-screen items-center justify-center px-8">
+          <div className="rounded-[2rem] border border-white/10 bg-black/35 px-10 py-12 text-center backdrop-blur-md">
+            <p className="text-lg font-semibold uppercase tracking-[0.4em] text-slate-400">
+              {isStage ? "Stage View" : "Main Presentation"}
+            </p>
+            <p className="mt-6 text-4xl font-bold text-white">
+              Turned Off
+            </p>
+            <p className="mt-4 text-lg text-slate-300">
+              Enable this screen from Advanced Presentation when you want to show it again.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div
         className={`pointer-events-none fixed bottom-4 left-4 right-4 z-30 flex flex-col gap-3 transition duration-300 xl:left-auto xl:right-4 xl:max-w-3xl ${
