@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import bible from "../utils/loadBible";
@@ -49,8 +49,6 @@ export default function Search() {
   const t = getUIText(settings.language);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [bookResults, setBookResults] = useState([]);
-  const [verseResults, setVerseResults] = useState([]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -60,16 +58,17 @@ export default function Search() {
     return () => clearTimeout(timeout);
   }, [query]);
 
-  useEffect(() => {
+  const bookResults = useMemo(() => {
+    const value = debouncedQuery.trim();
+    return value ? findMatchingBooks(value).slice(0, 12) : [];
+  }, [debouncedQuery]);
+
+  const verseResults = useMemo(() => {
     const value = debouncedQuery.trim();
 
     if (!value) {
-      setBookResults([]);
-      setVerseResults([]);
-      return;
+      return [];
     }
-
-    setBookResults(findMatchingBooks(value).slice(0, 12));
 
     const matches = [];
 
@@ -83,7 +82,7 @@ export default function Search() {
       }
     }
 
-    setVerseResults(matches);
+    return matches;
   }, [debouncedQuery]);
 
   return (
@@ -125,7 +124,7 @@ export default function Search() {
                 <button
                   key={result.book.english}
                   onClick={() =>
-                    navigate(`/${encodeURIComponent(result.book.english)}/1`)
+                    navigate(`/${encodeURIComponent(result.book.english)}`)
                   }
                   className="rounded-2xl border border-white/10 bg-[linear-gradient(180deg,_rgba(30,41,59,0.92),_rgba(15,23,42,0.86))] p-4 text-left transition hover:border-sky-400/30 hover:bg-slate-800"
                 >

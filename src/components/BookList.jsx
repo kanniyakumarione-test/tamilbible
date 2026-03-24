@@ -93,7 +93,7 @@ export default function BookList() {
             {books.map((b, i) => (
               <Link
                 key={i}
-                to={`/${encodeURIComponent(b.book.english)}/1`}
+                to={`/${encodeURIComponent(b.book.english)}`}
                 className="rounded-2xl border border-white/10 bg-[linear-gradient(180deg,_rgba(30,41,59,0.92),_rgba(15,23,42,0.86))] px-4 py-4 text-left transition hover:-translate-y-0.5 hover:border-sky-400/35 hover:bg-slate-800"
               >
                 <span className="block text-base font-semibold text-slate-100">

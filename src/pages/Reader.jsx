@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import bible from "../utils/loadBible";
 import useAppSettings from "../hooks/useAppSettings";
@@ -16,7 +16,6 @@ export default function Reader() {
 
   const decodedBook = decodeURIComponent(book);
 
-  const [currentVerseIndex, setCurrentVerseIndex] = useState(0);
   const [settings] = useAppSettings();
   const libraryData = useLibraryData();
   const t = getUIText(settings.language);
@@ -44,11 +43,7 @@ export default function Reader() {
   const bookData = bible[decodedBook];
   const chapterData = bookData?.chapters.find((ch) => ch.chapter === chapter);
   const verses = chapterData?.verses || [];
-
-  useEffect(() => {
-    const index = verses.findIndex((v) => v.verse === verse);
-    setCurrentVerseIndex(index >= 0 ? index : 0);
-  }, [verse, verses]);
+  const currentVerseIndex = verses.findIndex((v) => v.verse === verse);
 
   useEffect(() => {
     const elem = document.documentElement;
@@ -64,9 +59,17 @@ export default function Reader() {
 
   useEffect(() => {
     const changeVerse = (newIndex) => {
+      const nextVerse = verses[newIndex];
+
+      if (!nextVerse) {
+        return;
+      }
+
       setFade(false);
       setTimeout(() => {
-        setCurrentVerseIndex(newIndex);
+        navigate(
+          `/reader/${encodeURIComponent(decodedBook)}/${chapter}/${nextVerse.verse}`
+        );
         setFade(true);
       }, 150);
     };
@@ -87,24 +90,20 @@ export default function Reader() {
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [currentVerseIndex, verses]);
+  }, [chapter, currentVerseIndex, decodedBook, navigate, verses]);
 
   const verseData = verses[currentVerseIndex];
-  const verseItem = useMemo(
-    () =>
-      verseData
-        ? {
-            id: getVerseId(decodedBook, chapter, verseData.verse),
-            type: "verse",
-            bookEnglish: decodedBook,
-            bookTamil: bookData?.book.tamil || decodedBook,
-            chapter,
-            verse: verseData.verse,
-            text: verseData.text,
-          }
-        : null,
-    [bookData?.book.tamil, chapter, decodedBook, verseData]
-  );
+  const verseItem = verseData
+    ? {
+        id: getVerseId(decodedBook, chapter, verseData.verse),
+        type: "verse",
+        bookEnglish: decodedBook,
+        bookTamil: bookData?.book.tamil || decodedBook,
+        chapter,
+        verse: verseData.verse,
+        text: verseData.text,
+      }
+    : null;
 
   useEffect(() => {
     if (verseItem) {

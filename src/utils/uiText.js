@@ -36,6 +36,8 @@ const uiText = {
     next: "அடுத்தது",
     share: "பகிர்",
     close: "மூடு",
+    cancel: "ரத்து செய்",
+    save: "சேமி",
     readingSetup: "வாசிப்பு அமைப்பு",
     settingsTitle: "அமைப்புகள்",
     settingsIntro:
@@ -110,7 +112,7 @@ const uiText = {
     removeImage: "படத்தை அகற்று",
     applyNow: "உடனே பயன்படுத்து",
     livePreview: "நேரடி முன்னோட்டம்",
-    previewVerse: "கர்த்தர் என் மேய்ப்பான்; எனக்கு குறைவில்லை.",
+    previewVerse: "கர்த்தர் என் மேய்ப்பராயிருக்கிறார், நான் தாழ்ச்சியடையேன்",
     previewRef: "சங்கீதம் 23:1",
     installApp: "ஆப்பாக நிறுவு",
     installAppIntro: "இந்த தளத்தை மொபைல் அல்லது கணினியில் தனி software போல நிறுவலாம்.",
@@ -192,6 +194,8 @@ const uiText = {
     next: "Next",
     share: "Share",
     close: "Close",
+    cancel: "Cancel",
+    save: "Save",
     readingSetup: "Reading Setup",
     settingsTitle: "Settings",
     settingsIntro:

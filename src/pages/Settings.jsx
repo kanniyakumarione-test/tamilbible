@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import { defaultSettings } from "../utils/settings";
 import useAppSettings from "../hooks/useAppSettings";
@@ -123,7 +123,7 @@ function StepperControl({
   );
 }
 
-function BackgroundTile({ active, onClick, children }) {
+const BackgroundTile = memo(function BackgroundTile({ active, onClick, children }) {
   return (
     <button
       onClick={onClick}
@@ -134,7 +134,7 @@ function BackgroundTile({ active, onClick, children }) {
       {children}
     </button>
   );
-}
+});
 
 function InfoPill({ label, value }) {
   return (
@@ -191,9 +191,14 @@ export default function Settings() {
 
   useEffect(() => {
     if (!areSettingsEqual(settings, draft)) {
-      setDraft(settings);
+      const syncFrame = window.requestAnimationFrame(() => {
+        setDraft(settings);
+      });
+
+      return () => window.cancelAnimationFrame(syncFrame);
     }
-  }, [settings]);
+    return undefined;
+  }, [draft, settings]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -385,7 +390,11 @@ export default function Settings() {
               </div>
             </Section>
 
-            <Section title="Visual Setup" subtitle="Background choices and uploads are grouped here so the visual workflow feels simpler.">
+            <Section
+              title="Visual Setup"
+              subtitle="Background choices and uploads are grouped here so the visual workflow feels simpler."
+              className="[content-visibility:auto] [contain-intrinsic-size:900px]"
+            >
               <div className="space-y-5">
                 <div>
                   <p className="mb-2 text-sm text-slate-300">Background Type</p>
@@ -448,6 +457,8 @@ export default function Settings() {
                             src={draft.customBackground}
                             alt="Custom background"
                             className="h-44 w-full object-cover"
+                            loading="lazy"
+                            decoding="async"
                           />
                         ) : (
                           <div className="flex h-44 items-center justify-center text-sm text-slate-500">
@@ -502,6 +513,8 @@ export default function Settings() {
                               src={item}
                               alt={`Background ${i + 1}`}
                               className="h-28 w-full object-cover"
+                              loading="lazy"
+                              decoding="async"
                             />
                           )}
                         </BackgroundTile>

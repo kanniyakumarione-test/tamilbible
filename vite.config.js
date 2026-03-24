@@ -10,6 +10,33 @@ export default defineConfig({
       includeAssets: ["favicon.svg", "apple-touch-icon.png", "icon-192.png", "icon-512.png"],
       workbox: {
         maximumFileSizeToCacheInBytes: 16 * 1024 * 1024,
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.destination === "image",
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "reader-images",
+            },
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.includes("/bg/"),
+            handler: "CacheFirst",
+            options: {
+              cacheName: "reader-backgrounds",
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 60 * 60 * 24 * 30,
+              },
+            },
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.endsWith(".json"),
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "bible-json",
+            },
+          },
+        ],
       },
       manifest: {
         name: "Tamil Bible Premium",

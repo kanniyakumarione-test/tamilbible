@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import bible from "../utils/loadBible";
 import booksList from "../data/Books.json";
@@ -7,23 +7,101 @@ import { matchBookQuery } from "../utils/bookSearch";
 import useAppSettings from "../hooks/useAppSettings";
 import useLibraryData from "../hooks/useLibraryData";
 import {
-  cycleHighlight,
+  HIGHLIGHT_COLORS,
+  HIGHLIGHT_FOLDERS,
+  addSermonQueueItem,
   getChapterId,
+  getReadingPlans,
   getVerseId,
   isBookmarked,
   isFavorited,
   recordHistory,
+  saveHighlight,
   saveNote,
+  savePrayer,
   toggleBookmark,
   toggleFavorite,
+  updateReadingPlanProgress,
 } from "../utils/libraryData";
 import { getUIText } from "../utils/uiText";
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = src;
+  });
+}
+
+function canvasToBlob(canvas) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob);
+        return;
+      }
+
+      reject(new Error("Unable to export image"));
+    }, "image/png");
+  });
+}
+
+function drawCoverImage(ctx, image, width, height) {
+  const scale = Math.max(width / image.width, height / image.height);
+  const drawWidth = image.width * scale;
+  const drawHeight = image.height * scale;
+  const x = (width - drawWidth) / 2;
+  const y = (height - drawHeight) / 2;
+  ctx.drawImage(image, x, y, drawWidth, drawHeight);
+}
+
+function getWrappedLines(ctx, text, maxWidth) {
+  const words = text.split(/\s+/);
+  const lines = [];
+  let currentLine = "";
+
+  words.forEach((word) => {
+    const nextLine = currentLine ? `${currentLine} ${word}` : word;
+
+    if (ctx.measureText(nextLine).width <= maxWidth) {
+      currentLine = nextLine;
+      return;
+    }
+
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+
+    currentLine = word;
+  });
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines;
+}
+
+function drawWrappedText(ctx, lines, x, y, lineHeight) {
+  lines.forEach((line, index) => {
+    ctx.fillText(line, x, y + index * lineHeight);
+  });
+
+  return lines.length;
+}
 
 export default function Verses() {
   const { book, chapter } = useParams();
   const navigate = useNavigate();
 
   const [selectedVerse, setSelectedVerse] = useState(null);
+  const [noteEditor, setNoteEditor] = useState(null);
+  const [prayerEditor, setPrayerEditor] = useState(null);
+  const [highlightEditor, setHighlightEditor] = useState(null);
+  const [shareDesigner, setShareDesigner] = useState(null);
+  const [sermonSuccess, setSermonSuccess] = useState("");
+  const [chapterPickerOpen, setChapterPickerOpen] = useState(false);
   const [autoScrollDirection, setAutoScrollDirection] = useState(null);
   const [settings] = useAppSettings();
   const libraryData = useLibraryData();
@@ -50,6 +128,163 @@ export default function Verses() {
     "linear-gradient(to right, #0f2027, #203a43, #2c5364)",
     "linear-gradient(to right, #000428, #004e92)",
   ];
+
+  const createVerseShareImage = async (verse, design = {}) => {
+    const canvas = document.createElement("canvas");
+    const width = 1080;
+    const height = 1350;
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
+      throw new Error("Canvas not available");
+    }
+
+    if (settings.bgType === "gradient") {
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, "#0f172a");
+      gradient.addColorStop(1, "#1d4ed8");
+
+      const gradientMatches = gradients[settings.bgIndex]?.match(/#[0-9a-fA-F]{6}/g);
+
+      if (gradientMatches?.[0]) {
+        gradient.addColorStop(0, gradientMatches[0]);
+      }
+
+      if (gradientMatches?.[1]) {
+        gradient.addColorStop(1, gradientMatches[1]);
+      }
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+    } else {
+      const imageSource =
+        settings.bgType === "custom" && settings.customBackground
+          ? settings.customBackground
+          : backgrounds[settings.bgIndex];
+
+      if (imageSource) {
+        const backgroundImage = await loadImage(imageSource);
+        drawCoverImage(ctx, backgroundImage, width, height);
+      } else {
+        ctx.fillStyle = "#07111f";
+        ctx.fillRect(0, 0, width, height);
+      }
+    }
+
+    const overlay = ctx.createLinearGradient(0, 0, 0, height);
+    overlay.addColorStop(0, "rgba(7, 17, 31, 0.28)");
+    overlay.addColorStop(1, "rgba(7, 17, 31, 0.72)");
+    ctx.fillStyle = overlay;
+    ctx.fillRect(0, 0, width, height);
+
+    const templates = {
+      classic: {
+        cardX: 84,
+        cardY: 160,
+        cardWidth: width - 168,
+        cardHeight: height - 320,
+        accent: "rgba(191, 219, 254, 0.9)",
+      },
+      social: {
+        cardX: 68,
+        cardY: 120,
+        cardWidth: width - 136,
+        cardHeight: height - 240,
+        accent: "rgba(253, 224, 71, 0.92)",
+      },
+      minimal: {
+        cardX: 108,
+        cardY: 220,
+        cardWidth: width - 216,
+        cardHeight: height - 420,
+        accent: "rgba(226, 232, 240, 0.92)",
+      },
+    };
+    const selectedTemplate = templates[design.template || "classic"];
+    const { cardX, cardY, cardWidth, cardHeight, accent } = selectedTemplate;
+    const radius = 42;
+
+    ctx.fillStyle = `rgba(5, 10, 20, ${Math.min((settings.cardOpacity ?? 0.5) + 0.18, 0.82)})`;
+    ctx.beginPath();
+    ctx.moveTo(cardX + radius, cardY);
+    ctx.lineTo(cardX + cardWidth - radius, cardY);
+    ctx.quadraticCurveTo(cardX + cardWidth, cardY, cardX + cardWidth, cardY + radius);
+    ctx.lineTo(cardX + cardWidth, cardY + cardHeight - radius);
+    ctx.quadraticCurveTo(
+      cardX + cardWidth,
+      cardY + cardHeight,
+      cardX + cardWidth - radius,
+      cardY + cardHeight
+    );
+    ctx.lineTo(cardX + radius, cardY + cardHeight);
+    ctx.quadraticCurveTo(cardX, cardY + cardHeight, cardX, cardY + cardHeight - radius);
+    ctx.lineTo(cardX, cardY + radius);
+    ctx.quadraticCurveTo(cardX, cardY, cardX + radius, cardY);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.14)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = accent;
+    ctx.font = "600 26px Arial";
+    ctx.fillText(t.verse.toUpperCase(), cardX + 54, cardY + 74);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "700 42px Arial";
+    ctx.fillText(`${bookData?.book.tamil} ${chapter}:${verse.verse}`, cardX + 54, cardY + 144);
+
+    const textTop = cardY + 230;
+    const textBottom = cardY + cardHeight - 120;
+    const availableHeight = textBottom - textTop;
+    const textWidth = cardWidth - 108;
+    const fontCandidates = [
+      design.fontSize || 56,
+      52,
+      48,
+      44,
+      40,
+      36,
+      34,
+      32,
+      30,
+    ].filter((value, index, list) => list.indexOf(value) === index);
+    let chosenFontSize = 30;
+    let chosenLineHeight = 44;
+    let wrappedLines = [];
+
+    for (const fontSize of fontCandidates) {
+      ctx.font = `700 ${fontSize}px Arial`;
+      const lineHeight = Math.round(fontSize * 1.34);
+      const lines = getWrappedLines(ctx, verse.text, textWidth);
+
+      if (lines.length * lineHeight <= availableHeight) {
+        chosenFontSize = fontSize;
+        chosenLineHeight = lineHeight;
+        wrappedLines = lines;
+        break;
+      }
+    }
+
+    if (!wrappedLines.length) {
+      ctx.font = "700 30px Arial";
+      wrappedLines = getWrappedLines(ctx, verse.text, textWidth);
+    }
+
+    ctx.fillStyle = "#f8fafc";
+    ctx.font = `700 ${chosenFontSize}px Arial`;
+    drawWrappedText(ctx, wrappedLines, cardX + 54, textTop, chosenLineHeight);
+
+    ctx.fillStyle = "rgba(226, 232, 240, 0.82)";
+    ctx.font = "600 22px Arial";
+    ctx.fillText(design.watermark || "Tamil Bible", cardX + 54, cardY + cardHeight - 44);
+
+    return canvasToBlob(canvas);
+  };
 
   const getScrollMetrics = () => {
     if (window.innerWidth < 768) {
@@ -86,25 +321,39 @@ export default function Verses() {
 
   const bookData = bible[decodedBook];
   const chapterData = bookData?.chapters.find((ch) => ch.chapter === chapter);
-  const chapterItem = useMemo(
-    () => ({
-      id: getChapterId(decodedBook, chapter),
-      type: "chapter",
-      bookEnglish: decodedBook,
-      bookTamil: bookData?.book.tamil || decodedBook,
-      chapter,
-    }),
-    [bookData?.book.tamil, chapter, decodedBook]
-  );
+  const chapterItem = {
+    id: getChapterId(decodedBook, chapter),
+    type: "chapter",
+    bookEnglish: decodedBook,
+    bookTamil: bookData?.book.tamil || decodedBook,
+    chapter,
+  };
+  const chapterItemId = chapterItem.id;
 
   useEffect(() => {
     if (bookData && chapterData) {
-      recordHistory(chapterItem);
+      recordHistory({
+        id: chapterItemId,
+        type: "chapter",
+        bookEnglish: decodedBook,
+        bookTamil: bookData?.book.tamil || decodedBook,
+        chapter,
+      });
     }
-  }, [bookData, chapterData, chapterItem]);
+  }, [bookData, chapterData, chapter, chapterItemId, decodedBook]);
 
   useEffect(() => {
-    setAutoScrollDirection(null);
+    if (!bookData || !chapterData) return;
+
+    getReadingPlans().forEach((plan) => {
+      updateReadingPlanProgress(plan.id, chapterItemId);
+    });
+  }, [bookData, chapterData, chapter, chapterItemId, decodedBook]);
+
+  useEffect(() => {
+    const resetScroll = window.requestAnimationFrame(() => {
+      setAutoScrollDirection(null);
+    });
     lastAutoScrollTimeRef.current = null;
 
     if (window.innerWidth < 768) {
@@ -112,6 +361,7 @@ export default function Verses() {
     } else if (readingPaneRef.current) {
       readingPaneRef.current.scrollTop = 0;
     }
+    return () => window.cancelAnimationFrame(resetScroll);
   }, [decodedBook, chapter]);
 
   useEffect(() => {
@@ -178,7 +428,15 @@ export default function Verses() {
   }, []);
 
   useEffect(() => {
-    if (!selectedVerse || window.innerWidth >= 768) {
+    if (
+      (!selectedVerse &&
+        !noteEditor &&
+        !prayerEditor &&
+        !highlightEditor &&
+        !shareDesigner &&
+        !chapterPickerOpen) ||
+      window.innerWidth >= 768
+    ) {
       return undefined;
     }
 
@@ -188,7 +446,7 @@ export default function Verses() {
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [selectedVerse]);
+  }, [chapterPickerOpen, highlightEditor, noteEditor, prayerEditor, selectedVerse, shareDesigner]);
 
   const getVerseItem = (verse) => ({
     id: getVerseId(decodedBook, chapter, verse.verse),
@@ -232,23 +490,154 @@ export default function Verses() {
 
   const handleNote = (item) => {
     const currentNote = libraryData.notes[item.id]?.text || "";
-    const nextNote = window.prompt(t.notePrompt, currentNote);
-    if (nextNote === null) return;
-    saveNote(item, nextNote);
+    setNoteEditor({
+      item,
+      value: currentNote,
+    });
   };
 
-  const handleMobileVerseShare = async (verse) => {
-    const shareText = `${bookData?.book.tamil} ${chapter}:${verse.verse}\n\n${verse.text}`;
+  const closeNoteEditor = () => {
+    setNoteEditor(null);
+  };
 
-    if (navigator.share) {
-      try {
+  const submitNoteEditor = () => {
+    if (!noteEditor) return;
+    saveNote(noteEditor.item, noteEditor.value);
+    closeNoteEditor();
+  };
+
+  const handlePrayer = (item) => {
+    const currentPrayer = libraryData.prayers[item.id]?.text || "";
+    setPrayerEditor({
+      item,
+      value: currentPrayer,
+    });
+  };
+
+  const closePrayerEditor = () => {
+    setPrayerEditor(null);
+  };
+
+  const submitPrayerEditor = () => {
+    if (!prayerEditor) return;
+    savePrayer(prayerEditor.item, prayerEditor.value);
+    closePrayerEditor();
+  };
+
+  const handleHighlight = (item) => {
+    const currentHighlight = libraryData.highlights[item.id];
+    setHighlightEditor({
+      item,
+      color: currentHighlight?.color || HIGHLIGHT_COLORS[0],
+      folder: currentHighlight?.folder || HIGHLIGHT_FOLDERS[0].value,
+    });
+  };
+
+  const closeHighlightEditor = () => {
+    setHighlightEditor(null);
+  };
+
+  const submitHighlightEditor = () => {
+    if (!highlightEditor) return;
+    saveHighlight(highlightEditor.item, {
+      color: highlightEditor.color,
+      folder: highlightEditor.folder,
+    });
+    closeHighlightEditor();
+  };
+
+  const openChapterPicker = () => {
+    setChapterPickerOpen(true);
+  };
+
+  const closeChapterPicker = () => {
+    setChapterPickerOpen(false);
+  };
+
+  const openShareDesigner = (verse) => {
+    setShareDesigner({
+      verse,
+      template: "classic",
+      fontSize: 48,
+      watermark: "Tamil Bible",
+    });
+  };
+
+  const closeShareDesigner = () => {
+    setShareDesigner(null);
+  };
+
+  const handleAddToSermon = (item) => {
+    addSermonQueueItem(item);
+    setSermonSuccess(`${item.bookTamil} ${item.chapter}:${item.verse} added to Sermon mode`);
+    window.setTimeout(() => {
+      setSermonSuccess("");
+    }, 2200);
+  };
+
+  const shareVerseCard = async (verse, destination = "system") => {
+    const noteText = libraryData.notes[getVerseId(decodedBook, chapter, verse.verse)]?.text;
+    const prayerText = libraryData.prayers[getVerseId(decodedBook, chapter, verse.verse)]?.text;
+    const shareText = `${bookData?.book.tamil} ${chapter}:${verse.verse}\n\n${verse.text}${
+      noteText ? `\n\nNote: ${noteText}` : ""
+    }${prayerText ? `\n\nPrayer: ${prayerText}` : ""}`;
+    const design = shareDesigner
+      ? {
+          template: shareDesigner.template,
+          fontSize: Number(shareDesigner.fontSize) || 48,
+          watermark: shareDesigner.watermark || "Tamil Bible",
+        }
+      : {};
+
+    try {
+      const shareBlob = await createVerseShareImage(verse, design);
+      const shareFile = new File(
+        [shareBlob],
+        `${decodedBook}-${chapter}-${verse.verse}.png`,
+        { type: "image/png" }
+      );
+
+      if (destination === "whatsapp" || destination === "telegram") {
+        const url =
+          destination === "whatsapp"
+            ? `https://wa.me/?text=${encodeURIComponent(shareText)}`
+            : `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(shareText)}`;
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+
+      if (
+        destination === "system" &&
+        navigator.share &&
+        (!navigator.canShare || navigator.canShare({ files: [shareFile] }))
+      ) {
         await navigator.share({
           title: `${bookData?.book.tamil} ${chapter}:${verse.verse}`,
           text: shareText,
+          files: [shareFile],
         });
         return;
-      } catch {
-        return;
+      }
+
+      const downloadUrl = URL.createObjectURL(shareBlob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `${decodedBook}-${chapter}-${verse.verse}.png`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(downloadUrl);
+      return;
+    } catch {
+      if (destination === "system" && navigator.share) {
+        try {
+          await navigator.share({
+            title: `${bookData?.book.tamil} ${chapter}:${verse.verse}`,
+            text: shareText,
+          });
+          return;
+        } catch {
+          return;
+        }
       }
     }
 
@@ -420,26 +809,55 @@ export default function Verses() {
                   </h1>
                   <p className="mt-2 text-sm text-slate-400">{t.chapter} {chapter}</p>
                 </div>
-                <button
-                  onClick={() => toggleBookmark(chapterItem)}
-                  className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
-                    isBookmarked(libraryData, chapterItem.id)
-                      ? "bg-white text-slate-950"
-                      : "border border-white/10 bg-white/5 text-white hover:bg-white/10"
-                  }`}
-                >
-                  {t.chapterBookmark}
-                </button>
+                <div className="flex flex-wrap items-center gap-3 md:justify-end">
+                  {prevChapter && (
+                    <button
+                      onClick={() => navigate(prevChapter)}
+                      className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/[0.08]"
+                    >
+                      {t.prev}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={openChapterPicker}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10"
+                  >
+                    <span>{t.chapter} {chapter}</span>
+                    <span className="text-xs text-slate-500">▼</span>
+                  </button>
+                  {nextChapter && (
+                    <button
+                      onClick={() => navigate(nextChapter)}
+                      className="rounded-2xl px-4 py-3 text-sm font-semibold text-white shadow-lg"
+                      style={{
+                        background: "linear-gradient(135deg, #2563eb, #38bdf8)",
+                      }}
+                    >
+                      {t.next}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => toggleBookmark(chapterItem)}
+                    className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                      isBookmarked(libraryData, chapterItem.id)
+                        ? "bg-white text-slate-950"
+                        : "border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                    }`}
+                  >
+                    {t.chapterBookmark}
+                  </button>
+                </div>
               </div>
             </section>
 
             <div className="space-y-3">
               {chapterData?.verses.map((v) => {
                 const verseItem = getVerseItem(v);
-                const bookmarked = isBookmarked(libraryData, verseItem.id);
                 const favorited = isFavorited(libraryData, verseItem.id);
                 const highlighted = libraryData.highlights[verseItem.id];
                 const note = libraryData.notes[verseItem.id];
+                const prayer = libraryData.prayers[verseItem.id];
 
                 return (
                   <div
@@ -465,16 +883,6 @@ export default function Verses() {
 
                     <div className="mt-4 flex flex-wrap gap-2">
                       <button
-                        onClick={() => toggleBookmark(verseItem)}
-                        className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                          bookmarked
-                            ? "bg-white text-slate-950"
-                            : "border border-white/10 bg-white/5 text-slate-200"
-                        }`}
-                      >
-                        {t.bookmark}
-                      </button>
-                      <button
                         onClick={() => toggleFavorite(verseItem)}
                         className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
                           favorited
@@ -485,7 +893,7 @@ export default function Verses() {
                         {t.favorite}
                       </button>
                       <button
-                        onClick={() => cycleHighlight(verseItem)}
+                        onClick={() => handleHighlight(verseItem)}
                         className="rounded-full px-3 py-1.5 text-xs font-semibold text-white"
                         style={{
                           background: highlighted?.color || "rgba(255,255,255,0.06)",
@@ -504,6 +912,28 @@ export default function Verses() {
                       >
                         {t.note}
                       </button>
+                      <button
+                        onClick={() => handlePrayer(verseItem)}
+                        className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                          prayer
+                            ? "bg-emerald-400 text-slate-950"
+                            : "border border-white/10 bg-white/5 text-slate-200"
+                        }`}
+                      >
+                        Prayer
+                      </button>
+                      <button
+                        onClick={() => handleAddToSermon(verseItem)}
+                        className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200"
+                      >
+                        Sermon
+                      </button>
+                      <button
+                        onClick={() => openShareDesigner(v)}
+                        className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200"
+                      >
+                        Share
+                      </button>
                     </div>
 
                     {note ? (
@@ -511,25 +941,37 @@ export default function Verses() {
                         {note.text}
                       </p>
                     ) : null}
+                    {prayer ? (
+                      <p className="mt-3 break-words rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-sm leading-6 text-emerald-50">
+                        {prayer.text}
+                      </p>
+                    ) : null}
                   </div>
                 );
               })}
             </div>
 
-            <div className="mt-6 flex gap-3">
+            <div className="mb-6 mt-6 flex flex-wrap items-center gap-3 pr-16 sm:pr-0">
               {prevChapter && (
                 <button
                   onClick={() => navigate(prevChapter)}
-                  className="flex-1 rounded-2xl border border-white/10 bg-white/[0.05] p-4 text-sm font-medium text-slate-100 transition hover:bg-white/[0.08]"
+                  className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/[0.08]"
                 >
                   {t.prev}
                 </button>
               )}
-
+              <button
+                type="button"
+                onClick={openChapterPicker}
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10"
+              >
+                <span>{t.chapter} {chapter}</span>
+                <span className="text-xs text-slate-500">▼</span>
+              </button>
               {nextChapter && (
                 <button
                   onClick={() => navigate(nextChapter)}
-                  className="flex-1 rounded-2xl p-4 text-sm font-semibold text-white shadow-lg"
+                  className="rounded-2xl px-4 py-3 text-sm font-semibold text-white shadow-lg"
                   style={{
                     background: "linear-gradient(135deg, #2563eb, #38bdf8)",
                   }}
@@ -538,9 +980,10 @@ export default function Verses() {
                 </button>
               )}
             </div>
+
           </div>
 
-          <div className="pointer-events-none fixed bottom-24 right-4 z-40 flex flex-col gap-3 md:bottom-6 md:right-6">
+          <div className="pointer-events-none fixed bottom-28 right-4 z-40 flex flex-col gap-3 md:bottom-6 md:right-6">
             <button
               onClick={() => toggleAutoScroll("up")}
               className={`pointer-events-auto h-12 w-12 rounded-full border text-xs font-bold tracking-[0.2em] shadow-lg backdrop-blur-md transition ${
@@ -566,6 +1009,14 @@ export default function Verses() {
               DN
             </button>
           </div>
+
+          {sermonSuccess ? (
+            <div className="pointer-events-none fixed bottom-28 left-4 right-20 z-40 md:bottom-6 md:left-6 md:right-auto md:max-w-md">
+              <div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/15 px-4 py-3 text-sm font-semibold text-emerald-50 shadow-lg backdrop-blur-md">
+                {sermonSuccess}
+              </div>
+            </div>
+          ) : null}
         </main>
       </div>
 
@@ -627,11 +1078,450 @@ export default function Verses() {
 
             <button
               type="button"
-              onClick={() => handleMobileVerseShare(selectedVerse)}
+              onClick={() => openShareDesigner(selectedVerse)}
               className="mt-5 w-full rounded-2xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-4 py-3 text-sm font-semibold text-white shadow-lg"
             >
               {t.share}
             </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {noteEditor ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm">
+          <button
+            type="button"
+            aria-label="Close note editor"
+            className="absolute inset-0"
+            onClick={closeNoteEditor}
+          />
+
+          <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(244,114,182,0.18),_transparent_35%),linear-gradient(180deg,_rgba(28,20,29,0.98),_rgba(20,16,24,0.98))] p-5 shadow-2xl shadow-black/40 md:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-pink-200/80">
+                  {t.note}
+                </p>
+                <h3 className="mt-2 text-lg font-semibold text-white">
+                  {t.notePrompt}
+                </h3>
+                <p className="mt-2 text-sm text-slate-400">
+                  {noteEditor.item.bookTamil} {noteEditor.item.chapter}:{noteEditor.item.verse}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeNoteEditor}
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-white transition hover:bg-white/10"
+              >
+                {t.close}
+              </button>
+            </div>
+
+            <textarea
+              value={noteEditor.value}
+              onChange={(e) =>
+                setNoteEditor((current) =>
+                  current
+                    ? {
+                        ...current,
+                        value: e.target.value,
+                      }
+                    : current
+                )
+              }
+              placeholder={t.notePrompt}
+              className="mt-5 min-h-40 w-full rounded-[1.5rem] border border-pink-300/40 bg-black/20 px-4 py-4 text-sm leading-7 text-white outline-none placeholder:text-slate-500 focus:border-pink-300 focus:ring-2 focus:ring-pink-300/20"
+              autoFocus
+            />
+
+            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeNoteEditor}
+                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+              >
+                {t.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={submitNoteEditor}
+                className="rounded-2xl bg-[linear-gradient(135deg,#f0abfc,#f472b6)] px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-pink-950/30 transition hover:brightness-105"
+              >
+                {t.save}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {prayerEditor ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm">
+          <button
+            type="button"
+            aria-label="Close prayer editor"
+            className="absolute inset-0"
+            onClick={closePrayerEditor}
+          />
+
+          <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_35%),linear-gradient(180deg,_rgba(14,25,22,0.98),_rgba(14,20,18,0.98))] p-5 shadow-2xl shadow-black/40 md:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-200/80">
+                  Prayer Journal
+                </p>
+                <h3 className="mt-2 text-lg font-semibold text-white">
+                  Attach a prayer to this verse
+                </h3>
+                <p className="mt-2 text-sm text-slate-400">
+                  {prayerEditor.item.bookTamil} {prayerEditor.item.chapter}:{prayerEditor.item.verse}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closePrayerEditor}
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-white transition hover:bg-white/10"
+              >
+                {t.close}
+              </button>
+            </div>
+
+            <textarea
+              value={prayerEditor.value}
+              onChange={(e) =>
+                setPrayerEditor((current) =>
+                  current
+                    ? {
+                        ...current,
+                        value: e.target.value,
+                      }
+                    : current
+                )
+              }
+              placeholder="Write a prayer, burden, or answered-prayer reminder"
+              className="mt-5 min-h-40 w-full rounded-[1.5rem] border border-emerald-300/30 bg-black/20 px-4 py-4 text-sm leading-7 text-white outline-none placeholder:text-slate-500 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-300/20"
+              autoFocus
+            />
+
+            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closePrayerEditor}
+                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+              >
+                {t.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={submitPrayerEditor}
+                className="rounded-2xl bg-[linear-gradient(135deg,#34d399,#10b981)] px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg"
+              >
+                {t.save}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {highlightEditor ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm">
+          <button
+            type="button"
+            aria-label="Close highlight editor"
+            className="absolute inset-0"
+            onClick={closeHighlightEditor}
+          />
+
+          <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_35%),linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(8,17,32,0.98))] p-5 shadow-2xl shadow-black/40 md:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-200/80">
+                  Highlight
+                </p>
+                <h3 className="mt-2 text-lg font-semibold text-white">
+                  Choose color and folder
+                </h3>
+                <p className="mt-2 text-sm text-slate-400">
+                  {highlightEditor.item.bookTamil} {highlightEditor.item.chapter}:{highlightEditor.item.verse}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeHighlightEditor}
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-white transition hover:bg-white/10"
+              >
+                {t.close}
+              </button>
+            </div>
+
+            <div className="mt-5">
+              <p className="text-sm text-slate-300">Color</p>
+              <div className="mt-3 flex flex-wrap gap-3">
+                {HIGHLIGHT_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() =>
+                      setHighlightEditor((current) =>
+                        current
+                          ? {
+                              ...current,
+                              color,
+                            }
+                          : current
+                      )
+                    }
+                    className={`h-11 w-11 rounded-full border-2 ${
+                      highlightEditor.color === color ? "border-white" : "border-white/10"
+                    }`}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <p className="text-sm text-slate-300">Folder</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {HIGHLIGHT_FOLDERS.map((folder) => (
+                  <button
+                    key={folder.value}
+                    type="button"
+                    onClick={() =>
+                      setHighlightEditor((current) =>
+                        current
+                          ? {
+                              ...current,
+                              folder: folder.value,
+                            }
+                          : current
+                      )
+                    }
+                    className={`rounded-full px-4 py-2 text-sm font-semibold ${
+                      highlightEditor.folder === folder.value
+                        ? "bg-[linear-gradient(135deg,#2563eb,#38bdf8)] text-white"
+                        : "border border-white/10 bg-white/5 text-slate-200"
+                    }`}
+                  >
+                    {folder.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  saveHighlight(highlightEditor.item, {});
+                  closeHighlightEditor();
+                }}
+                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+              >
+                Remove
+              </button>
+              <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={closeHighlightEditor}
+                  className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="button"
+                  onClick={submitHighlightEditor}
+                  className="rounded-2xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-5 py-3 text-sm font-semibold text-white shadow-lg"
+                >
+                  {t.save}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {shareDesigner ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm">
+          <button
+            type="button"
+            aria-label="Close share designer"
+            className="absolute inset-0"
+            onClick={closeShareDesigner}
+          />
+
+          <div className="relative z-10 w-full max-w-xl overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.18),_transparent_35%),linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(8,17,32,0.98))] p-5 shadow-2xl shadow-black/40 md:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-indigo-200/80">
+                  Verse Designer
+                </p>
+                <h3 className="mt-2 text-lg font-semibold text-white">
+                  Share to family, WhatsApp, or Telegram
+                </h3>
+                <p className="mt-2 text-sm text-slate-400">
+                  {bookData?.book.tamil} {chapter}:{shareDesigner.verse.verse}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeShareDesigner}
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-white transition hover:bg-white/10"
+              >
+                {t.close}
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              <label className="block">
+                <p className="mb-2 text-sm text-slate-300">Template</p>
+                <select
+                  value={shareDesigner.template}
+                  onChange={(e) =>
+                    setShareDesigner((current) =>
+                      current
+                        ? {
+                            ...current,
+                            template: e.target.value,
+                          }
+                        : current
+                    )
+                  }
+                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none"
+                >
+                  <option value="classic">Classic</option>
+                  <option value="social">Social</option>
+                  <option value="minimal">Minimal</option>
+                </select>
+              </label>
+
+              <label className="block">
+                <p className="mb-2 text-sm text-slate-300">Font Size</p>
+                <input
+                  type="number"
+                  min={30}
+                  max={64}
+                  value={shareDesigner.fontSize}
+                  onChange={(e) =>
+                    setShareDesigner((current) =>
+                      current
+                        ? {
+                            ...current,
+                            fontSize: Number(e.target.value) || 48,
+                          }
+                        : current
+                    )
+                  }
+                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none"
+                />
+              </label>
+
+              <label className="block">
+                <p className="mb-2 text-sm text-slate-300">Watermark</p>
+                <input
+                  type="text"
+                  value={shareDesigner.watermark}
+                  onChange={(e) =>
+                    setShareDesigner((current) =>
+                      current
+                        ? {
+                            ...current,
+                            watermark: e.target.value,
+                          }
+                        : current
+                    )
+                  }
+                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none"
+                />
+              </label>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  await shareVerseCard(shareDesigner.verse, "system");
+                  closeShareDesigner();
+                }}
+                className="rounded-2xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-5 py-3 text-sm font-semibold text-white shadow-lg"
+              >
+                Share Image
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await shareVerseCard(shareDesigner.verse, "whatsapp");
+                  closeShareDesigner();
+                }}
+                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
+              >
+                WhatsApp
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await shareVerseCard(shareDesigner.verse, "telegram");
+                  closeShareDesigner();
+                }}
+                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
+              >
+                Telegram
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {chapterPickerOpen ? (
+        <div className="fixed inset-0 z-[55] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm">
+          <button
+            type="button"
+            aria-label="Close chapter picker"
+            className="absolute inset-0"
+            onClick={closeChapterPicker}
+          />
+
+          <div className="relative z-10 w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.2),_transparent_35%),linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(8,17,32,0.98))] p-5 shadow-2xl shadow-black/40 md:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-200/80">
+                  {t.chapters}
+                </p>
+                <h3 className="mt-2 text-lg font-semibold text-white">
+                  {bookData?.book.tamil}
+                </h3>
+                <p className="mt-2 text-sm text-slate-400">
+                  {t.chapter} {chapter}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeChapterPicker}
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-white transition hover:bg-white/10"
+              >
+                {t.close}
+              </button>
+            </div>
+
+            <div className="mt-5 grid max-h-[55vh] grid-cols-4 gap-3 overflow-y-auto pr-1 custom-scroll sm:grid-cols-5">
+              {bookData?.chapters.map((ch) => (
+                <button
+                  key={ch.chapter}
+                  type="button"
+                  onClick={() => {
+                    closeChapterPicker();
+                    navigate(`/${decodedBook}/${ch.chapter}`);
+                  }}
+                  className={`rounded-2xl py-3 text-sm font-semibold transition ${
+                    ch.chapter === chapter
+                      ? "bg-gradient-to-br from-indigo-500 to-sky-500 text-white"
+                      : "border border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.07]"
+                  }`}
+                >
+                  {ch.chapter}
+                </button>
+              ))}
             </div>
           </div>
         </div>

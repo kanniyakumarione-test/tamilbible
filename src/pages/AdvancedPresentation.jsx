@@ -1,6 +1,13 @@
 import { useRef } from "react";
+import { Link } from "react-router-dom";
 
 import useAppSettings from "../hooks/useAppSettings";
+import useLibraryData from "../hooks/useLibraryData";
+import {
+  removeSermonQueueItem,
+  setActiveSermonItem,
+  setSermonDisplayMode,
+} from "../utils/libraryData";
 import { getUIText } from "../utils/uiText";
 
 const backgrounds = [
@@ -104,6 +111,31 @@ function BackgroundTile({ active, onClick, children }) {
   );
 }
 
+async function openPresentationWindow(path, targetScreenLabel) {
+  const features = ["noopener=yes", "noreferrer=yes"];
+
+  if ("getScreenDetails" in window) {
+    try {
+      const details = await window.getScreenDetails();
+      const targetScreen =
+        targetScreenLabel === "screen2"
+          ? details.screens[1] || details.currentScreen
+          : details.currentScreen;
+
+      if (targetScreen) {
+        features.push(`left=${targetScreen.availLeft ?? targetScreen.left ?? 0}`);
+        features.push(`top=${targetScreen.availTop ?? targetScreen.top ?? 0}`);
+        features.push(`width=${targetScreen.availWidth ?? targetScreen.width ?? 1280}`);
+        features.push(`height=${targetScreen.availHeight ?? targetScreen.height ?? 720}`);
+      }
+    } catch {
+      // Fall back to a normal popup when screen placement is not permitted.
+    }
+  }
+
+  window.open(path, "_blank", features.join(","));
+}
+
 async function resizeImage(file) {
   const fileUrl = URL.createObjectURL(file);
 
@@ -133,8 +165,13 @@ async function resizeImage(file) {
 
 export default function AdvancedPresentation() {
   const [settings, update] = useAppSettings();
+  const libraryData = useLibraryData();
   const t = getUIText(settings.language);
   const logoInputRef = useRef(null);
+  const queue = libraryData.sermon.queue || [];
+  const activeItem = libraryData.sermon.activeItem || queue[0] || null;
+  const remoteUrl = `${window.location.origin}/presentation-remote`;
+  const remoteQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(remoteUrl)}`;
 
   const localizedScreenOptions = presentationScreens.map((screen) => ({
     value: screen.value,
@@ -176,6 +213,203 @@ export default function AdvancedPresentation() {
           <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300 md:text-base">
             {t.advancedPresentationIntro}
           </p>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                openPresentationWindow("/presentation/main", settings.mainPresentationScreen)
+              }
+              className="rounded-2xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-5 py-3 text-sm font-semibold text-white shadow-lg"
+            >
+              Open Main Display
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                openPresentationWindow("/presentation/stage", settings.stagePresentationScreen)
+              }
+              className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
+            >
+              Open Stage Display
+            </button>
+            <Link
+              to="/presentation-remote"
+              className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
+            >
+              Open Phone Remote
+            </Link>
+            <Link
+              to="/sermon-control"
+              className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
+            >
+              Open Sermon Control
+            </Link>
+          </div>
+        </section>
+
+        <section className="rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.9),_rgba(8,17,32,0.92))] p-5 shadow-xl shadow-black/20">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+                Live Queue
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-white">
+                {activeItem
+                  ? `${activeItem.bookTamil} ${activeItem.chapter}:${activeItem.verse}`
+                  : "No active verse"}
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
+                The display windows below update live from this sermon queue. Pick which verse should show right now, then open the main or stage screen in a separate window.
+              </p>
+            </div>
+            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
+              {queue.length} queued
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {queue.length ? (
+              queue.slice(0, 6).map((item) => (
+                <div
+                  key={item.id}
+                  className={`rounded-[1.4rem] border p-4 ${
+                    item.id === activeItem?.id
+                      ? "border-sky-400/40 bg-sky-400/10"
+                      : "border-white/10 bg-white/[0.03]"
+                  }`}
+                >
+                  <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                    <div>
+                      <p className="text-base font-semibold text-white">
+                        {item.bookTamil} {item.chapter}:{item.verse}
+                      </p>
+                      <p className="mt-2 line-clamp-2 text-sm leading-7 text-slate-300">
+                        {item.text}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setActiveSermonItem(item)}
+                        className="rounded-xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-4 py-2.5 text-sm font-semibold text-white"
+                      >
+                        Show Live
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeSermonQueueItem(item.id)}
+                        className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="rounded-[1.4rem] border border-dashed border-white/10 px-4 py-5 text-sm text-slate-400">
+                Add verses from the chapter screen using the `Sermon` button, then control them here.
+              </p>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.9),_rgba(8,17,32,0.92))] p-5 shadow-xl shadow-black/20">
+          <div className="grid gap-5 lg:grid-cols-[1fr,1fr,0.9fr]">
+            <label className="block">
+              <p className="mb-2 text-sm text-slate-300">Title Slide Title</p>
+              <input
+                type="text"
+                value={settings.presentationTitle}
+                onChange={(e) => updateSettings({ presentationTitle: e.target.value })}
+                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-sky-400/40"
+              />
+            </label>
+
+            <label className="block">
+              <p className="mb-2 text-sm text-slate-300">Title Slide Subtitle</p>
+              <input
+                type="text"
+                value={settings.presentationSubtitle}
+                onChange={(e) => updateSettings({ presentationSubtitle: e.target.value })}
+                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-sky-400/40"
+              />
+            </label>
+
+            <div>
+              <p className="mb-2 text-sm text-slate-300">Quick Display Modes</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSermonDisplayMode("live")}
+                  className="rounded-xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-4 py-2.5 text-sm font-semibold text-white"
+                >
+                  Live
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSermonDisplayMode("title")}
+                  className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15"
+                >
+                  Title
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSermonDisplayMode("logo")}
+                  className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15"
+                >
+                  Logo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSermonDisplayMode("announcement")}
+                  className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15"
+                >
+                  Announcement
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSermonDisplayMode("black")}
+                  className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15"
+                >
+                  Black
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-5 lg:grid-cols-[1fr,1fr,0.9fr]">
+            <label className="block">
+              <p className="mb-2 text-sm text-slate-300">Announcement Title</p>
+              <input
+                type="text"
+                value={settings.presentationAnnouncementTitle}
+                onChange={(e) => updateSettings({ presentationAnnouncementTitle: e.target.value })}
+                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-sky-400/40"
+              />
+            </label>
+
+            <label className="block">
+              <p className="mb-2 text-sm text-slate-300">Announcement Body</p>
+              <textarea
+                value={settings.presentationAnnouncementBody}
+                onChange={(e) => updateSettings({ presentationAnnouncementBody: e.target.value })}
+                rows={3}
+                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-sky-400/40"
+              />
+            </label>
+
+            <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center">
+              <p className="text-sm font-semibold text-white">Phone Remote QR</p>
+              <img
+                src={remoteQrUrl}
+                alt="Phone remote QR code"
+                className="mx-auto mt-4 h-40 w-40 rounded-2xl bg-white p-2"
+              />
+              <p className="mt-3 break-all text-xs leading-6 text-slate-400">{remoteUrl}</p>
+            </div>
+          </div>
         </section>
 
         <div className="grid gap-5 md:grid-cols-2">
