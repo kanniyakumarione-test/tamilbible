@@ -91,6 +91,83 @@ function drawWrappedText(ctx, lines, x, y, lineHeight) {
   return lines.length;
 }
 
+function ChapterNavigator({
+  chapter,
+  chapterLabel,
+  onOpenPicker,
+  onPrev,
+  onNext,
+  hasPrev,
+  hasNext,
+  prevLabel,
+  nextLabel,
+  compact = false,
+}) {
+  const wrapperClass = compact
+    ? "grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3"
+    : "grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]";
+
+  const mobileArrowClass =
+    "flex h-11 items-center justify-center rounded-[1.1rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.9),rgba(8,17,32,0.98))] text-lg text-white transition hover:border-sky-400/30 hover:bg-[linear-gradient(180deg,rgba(30,41,59,0.92),rgba(15,23,42,1))] disabled:cursor-not-allowed disabled:opacity-40 md:hidden";
+
+  const sideClass =
+    "group flex items-center gap-2.5 rounded-[1.2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.9),rgba(8,17,32,0.98))] px-3 py-3 text-left transition hover:border-sky-400/30 hover:bg-[linear-gradient(180deg,rgba(30,41,59,0.92),rgba(15,23,42,1))] disabled:cursor-not-allowed disabled:opacity-40 sm:gap-3 sm:rounded-[1.4rem] sm:px-4";
+
+  const centerClass = compact
+    ? "inline-flex w-full min-w-0 items-center justify-center gap-3 rounded-[1.25rem] border border-sky-400/20 bg-[linear-gradient(135deg,rgba(37,99,235,0.16),rgba(56,189,248,0.22))] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-950/20 transition hover:border-sky-300/40 hover:bg-[linear-gradient(135deg,rgba(37,99,235,0.24),rgba(56,189,248,0.3))]"
+    : "inline-flex w-full min-w-0 items-center justify-center gap-2 rounded-[1.3rem] border border-sky-400/20 bg-[linear-gradient(135deg,rgba(37,99,235,0.16),rgba(56,189,248,0.22))] px-3 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-950/20 transition hover:border-sky-300/40 hover:bg-[linear-gradient(135deg,rgba(37,99,235,0.24),rgba(56,189,248,0.3))] md:col-span-1 md:min-w-[12rem] md:w-auto md:gap-3 md:rounded-[1.45rem] md:px-5 md:py-4 md:text-base md:shadow-xl";
+
+  return (
+    <div className={wrapperClass}>
+      <button type="button" onClick={onPrev} disabled={!hasPrev} className={mobileArrowClass}>
+        &larr;
+      </button>
+
+      <button type="button" onClick={onPrev} disabled={!hasPrev} className={`${sideClass} hidden md:flex ${compact ? "sm:col-auto" : ""}`}>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-base text-white sm:h-10 sm:w-10 sm:rounded-2xl sm:text-lg">&larr;</span>
+        <span className="min-w-0">
+          <span className="block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
+            Previous
+          </span>
+          <span className="block truncate text-xs font-semibold text-slate-100 sm:text-sm">{prevLabel}</span>
+        </span>
+      </button>
+
+      <button type="button" onClick={onOpenPicker} className={centerClass}>
+        <span className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-sky-100/75">
+          {chapterLabel}
+        </span>
+        <span>{chapter}</span>
+        <span className="text-sm text-sky-100/80">&#9662;</span>
+      </button>
+
+      <button
+        type="button"
+        onClick={onNext}
+        disabled={!hasNext}
+        className={mobileArrowClass}
+      >
+        &rarr;
+      </button>
+
+      <button
+        type="button"
+        onClick={onNext}
+        disabled={!hasNext}
+        className={`${sideClass} hidden justify-self-stretch text-right md:flex`}
+      >
+        <span className="min-w-0 flex-1 md:order-1">
+          <span className="block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
+            Next
+          </span>
+          <span className="block truncate text-xs font-semibold text-slate-100 sm:text-sm">{nextLabel}</span>
+        </span>
+        <span className="order-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-base text-white sm:h-10 sm:w-10 sm:rounded-2xl sm:text-lg">&rarr;</span>
+      </button>
+    </div>
+  );
+}
+
 export default function Verses() {
   const { book, chapter } = useParams();
   const navigate = useNavigate();
@@ -107,6 +184,7 @@ export default function Verses() {
   const libraryData = useLibraryData();
   const t = getUIText(settings.language);
   const [bookQuery, setBookQuery] = useState("");
+  const [isDesktopBookListExpanded, setIsDesktopBookListExpanded] = useState(false);
   const readingPaneRef = useRef(null);
   const autoScrollFrameRef = useRef(null);
   const lastAutoScrollTimeRef = useRef(null);
@@ -388,7 +466,7 @@ export default function Verses() {
 
       const delta = timestamp - lastAutoScrollTimeRef.current;
       lastAutoScrollTimeRef.current = timestamp;
-      const speed = 0.18;
+        const speed = 0.08;
       const direction = autoScrollDirection === "down" ? 1 : -1;
       const nextTop = metrics.currentTop + delta * speed * direction;
 
@@ -669,7 +747,7 @@ export default function Verses() {
         return null;
       }
 
-      const immediateStep = direction === "down" ? 36 : -36;
+        const immediateStep = direction === "down" ? 16 : -16;
       const nextTop = Math.min(
         Math.max(metrics.currentTop + immediateStep, 0),
         metrics.maxScrollTop
@@ -687,6 +765,11 @@ export default function Verses() {
   let prevChapter = null;
   let nextChapter = null;
   const filteredBooks = booksList.filter((b) => matchBookQuery(b, bookQuery));
+  const desktopBookList = bookQuery.trim()
+    ? filteredBooks
+    : isDesktopBookListExpanded
+    ? filteredBooks
+    : filteredBooks.filter((b) => b.book.english === decodedBook);
 
   if (parseInt(chapter) > 1) {
     prevChapter = `/${decodedBook}/${parseInt(chapter) - 1}`;
@@ -702,6 +785,24 @@ export default function Verses() {
     const nextBook = booksList[bookIndex + 1].book.english.trim();
     nextChapter = `/${nextBook}/1`;
   }
+
+  const formatChapterTargetLabel = (targetPath, fallback) => {
+    if (!targetPath) {
+      return fallback;
+    }
+
+    const parts = targetPath.split("/").filter(Boolean);
+    const targetBook = decodeURIComponent(parts[0] || "");
+    const targetChapter = parts[1];
+    const isSameBook = targetBook === decodedBook;
+
+    return isSameBook
+      ? `${t.chapter} ${targetChapter}`
+      : `${targetBook} ${targetChapter}`;
+  };
+
+  const prevLabel = formatChapterTargetLabel(prevChapter, "Start");
+  const nextLabel = formatChapterTargetLabel(nextChapter, "End");
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#07111f] text-white md:h-screen md:overflow-hidden">
@@ -729,8 +830,12 @@ export default function Verses() {
                 placeholder={t.searchPlaceholder}
                 className="mb-3 w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-400/40"
               />
-              <div className="space-y-2">
-                {filteredBooks.map((b) => (
+              <div
+                className="space-y-2"
+                onMouseEnter={() => setIsDesktopBookListExpanded(true)}
+                onMouseLeave={() => setIsDesktopBookListExpanded(false)}
+              >
+                {desktopBookList.map((b) => (
                   <button
                     key={b.book.english}
                     onClick={() =>
@@ -795,51 +900,24 @@ export default function Verses() {
         <main
           ref={readingPaneRef}
           data-lenis-prevent
-          className="app-shell relative flex-1 overflow-x-hidden overflow-y-auto p-4 pb-24 md:h-screen md:p-6"
+          className="app-shell relative flex-1 overflow-x-hidden overflow-y-auto p-4 pb-24 md:h-screen md:p-6 md:pb-32"
         >
           <div className="mx-auto max-w-5xl">
             <section className="mb-5 overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.2),_transparent_28%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(8,17,32,0.96))] px-5 py-6 shadow-2xl shadow-black/30 md:px-6">
-              <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-400">
-                    {t.reading}
-                  </p>
-                  <h1 className="mt-3 text-2xl font-bold text-white md:text-3xl">
-                    {bookData?.book.tamil}
-                  </h1>
-                  <p className="mt-2 text-sm text-slate-400">{t.chapter} {chapter}</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3 md:justify-end">
-                  {prevChapter && (
-                    <button
-                      onClick={() => navigate(prevChapter)}
-                      className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/[0.08]"
-                    >
-                      {t.prev}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={openChapterPicker}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10"
-                  >
-                    <span>{t.chapter} {chapter}</span>
-                    <span className="text-xs text-slate-500">▼</span>
-                  </button>
-                  {nextChapter && (
-                    <button
-                      onClick={() => navigate(nextChapter)}
-                      className="rounded-2xl px-4 py-3 text-sm font-semibold text-white shadow-lg"
-                      style={{
-                        background: "linear-gradient(135deg, #2563eb, #38bdf8)",
-                      }}
-                    >
-                      {t.next}
-                    </button>
-                  )}
+                            <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-400">
+                      {t.reading}
+                    </p>
+                    <h1 className="mt-3 text-2xl font-bold text-white md:text-3xl">
+                      {bookData?.book.tamil}
+                    </h1>
+                    <p className="mt-2 text-sm text-slate-400">{t.chapter} {chapter}</p>
+                  </div>
                   <button
                     onClick={() => toggleBookmark(chapterItem)}
-                    className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                    className={`self-start rounded-2xl px-4 py-3 text-sm font-semibold transition md:self-auto ${
                       isBookmarked(libraryData, chapterItem.id)
                         ? "bg-white text-slate-950"
                         : "border border-white/10 bg-white/5 text-white hover:bg-white/10"
@@ -848,6 +926,18 @@ export default function Verses() {
                     {t.chapterBookmark}
                   </button>
                 </div>
+
+                <ChapterNavigator
+                  chapter={chapter}
+                  chapterLabel={t.chapter}
+                  onOpenPicker={openChapterPicker}
+                  onPrev={() => prevChapter && navigate(prevChapter)}
+                  onNext={() => nextChapter && navigate(nextChapter)}
+                  hasPrev={Boolean(prevChapter)}
+                  hasNext={Boolean(nextChapter)}
+                  prevLabel={prevLabel}
+                  nextLabel={nextLabel}
+                />
               </div>
             </section>
 
@@ -914,7 +1004,7 @@ export default function Verses() {
                       </button>
                       <button
                         onClick={() => handlePrayer(verseItem)}
-                        className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                        className={`hidden rounded-full px-3 py-1.5 text-xs font-semibold md:inline-block ${
                           prayer
                             ? "bg-emerald-400 text-slate-950"
                             : "border border-white/10 bg-white/5 text-slate-200"
@@ -924,7 +1014,7 @@ export default function Verses() {
                       </button>
                       <button
                         onClick={() => handleAddToSermon(verseItem)}
-                        className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200"
+                        className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200 md:inline-block"
                       >
                         Sermon
                       </button>
@@ -951,34 +1041,19 @@ export default function Verses() {
               })}
             </div>
 
-            <div className="mb-6 mt-6 flex flex-wrap items-center gap-3 pr-16 sm:pr-0">
-              {prevChapter && (
-                <button
-                  onClick={() => navigate(prevChapter)}
-                  className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/[0.08]"
-                >
-                  {t.prev}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={openChapterPicker}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10"
-              >
-                <span>{t.chapter} {chapter}</span>
-                <span className="text-xs text-slate-500">▼</span>
-              </button>
-              {nextChapter && (
-                <button
-                  onClick={() => navigate(nextChapter)}
-                  className="rounded-2xl px-4 py-3 text-sm font-semibold text-white shadow-lg"
-                  style={{
-                    background: "linear-gradient(135deg, #2563eb, #38bdf8)",
-                  }}
-                >
-                  {t.next}
-                </button>
-              )}
+                        <div className="mb-6 mt-6 pr-16 sm:pr-0">
+              <ChapterNavigator
+                chapter={chapter}
+                chapterLabel={t.chapter}
+                onOpenPicker={openChapterPicker}
+                onPrev={() => prevChapter && navigate(prevChapter)}
+                onNext={() => nextChapter && navigate(nextChapter)}
+                hasPrev={Boolean(prevChapter)}
+                hasNext={Boolean(nextChapter)}
+                prevLabel={prevLabel}
+                nextLabel={nextLabel}
+                compact
+              />
             </div>
 
           </div>

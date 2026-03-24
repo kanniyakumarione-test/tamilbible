@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import useAppSettings from "../hooks/useAppSettings";
@@ -24,17 +24,6 @@ const gradients = [
   "linear-gradient(to right, #42275a, #734b6d)",
   "linear-gradient(to right, #0f2027, #203a43, #2c5364)",
   "linear-gradient(to right, #000428, #004e92)",
-];
-
-const presentationScreens = [
-  { value: "screen1", label: "screenOne" },
-  { value: "screen2", label: "screenTwo" },
-];
-
-const motionBackgrounds = [
-  { value: "stars", label: "stars" },
-  { value: "waves", label: "waves" },
-  { value: "particles", label: "particles" },
 ];
 
 function AccordionSection({ title, defaultOpen = true, children }) {
@@ -111,16 +100,52 @@ function BackgroundTile({ active, onClick, children }) {
   );
 }
 
-async function openPresentationWindow(path, targetScreenLabel) {
+function getScreenValue(screen, index) {
+  return String(screen?.label ?? screen?.id ?? `screen-${index}`);
+}
+
+function getScreenLabel(screen, index) {
+  const width = screen?.availWidth ?? screen?.width ?? window.screen.availWidth ?? window.innerWidth;
+  const height = screen?.availHeight ?? screen?.height ?? window.screen.availHeight ?? window.innerHeight;
+  return `Screen ${index + 1} \u2192 ${width}x${height}`;
+}
+
+async function getPresentationScreens() {
+  if ("getScreenDetails" in window) {
+    try {
+      const details = await window.getScreenDetails();
+      const detectedScreens = details.screens?.length ? details.screens : [details.currentScreen];
+
+      if (detectedScreens?.length) {
+        return detectedScreens.map((screen, index) => ({
+          value: getScreenValue(screen, index),
+          label: getScreenLabel(screen, index),
+        }));
+      }
+    } catch {
+      // Fall back to the current screen when screen placement is unavailable.
+    }
+  }
+
+  return [
+    {
+      value: "current-screen",
+      label: `Screen 1 \u2192 ${window.screen.availWidth}x${window.screen.availHeight}`,
+    },
+  ];
+}
+
+async function openPresentationWindow(path, targetScreenValue) {
   const features = ["noopener=yes", "noreferrer=yes"];
 
   if ("getScreenDetails" in window) {
     try {
       const details = await window.getScreenDetails();
+      const detectedScreens = details.screens?.length ? details.screens : [details.currentScreen];
       const targetScreen =
-        targetScreenLabel === "screen2"
-          ? details.screens[1] || details.currentScreen
-          : details.currentScreen;
+        detectedScreens.find(
+          (screen, index) => getScreenValue(screen, index) === targetScreenValue
+        ) || details.currentScreen;
 
       if (targetScreen) {
         features.push(`left=${targetScreen.availLeft ?? targetScreen.left ?? 0}`);
@@ -166,22 +191,58 @@ async function resizeImage(file) {
 export default function AdvancedPresentation() {
   const [settings, update] = useAppSettings();
   const libraryData = useLibraryData();
+  const [screenOptions, setScreenOptions] = useState([
+    {
+      value: "current-screen",
+      label: `Screen 1 \u2192 ${window.screen.availWidth}x${window.screen.availHeight}`,
+    },
+  ]);
   const t = getUIText(settings.language);
   const logoInputRef = useRef(null);
   const queue = libraryData.sermon.queue || [];
   const activeItem = libraryData.sermon.activeItem || queue[0] || null;
+  const nextItem =
+    activeItem && queue.length
+      ? queue[queue.findIndex((item) => item.id === activeItem.id) + 1] || null
+      : queue[1] || null;
+  const displayMode = libraryData.sermon.displayMode || "live";
   const remoteUrl = `${window.location.origin}/presentation-remote`;
   const remoteQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(remoteUrl)}`;
 
-  const localizedScreenOptions = presentationScreens.map((screen) => ({
-    value: screen.value,
-    label: t[screen.label],
-  }));
+  useEffect(() => {
+    let mounted = true;
 
-  const localizedMotionBackgrounds = motionBackgrounds.map((item) => ({
-    value: item.value,
-    label: t[item.label],
-  }));
+    const loadScreens = async () => {
+      const screens = await getPresentationScreens();
+
+      if (!mounted) {
+        return;
+      }
+
+      setScreenOptions(screens);
+
+      const mainExists = screens.some((screen) => screen.value === settings.mainPresentationScreen);
+      const stageExists = screens.some((screen) => screen.value === settings.stagePresentationScreen);
+
+      if (!mainExists || !stageExists) {
+        update({
+          ...settings,
+          mainPresentationScreen: mainExists
+            ? settings.mainPresentationScreen
+            : screens[0]?.value || "current-screen",
+          stagePresentationScreen: stageExists
+            ? settings.stagePresentationScreen
+            : screens[0]?.value || "current-screen",
+        });
+      }
+    };
+
+    loadScreens();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const previewBackground =
     settings.bgType === "custom" && settings.customBackground
@@ -189,6 +250,21 @@ export default function AdvancedPresentation() {
       : settings.bgType === "gradient"
       ? gradients[settings.bgIndex]
       : `url(${backgrounds[settings.bgIndex]})`;
+
+  const stageBackground = settings.stageGreenScreen
+    ? "#00b140"
+    : `url(${backgrounds[settings.stageStillBackground || 0]})`;
+
+  const previewItem = activeItem || {
+    bookTamil: t.previewRef,
+    chapter: "",
+    verse: "",
+    text: t.previewVerse,
+  };
+
+  const previewReference = activeItem
+    ? `${previewItem.bookTamil} ${previewItem.chapter}:${previewItem.verse}`
+    : t.previewRef;
 
   const updateSettings = (patch) => update({ ...settings, ...patch });
 
@@ -414,35 +490,21 @@ export default function AdvancedPresentation() {
 
         <div className="grid gap-5 md:grid-cols-2">
           <div className="rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.92),_rgba(8,17,32,0.94))] p-4">
-            <CheckboxControl
-              label={t.enableMainPresentation}
-              checked={settings.enableMainPresentation}
-              onChange={(value) => updateSettings({ enableMainPresentation: value })}
+            <SelectControl
+              label={t.mainPresentationScreen}
+              value={settings.mainPresentationScreen}
+              onChange={(value) => updateSettings({ mainPresentationScreen: value })}
+              options={screenOptions}
             />
-            <div className="mt-4">
-              <SelectControl
-                label={t.mainPresentationScreen}
-                value={settings.mainPresentationScreen}
-                onChange={(value) => updateSettings({ mainPresentationScreen: value })}
-                options={localizedScreenOptions}
-              />
-            </div>
           </div>
 
           <div className="rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.92),_rgba(8,17,32,0.94))] p-4">
-            <CheckboxControl
-              label={t.enableStagePresentation}
-              checked={settings.enableStagePresentation}
-              onChange={(value) => updateSettings({ enableStagePresentation: value })}
+            <SelectControl
+              label={t.stageviewScreen}
+              value={settings.stagePresentationScreen}
+              onChange={(value) => updateSettings({ stagePresentationScreen: value })}
+              options={screenOptions}
             />
-            <div className="mt-4">
-              <SelectControl
-                label={t.stageviewScreen}
-                value={settings.stagePresentationScreen}
-                onChange={(value) => updateSettings({ stagePresentationScreen: value })}
-                options={localizedScreenOptions}
-              />
-            </div>
           </div>
         </div>
 
@@ -488,20 +550,12 @@ export default function AdvancedPresentation() {
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
-              <CheckboxControl label={t.enableTransition} checked={settings.presentationTransition} onChange={(value) => updateSettings({ presentationTransition: value })} />
-              <CheckboxControl label={t.hideStanzaNumber} checked={settings.presentationHideStanzaNumber} onChange={(value) => updateSettings({ presentationHideStanzaNumber: value })} />
-              <CheckboxControl label={t.enableOutline} checked={settings.presentationOutline} onChange={(value) => updateSettings({ presentationOutline: value })} />
               <CheckboxControl label={t.showLyricsInTwoLines} checked={settings.presentationTwoLines} onChange={(value) => updateSettings({ presentationTwoLines: value })} />
               <CheckboxControl label={t.enableShadow} checked={settings.presentationShadow} onChange={(value) => updateSettings({ presentationShadow: value })} />
-              <CheckboxControl label={t.keepPresentationWindowOnTop} checked={settings.presentationKeepOnTop} onChange={(value) => updateSettings({ presentationKeepOnTop: value })} />
               <CheckboxControl label={t.enableUppercase} checked={settings.presentationUppercase} onChange={(value) => updateSettings({ presentationUppercase: value })} />
-              <CheckboxControl label={t.showDateAndTime} checked={settings.presentationShowDateTime} onChange={(value) => updateSettings({ presentationShowDateTime: value })} />
               <CheckboxControl label={t.enableBorder} checked={settings.presentationBorder} onChange={(value) => updateSettings({ presentationBorder: value })} />
-              <CheckboxControl label={t.showVerseviewLogo} checked={settings.presentationShowVerseLogo} onChange={(value) => updateSettings({ presentationShowVerseLogo: value })} />
               <CheckboxControl label={t.enableBox} checked={settings.presentationBox} onChange={(value) => updateSettings({ presentationBox: value })} />
               <CheckboxControl label={t.showCustomLogo} checked={settings.presentationShowCustomLogo} onChange={(value) => updateSettings({ presentationShowCustomLogo: value })} />
-              <CheckboxControl label={t.enableHeaderBox} checked={settings.presentationHeaderBox} onChange={(value) => updateSettings({ presentationHeaderBox: value })} />
-              <CheckboxControl label={t.enableLineWrap} checked={settings.presentationLineWrap} onChange={(value) => updateSettings({ presentationLineWrap: value })} />
             </div>
           </div>
         </AccordionSection>
@@ -522,14 +576,10 @@ export default function AdvancedPresentation() {
               <div>
                 <p className="mb-2 text-sm text-slate-300">{t.stageScreenStyle}</p>
                 <div className="grid gap-3 md:grid-cols-3">
-                  <CheckboxControl label={t.windowView} checked={settings.stageWindowView} onChange={(value) => updateSettings({ stageWindowView: value })} />
-                  <CheckboxControl label={t.smallWindow} checked={settings.stageSmallWindow} onChange={(value) => updateSettings({ stageSmallWindow: value })} />
                   <CheckboxControl label={t.greenScreen} checked={settings.stageGreenScreen} onChange={(value) => updateSettings({ stageGreenScreen: value })} />
                 </div>
               </div>
             </div>
-
-            <CheckboxControl label={t.showDateAndTime} checked={settings.stageShowDateTime} onChange={(value) => updateSettings({ stageShowDateTime: value })} />
 
             <label className="block">
               <p className="mb-2 text-sm text-slate-300">{t.message}</p>
@@ -549,26 +599,36 @@ export default function AdvancedPresentation() {
             <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
               <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-1">
                 <div>
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">{t.previewPanel}</p>
-                  <div className="flex h-44 items-center justify-center rounded-[1.5rem] border border-white/10 bg-black shadow-inner shadow-black/40">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Main Preview</p>
+                  <div
+                    className="flex h-52 items-center justify-center rounded-[1.5rem] border border-white/10 bg-black p-4 shadow-inner shadow-black/40"
+                    style={{ backgroundImage: previewBackground, backgroundSize: "cover", backgroundPosition: "center" }}
+                  >
                     <div
-                      className="rounded-2xl px-5 py-4 text-center"
+                      className="w-full rounded-2xl px-5 py-4 text-center backdrop-blur-sm"
                       style={{
                         background: settings.presentationBox ? "rgba(0,0,0,0.45)" : "transparent",
-                        border: settings.presentationBorder ? "1px solid rgba(255,255,255,0.2)" : "none",
+                        boxShadow: settings.presentationBorder ? "0 0 0 1px rgba(255,255,255,0.2) inset" : "none",
+                        maxWidth: settings.presentationPreset === "horizontal" ? "100%" : "26rem",
                       }}
                     >
-                      {settings.showReference && <p className="mb-2 text-xs font-bold text-white/90">{t.previewRef}</p>}
+                      {settings.showReference && (
+                        <p className="mb-2 text-xs font-bold uppercase tracking-[0.24em] text-white/90">
+                          {previewReference}
+                        </p>
+                      )}
                       <p
                         className="font-bold text-white"
                         style={{
                           fontSize: `${Math.min(settings.presentationMaxFontSize, 42)}px`,
+                          lineHeight: settings.presentationTwoLines ? 1.14 : 1.28,
                           textAlign: settings.presentationJustify,
                           textTransform: settings.presentationUppercase ? "uppercase" : "none",
                           textShadow: settings.presentationShadow ? "0 2px 10px rgba(0,0,0,0.75)" : "none",
+                          whiteSpace: "pre-line",
                         }}
                       >
-                        {t.previewVerse}
+                        {previewItem.text}
                       </p>
                     </div>
                   </div>
@@ -600,22 +660,103 @@ export default function AdvancedPresentation() {
 
               <div className="space-y-5">
                 <div>
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">{t.motionBackground}</p>
-                  <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-3">
-                    <div className="grid gap-2">
-                      {localizedMotionBackgrounds.map((item) => (
-                        <button
-                          key={item.value}
-                          onClick={() => updateSettings({ stageMotionBackground: item.value })}
-                          className={`rounded-xl px-4 py-3 text-left text-sm transition ${
-                            settings.stageMotionBackground === item.value
-                              ? "bg-sky-500/20 text-white"
-                              : "bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]"
-                          }`}
-                        >
-                          {item.label}
-                        </button>
-                      ))}
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Stage Preview</p>
+                  <div
+                    className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-black"
+                    style={{ background: stageBackground, backgroundSize: "cover", backgroundPosition: "center" }}
+                  >
+                    <div
+                      className="grid min-h-72 gap-4 p-4"
+                      style={{
+                        background: settings.stageGreenScreen
+                          ? "transparent"
+                          : `linear-gradient(180deg, ${settings.stageOverlayColor || "#000000"}55, ${settings.stageOverlayColor || "#000000"}cc)`,
+                        gridTemplateColumns: settings.stagePreset === "horizontal" ? "1.2fr 0.8fr" : "1fr",
+                      }}
+                    >
+                      <div className="rounded-[1.25rem] border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
+                        {displayMode === "title" ? (
+                          <>
+                            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-300">Title</p>
+                            <p className="mt-3 text-2xl font-bold text-white">{settings.presentationTitle}</p>
+                            <p className="mt-3 text-sm leading-6 text-slate-200">{settings.presentationSubtitle}</p>
+                          </>
+                        ) : displayMode === "announcement" ? (
+                          <>
+                            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-300">Announcement</p>
+                            <p className="mt-3 text-2xl font-bold text-white">{settings.presentationAnnouncementTitle}</p>
+                            <p className="mt-3 text-sm leading-6 text-slate-200">{settings.presentationAnnouncementBody}</p>
+                          </>
+                        ) : displayMode === "logo" ? (
+                          <div className="flex h-full min-h-40 items-center justify-center">
+                            {settings.presentationShowCustomLogo && settings.stageLogoImage ? (
+                              <img src={settings.stageLogoImage} alt="Stage logo preview" className="max-h-32 max-w-full object-contain" />
+                            ) : (
+                              <div className="text-center">
+                                <p className="text-2xl font-bold text-white">{settings.presentationTitle}</p>
+                                <p className="mt-2 text-sm text-slate-200">{settings.presentationSubtitle}</p>
+                              </div>
+                            )}
+                          </div>
+                        ) : displayMode === "black" ? (
+                          <div className="flex h-full min-h-40 items-center justify-center bg-black">
+                            <p className="text-sm uppercase tracking-[0.28em] text-slate-500">Black Screen</p>
+                          </div>
+                        ) : (
+                          <>
+                            <p
+                              className="text-xs font-semibold uppercase tracking-[0.28em]"
+                              style={{ color: settings.stageTextColor2 || "#f8fafc" }}
+                            >
+                              Live Verse
+                            </p>
+                            <p
+                              className="mt-3 text-sm font-bold"
+                              style={{ color: settings.stageTextColor2 || "#f8fafc" }}
+                            >
+                              {previewReference}
+                            </p>
+                            <p
+                              className="mt-4 font-bold"
+                              style={{
+                                fontSize: "1.6rem",
+                                lineHeight: settings.presentationTwoLines ? 1.15 : 1.28,
+                                textAlign: settings.presentationJustify || "center",
+                                textTransform: settings.presentationUppercase ? "uppercase" : "none",
+                                textShadow: settings.presentationShadow ? "0 4px 16px rgba(0,0,0,0.55)" : "none",
+                                color: settings.stageTextColor1 || "#ffffff",
+                              }}
+                            >
+                              {previewItem.text}
+                            </p>
+                          </>
+                        )}
+                      </div>
+
+                      {settings.stagePreset === "horizontal" ? (
+                        <div className="space-y-4">
+                          {settings.stageMessageVisible && settings.stageMessage ? (
+                            <div className="rounded-[1.25rem] border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
+                              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-300">Message</p>
+                              <p className="mt-3 text-sm leading-6 text-white">{settings.stageMessage}</p>
+                            </div>
+                          ) : null}
+
+                          <div className="rounded-[1.25rem] border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
+                            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-300">Next Verse</p>
+                            {nextItem ? (
+                              <>
+                                <p className="mt-3 text-sm font-bold text-white">
+                                  {nextItem.bookTamil} {nextItem.chapter}:{nextItem.verse}
+                                </p>
+                                <p className="mt-2 text-sm leading-6 text-slate-200">{nextItem.text}</p>
+                              </>
+                            ) : (
+                              <p className="mt-3 text-sm text-slate-300">No next verse queued yet.</p>
+                            )}
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </div>

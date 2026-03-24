@@ -25,15 +25,6 @@ const gradients = [
   "linear-gradient(to right, #000428, #004e92)",
 ];
 
-const motionStyles = {
-  stars:
-    "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.18) 0 2px, transparent 3px), radial-gradient(circle at 70% 30%, rgba(255,255,255,0.12) 0 1px, transparent 2px), radial-gradient(circle at 40% 80%, rgba(255,255,255,0.14) 0 2px, transparent 3px), linear-gradient(180deg, rgba(15,23,42,0.9), rgba(2,6,23,0.96))",
-  waves:
-    "radial-gradient(ellipse at top, rgba(56,189,248,0.18), transparent 45%), radial-gradient(ellipse at bottom, rgba(99,102,241,0.22), transparent 40%), linear-gradient(180deg, rgba(15,23,42,0.86), rgba(2,6,23,0.96))",
-  particles:
-    "radial-gradient(circle at 25% 35%, rgba(52,211,153,0.18) 0 3px, transparent 4px), radial-gradient(circle at 75% 55%, rgba(59,130,246,0.18) 0 3px, transparent 4px), radial-gradient(circle at 55% 20%, rgba(168,85,247,0.16) 0 2px, transparent 3px), linear-gradient(180deg, rgba(15,23,42,0.88), rgba(2,6,23,0.96))",
-};
-
 function getReaderBackground(settings) {
   if (settings.bgType === "custom" && settings.customBackground) {
     return `url(${settings.customBackground})`;
@@ -47,14 +38,11 @@ function getReaderBackground(settings) {
 }
 
 function getStageBackground(settings) {
-  const still = `url(${backgrounds[settings.stageStillBackground || 0]})`;
-  const motion = motionStyles[settings.stageMotionBackground] || motionStyles.stars;
-
   if (settings.stageGreenScreen) {
     return "#00b140";
   }
 
-  return `${motion}, ${still}`;
+  return `url(${backgrounds[settings.stageStillBackground || 0]})`;
 }
 
 function ControlButton({ active, children, onClick }) {

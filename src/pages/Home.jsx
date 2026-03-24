@@ -76,7 +76,7 @@ export default function Home() {
             <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
               Prayer journal
             </div>
-            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
+            <div className="hidden rounded-full border border-white/10 bg-white/5 px-4 py-2 md:block">
               Sermon mode
             </div>
             <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
@@ -116,35 +116,35 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="app-surface rounded-[2rem] p-5">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-                  {t.installApp}
-                </p>
-                <h2 className="mt-2 text-xl font-bold text-white md:text-2xl">
-                  Offline-First App
-                </h2>
-                <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-300">
-                  {isInstalled
-                    ? "Installed for faster launch with cached reading history and backgrounds."
-                    : "Install the app for quicker startup, better offline behavior, and a more native reading experience."}
-                </p>
-              </div>
+          {!isInstalled ? (
+            <div className="app-surface rounded-[2rem] p-5">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+                    {t.installApp}
+                  </p>
+                  <h2 className="mt-2 text-xl font-bold text-white md:text-2xl">
+                    Offline-First App
+                  </h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-300">
+                    Install the app for quicker startup, better offline behavior, and a more native reading experience.
+                  </p>
+                </div>
 
-              <button
-                onClick={promptInstall}
-                disabled={!canInstall}
-                className={`rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-lg ${
-                  canInstall
-                    ? "bg-gradient-to-br from-indigo-500 to-sky-500 shadow-indigo-950/30"
-                    : "cursor-not-allowed bg-slate-800 text-slate-400 shadow-none"
-                }`}
-              >
-                {isInstalled ? t.installed : t.installNow}
-              </button>
+                <button
+                  onClick={promptInstall}
+                  disabled={!canInstall}
+                  className={`rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-lg ${
+                    canInstall
+                      ? "bg-gradient-to-br from-indigo-500 to-sky-500 shadow-indigo-950/30"
+                      : "cursor-not-allowed bg-slate-800 text-slate-400 shadow-none"
+                  }`}
+                >
+                  {t.installNow}
+                </button>
+              </div>
             </div>
-          </div>
+          ) : null}
         </section>
 
         <section className="mb-6 grid gap-4 lg:grid-cols-[1.35fr,0.95fr]">
@@ -299,7 +299,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="app-surface rounded-[2rem] p-5">
+          <div className="hidden app-surface rounded-[2rem] p-5 md:block">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
@@ -366,7 +366,9 @@ export default function Home() {
               {groupedHighlights.map((folder) => (
                 <div
                   key={folder.value}
-                  className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4"
+                  className={`rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4 ${
+                    folder.value === "sermon" || folder.value === "prayer" ? "hidden md:block" : ""
+                  }`}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-sm font-semibold text-white">{folder.label}</p>
@@ -403,7 +405,10 @@ export default function Home() {
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
               Sharing + Presentation
             </p>
-            <h2 className="mt-2 text-xl font-bold text-white">Designer and Sermon Tools</h2>
+            <h2 className="mt-2 text-xl font-bold text-white">
+              <span className="md:hidden">Designer Tools</span>
+              <span className="hidden md:inline">Designer and Sermon Tools</span>
+            </h2>
             <div className="mt-4 space-y-3">
               <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4">
                 <p className="text-sm font-semibold text-white">Verse image designer</p>
@@ -411,14 +416,14 @@ export default function Home() {
                   Share verse cards with templates, font size, watermark, and direct export for WhatsApp or Telegram from the reader popup.
                 </p>
               </div>
-              <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4">
+              <div className="hidden rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4 md:block">
                 <p className="text-sm font-semibold text-white">Sermon mode</p>
                 <p className="mt-2 text-sm leading-7 text-slate-300">
                   Queue verses during preparation, open the sermon display on another screen, and control the active verse remotely from a second tab.
                 </p>
               </div>
             </div>
-            <div className="mt-5 flex flex-wrap gap-3">
+            <div className="mt-5 hidden flex-wrap gap-3 md:flex">
               <button
                 type="button"
                 onClick={() => navigate("/sermon-control")}
