@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import useLibraryData from "../hooks/useLibraryData";
 import {
   removeSermonQueueItem,
@@ -6,6 +7,10 @@ import {
   showNextSermonItem,
   showPreviousSermonItem,
 } from "../utils/libraryData";
+import {
+  removeRemoteDevice,
+  upsertRemoteDevice,
+} from "../utils/presentationRemotePresence";
 
 function RemoteButton({ active, children, onClick }) {
   return (
@@ -28,6 +33,60 @@ export default function PresentationRemote() {
   const queue = libraryData.sermon.queue || [];
   const activeItem = libraryData.sermon.activeItem || queue[0] || null;
   const displayMode = libraryData.sermon.displayMode || "live";
+  const remoteDeviceRef = useRef(null);
+  const isPhone = /iphone|android.+mobile|mobile|phone/i.test(navigator.userAgent);
+  const isTablet = /ipad|tablet|android(?!.*mobile)/i.test(navigator.userAgent);
+  const platform = isPhone ? "Phone" : isTablet ? "Tablet" : "Desktop Browser";
+  const remoteLabel = `${platform} Remote`;
+
+  useEffect(() => {
+    let remoteDevice = remoteDeviceRef.current;
+
+    if (!remoteDevice) {
+      const storedId = sessionStorage.getItem("presentationRemoteDeviceId");
+      const deviceId =
+        storedId ||
+        `remote-${window.crypto?.randomUUID?.() || `${Date.now()}-${performance.now()}`}`;
+
+      if (!storedId) {
+        sessionStorage.setItem("presentationRemoteDeviceId", deviceId);
+      }
+
+      remoteDevice = {
+        id: deviceId,
+        label: remoteLabel,
+        platform,
+        userAgent: navigator.userAgent,
+      };
+      remoteDeviceRef.current = remoteDevice;
+    }
+
+    upsertRemoteDevice(remoteDevice);
+
+    const heartbeatId = window.setInterval(() => {
+      upsertRemoteDevice(remoteDevice);
+    }, 5000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        upsertRemoteDevice(remoteDevice);
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      removeRemoteDevice(remoteDevice.id);
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.clearInterval(heartbeatId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      removeRemoteDevice(remoteDevice.id);
+    };
+  }, [platform, remoteLabel]);
 
   return (
     <div className="app-shell min-h-screen px-4 pb-24 pt-4 md:px-6 md:pt-6">
@@ -42,6 +101,9 @@ export default function PresentationRemote() {
           <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
             Use this page on your phone to switch the live verse, move the queue, and change the display mode instantly.
           </p>
+          <div className="mt-5 inline-flex rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-100">
+            {remoteLabel} connected
+          </div>
         </section>
 
         <section className="mb-6 app-surface rounded-[2rem] p-5">

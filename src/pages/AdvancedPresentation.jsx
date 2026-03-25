@@ -9,6 +9,10 @@ import {
   setActiveSermonItem,
   setSermonDisplayMode,
 } from "../utils/libraryData";
+import {
+  getActiveRemoteDevices,
+  getRemotePresenceEventName,
+} from "../utils/presentationRemotePresence";
 import { getUIText } from "../utils/uiText";
 
 const backgrounds = [
@@ -98,6 +102,74 @@ const BackgroundTile = memo(function BackgroundTile({ active, onClick, children 
     >
       {children}
     </button>
+  );
+});
+
+const ConnectedDevicesPanel = memo(function ConnectedDevicesPanel() {
+  const [remoteDevices, setRemoteDevices] = useState(() => getActiveRemoteDevices());
+
+  useEffect(() => {
+    const syncRemoteDevices = (event) => {
+      if (event?.type === getRemotePresenceEventName() && Array.isArray(event.detail)) {
+        setRemoteDevices(event.detail);
+        return;
+      }
+
+      setRemoteDevices(getActiveRemoteDevices());
+    };
+
+    syncRemoteDevices();
+
+    window.addEventListener("storage", syncRemoteDevices);
+    window.addEventListener(getRemotePresenceEventName(), syncRemoteDevices);
+
+    const refreshId = window.setInterval(() => {
+      setRemoteDevices(getActiveRemoteDevices());
+    }, 5000);
+
+    return () => {
+      window.removeEventListener("storage", syncRemoteDevices);
+      window.removeEventListener(getRemotePresenceEventName(), syncRemoteDevices);
+      window.clearInterval(refreshId);
+    };
+  }, []);
+
+  return (
+    <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+            Connected Devices
+          </p>
+          <p className="mt-2 text-xs leading-6 text-slate-400">
+            Active remotes seen in the last 15 seconds.
+          </p>
+        </div>
+        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200">
+          {remoteDevices.length}
+        </span>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {remoteDevices.length ? (
+          remoteDevices.map((device) => (
+            <div
+              key={device.id}
+              className="rounded-2xl border border-emerald-400/15 bg-emerald-400/10 px-4 py-3"
+            >
+              <p className="text-sm font-semibold text-white">{device.label}</p>
+              <p className="mt-1 text-xs leading-6 text-emerald-100/80">
+                {device.platform} connected
+              </p>
+            </div>
+          ))
+        ) : (
+          <p className="rounded-2xl border border-dashed border-white/10 px-4 py-4 text-sm text-slate-400">
+            No remote devices connected yet.
+          </p>
+        )}
+      </div>
+    </div>
   );
 });
 
@@ -628,6 +700,8 @@ export default function AdvancedPresentation() {
                   Make sure your phone can reach this same address on the network before using the remote.
                 </p>
               )}
+
+              <ConnectedDevicesPanel />
             </div>
           </div>
         </section>
