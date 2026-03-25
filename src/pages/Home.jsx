@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import useAppSettings from "../hooks/useAppSettings";
@@ -30,7 +30,8 @@ export default function Home() {
   const navigate = useNavigate();
   const [settings] = useAppSettings();
   const libraryData = useLibraryData();
-  const { canInstall, isInstalled, promptInstall } = useInstallPrompt();
+  const { canInstall, isInstalled, installInstructions, promptInstall } = useInstallPrompt();
+  const [installMessage, setInstallMessage] = useState("");
   const t = getUIText(settings.language);
 
   const verseOfTheDay = useMemo(() => getVerseOfTheDay(), []);
@@ -53,6 +54,17 @@ export default function Home() {
         ? `/reader/${encodeURIComponent(item.bookEnglish)}/${item.chapter}/${item.verse || 1}`
         : `/${encodeURIComponent(item.bookEnglish)}/${item.chapter}`
     );
+  };
+
+  const handleInstallClick = async () => {
+    const didPrompt = await promptInstall();
+
+    if (!didPrompt) {
+      setInstallMessage(installInstructions || t.installHelp);
+      return;
+    }
+
+    setInstallMessage("");
   };
 
   return (
@@ -132,17 +144,19 @@ export default function Home() {
                 </div>
 
                 <button
-                  onClick={promptInstall}
-                  disabled={!canInstall}
-                  className={`rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-lg ${
+                  onClick={handleInstallClick}
+                  className={`rounded-2xl px-5 py-3 text-sm font-semibold shadow-lg ${
                     canInstall
-                      ? "bg-gradient-to-br from-indigo-500 to-sky-500 shadow-indigo-950/30"
-                      : "cursor-not-allowed bg-slate-800 text-slate-400 shadow-none"
+                      ? "bg-gradient-to-br from-indigo-500 to-sky-500 text-white shadow-indigo-950/30"
+                      : "border border-white/10 bg-white/5 text-white shadow-none"
                   }`}
                 >
-                  {t.installNow}
+                  {canInstall ? t.installNow : "How To Install"}
                 </button>
               </div>
+              <p className="mt-4 text-sm leading-7 text-slate-400">
+                {installMessage || installInstructions || t.installHelp}
+              </p>
             </div>
           ) : null}
         </section>
