@@ -307,11 +307,9 @@ export default function AdvancedPresentation() {
       : queue[1] || null;
   const displayMode = libraryData.sermon.displayMode || "live";
   const [serverInfo, setServerInfo] = useState(() => getCachedPresentationServerInfo());
-  const remoteOrigin =
-    serverInfo?.candidateOrigins?.[0] ||
-    (isLocalOnlyHost(window.location.hostname)
-      ? null
-      : window.location.origin);
+  const remoteOrigin = isLocalOnlyHost(window.location.hostname)
+    ? serverInfo?.candidateOrigins?.[0] || null
+    : window.location.origin;
   const remoteUrl = remoteOrigin ? `${remoteOrigin}/presentation-remote` : `${window.location.origin}/presentation-remote`;
   const remoteNeedsPublicHost = !remoteOrigin;
   const [copiedRemoteUrl, setCopiedRemoteUrl] = useState(false);
