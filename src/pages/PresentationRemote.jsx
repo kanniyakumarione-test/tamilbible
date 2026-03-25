@@ -1,6 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import bible from "../utils/loadBible";
 import useLibraryData from "../hooks/useLibraryData";
 import {
+  addSermonQueueItem,
   removeSermonQueueItem,
   setActiveSermonItem,
   setSermonDisplayMode,
@@ -30,16 +32,103 @@ function RemoteButton({ active, children, onClick }) {
   );
 }
 
+function SelectField({ label, value, onChange, options }) {
+  return (
+    <label className="block">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+        {label}
+      </p>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export default function PresentationRemote() {
   const libraryData = useLibraryData();
   const queue = libraryData.sermon.queue || [];
   const activeItem = libraryData.sermon.activeItem || queue[0] || null;
   const displayMode = libraryData.sermon.displayMode || "live";
+  const bookOptions = useMemo(
+    () =>
+      Object.values(bible).map((bookData) => ({
+        value: bookData.book.english.trim(),
+        label: bookData.book.tamil || bookData.book.english.trim(),
+      })),
+    []
+  );
+  const initialBook = activeItem?.bookEnglish || bookOptions[0]?.value || "Genesis";
+  const [selectedBook, setSelectedBook] = useState(initialBook);
+  const selectedBookData = bible[selectedBook] || Object.values(bible)[0];
+  const chapterOptions = useMemo(
+    () =>
+      (selectedBookData?.chapters || []).map((chapterData) => ({
+        value: String(chapterData.chapter),
+        label: `Chapter ${chapterData.chapter}`,
+      })),
+    [selectedBookData]
+  );
+  const initialChapter =
+    activeItem?.bookEnglish === selectedBook
+      ? String(activeItem.chapter)
+      : chapterOptions[0]?.value || "1";
+  const [selectedChapter, setSelectedChapter] = useState(initialChapter);
   const remoteDeviceRef = useRef(null);
   const isPhone = /iphone|android.+mobile|mobile|phone/i.test(navigator.userAgent);
   const isTablet = /ipad|tablet|android(?!.*mobile)/i.test(navigator.userAgent);
   const platform = isPhone ? "Phone" : isTablet ? "Tablet" : "Desktop Browser";
   const remoteLabel = `${platform} Remote`;
+  const selectedChapterData = useMemo(
+    () =>
+      selectedBookData?.chapters.find(
+        (chapterData) => String(chapterData.chapter) === String(selectedChapter)
+      ) || selectedBookData?.chapters?.[0],
+    [selectedBookData, selectedChapter]
+  );
+  const selectedVerses = selectedChapterData?.verses || [];
+
+  useEffect(() => {
+    if (!selectedBookData?.chapters?.length) {
+      return;
+    }
+
+    const hasSelectedChapter = selectedBookData.chapters.some(
+      (chapterData) => String(chapterData.chapter) === String(selectedChapter)
+    );
+
+    if (!hasSelectedChapter) {
+      setSelectedChapter(String(selectedBookData.chapters[0].chapter));
+    }
+  }, [selectedBookData, selectedChapter]);
+
+  const buildVerseItem = (verse) => ({
+    id: `${selectedBook}::${selectedChapterData.chapter}::${verse.verse}`,
+    type: "verse",
+    bookEnglish: selectedBook,
+    bookTamil: selectedBookData?.book.tamil || selectedBook,
+    chapter: selectedChapterData.chapter,
+    verse: verse.verse,
+    text: verse.text,
+  });
+
+  const handleShowVerse = (verse) => {
+    const item = buildVerseItem(verse);
+    addSermonQueueItem(item);
+    setActiveSermonItem(item);
+  };
+
+  const handleAddVerse = (verse) => {
+    addSermonQueueItem(buildVerseItem(verse));
+  };
 
   useEffect(() => {
     startRemotePresenceStream();
@@ -146,6 +235,62 @@ export default function PresentationRemote() {
             ) : (
               <p className="mt-3 text-sm text-slate-400">No active verse selected yet.</p>
             )}
+          </div>
+        </section>
+
+        <section className="mb-6 app-surface rounded-[2rem] p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+                Verse Picker
+              </p>
+              <h2 className="mt-2 text-xl font-bold text-white">Choose book, chapter, and verse</h2>
+            </div>
+            <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300">
+              {selectedVerses.length}
+            </span>
+          </div>
+
+          <div className="mt-5 grid gap-4">
+            <SelectField
+              label="Book"
+              value={selectedBook}
+              onChange={setSelectedBook}
+              options={bookOptions}
+            />
+            <SelectField
+              label="Chapter"
+              value={String(selectedChapter)}
+              onChange={setSelectedChapter}
+              options={chapterOptions}
+            />
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {selectedVerses.map((verse) => {
+              const item = buildVerseItem(verse);
+              const isActive = item.id === activeItem?.id;
+
+              return (
+                <div
+                  key={verse.verse}
+                  className={`rounded-[1.5rem] border p-4 ${
+                    isActive ? "border-sky-400/40 bg-sky-400/10" : "border-white/10 bg-white/[0.03]"
+                  }`}
+                >
+                  <button type="button" onClick={() => handleShowVerse(verse)} className="w-full text-left">
+                    <p className="text-base font-semibold text-white">
+                      {item.bookTamil} {item.chapter}:{item.verse}
+                    </p>
+                    <p className="mt-2 text-sm leading-7 text-slate-300">{item.text}</p>
+                  </button>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <RemoteButton onClick={() => handleShowVerse(verse)}>Show Live</RemoteButton>
+                    <RemoteButton onClick={() => handleAddVerse(verse)}>Add Queue</RemoteButton>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
 
