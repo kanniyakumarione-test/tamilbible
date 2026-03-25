@@ -124,8 +124,9 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
       textShadow: settings.presentationShadow ? "0 4px 16px rgba(0,0,0,0.55)" : "none",
       color: settings.stageTextColor1 || "#ffffff",
       WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
-      whiteSpace: settings.presentationLineWrap ? "normal" : "nowrap",
-      overflowWrap: settings.presentationLineWrap ? "break-word" : "normal",
+      whiteSpace: settings.presentationTwoLines || settings.presentationLineWrap ? "normal" : "nowrap",
+      overflowWrap: settings.presentationTwoLines || settings.presentationLineWrap ? "break-word" : "normal",
+      maxWidth: settings.presentationTwoLines ? "28ch" : "100%",
     };
 
     return (
@@ -221,8 +222,10 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
                 textTransform: settings.presentationUppercase ? "uppercase" : "none",
                 textShadow: settings.presentationShadow ? "0 4px 18px rgba(0,0,0,0.52)" : "none",
                 WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
-                whiteSpace: settings.presentationLineWrap ? "normal" : "nowrap",
-                overflowWrap: settings.presentationLineWrap ? "break-word" : "normal",
+                whiteSpace: settings.presentationTwoLines || settings.presentationLineWrap ? "normal" : "nowrap",
+                overflowWrap: settings.presentationTwoLines || settings.presentationLineWrap ? "break-word" : "normal",
+                maxWidth: settings.presentationTwoLines ? "30ch" : "100%",
+                marginInline: "auto",
               };
 
               return (

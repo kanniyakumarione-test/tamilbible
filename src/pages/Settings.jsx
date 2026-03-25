@@ -640,7 +640,7 @@ export default function Settings() {
                     <SwitchRow label={t.enableShadow} description="Add more separation against bright projector backgrounds." checked={draft.presentationShadow} onChange={(presentationShadow) => updateDraft({ presentationShadow })} />
                     <SwitchRow label={t.enableBox} description="Show the verse inside a darker container on the presentation output." checked={draft.presentationBox} onChange={(presentationBox) => updateDraft({ presentationBox })} />
                     <SwitchRow label={t.enableUppercase} description="Use all-caps for bolder on-screen scripture." checked={draft.presentationUppercase} onChange={(presentationUppercase) => updateDraft({ presentationUppercase })} />
-                    <SwitchRow label={t.showLyricsInTwoLines} description="Split content into a tighter stage-friendly layout." checked={draft.presentationTwoLines} onChange={(presentationTwoLines) => updateDraft({ presentationTwoLines })} />
+                    <SwitchRow label={t.showLyricsInTwoLines} description="Force the verse into a cleaner wrapped two-line presentation style." checked={draft.presentationTwoLines} onChange={(presentationTwoLines) => updateDraft({ presentationTwoLines })} />
                   </div>
                 </Panel>
               </>
