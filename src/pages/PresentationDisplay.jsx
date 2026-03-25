@@ -118,15 +118,16 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
   if (isStage) {
     const textStyle = {
       fontSize: `${Math.max(Math.min(settings.presentationMaxFontSize || 90, 140), 40)}px`,
-      lineHeight: settings.presentationTwoLines ? 1.15 : 1.28,
+      lineHeight: 1.2,
       textAlign: settings.presentationJustify || "center",
       textTransform: settings.presentationUppercase ? "uppercase" : "none",
       textShadow: settings.presentationShadow ? "0 4px 16px rgba(0,0,0,0.55)" : "none",
       color: settings.stageTextColor1 || "#ffffff",
       WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
-      whiteSpace: settings.presentationTwoLines || settings.presentationLineWrap ? "normal" : "nowrap",
-      overflowWrap: settings.presentationTwoLines || settings.presentationLineWrap ? "break-word" : "normal",
-      maxWidth: settings.presentationTwoLines ? "28ch" : "100%",
+      whiteSpace: "normal",
+      overflowWrap: "anywhere",
+      wordBreak: "break-word",
+      maxWidth: "100%",
     };
 
     return (
@@ -217,14 +218,15 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
             {(() => {
               const mainTextStyle = {
                 fontSize: `${Math.max(Math.min(settings.presentationMaxFontSize || 90, 72), 28)}px`,
-                lineHeight: settings.presentationTwoLines ? 1.16 : 1.3,
+                lineHeight: 1.24,
                 textAlign: settings.presentationJustify || "center",
                 textTransform: settings.presentationUppercase ? "uppercase" : "none",
                 textShadow: settings.presentationShadow ? "0 4px 18px rgba(0,0,0,0.52)" : "none",
                 WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
-                whiteSpace: settings.presentationTwoLines || settings.presentationLineWrap ? "normal" : "nowrap",
-                overflowWrap: settings.presentationTwoLines || settings.presentationLineWrap ? "break-word" : "normal",
-                maxWidth: settings.presentationTwoLines ? "30ch" : "100%",
+                whiteSpace: "normal",
+                overflowWrap: "anywhere",
+                wordBreak: "break-word",
+                maxWidth: "100%",
                 marginInline: "auto",
               };
 

@@ -448,7 +448,7 @@ export default function AdvancedPresentation() {
       mounted = false;
       if (rafId) window.cancelAnimationFrame(rafId);
     };
-  }, [previewItem.text, settings.presentationMaxFontSize, settings.presentationTwoLines, settings.presentationJustify]);
+  }, [previewItem.text, settings.presentationMaxFontSize, settings.presentationJustify]);
 
   useEffect(() => {
     let mounted = true;
@@ -489,7 +489,7 @@ export default function AdvancedPresentation() {
       mounted = false;
       if (rafId) window.cancelAnimationFrame(rafId);
     };
-  }, [previewItem.text, settings.presentationMaxFontSize, settings.presentationTwoLines, settings.presentationJustify]);
+  }, [previewItem.text, settings.presentationMaxFontSize, settings.presentationJustify]);
 
   return (
     <div className="hidden px-4 pb-24 pt-4 md:block md:px-6 md:pt-6">
@@ -810,7 +810,6 @@ export default function AdvancedPresentation() {
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
-              <CheckboxControl label={t.showLyricsInTwoLines} checked={settings.presentationTwoLines} onChange={(value) => updateSettings({ presentationTwoLines: value })} />
               <CheckboxControl label={t.enableShadow} checked={settings.presentationShadow} onChange={(value) => updateSettings({ presentationShadow: value })} />
               <CheckboxControl label={t.enableUppercase} checked={settings.presentationUppercase} onChange={(value) => updateSettings({ presentationUppercase: value })} />
               <CheckboxControl label={t.enableBorder} checked={settings.presentationBorder} onChange={(value) => updateSettings({ presentationBorder: value })} />
@@ -883,11 +882,12 @@ export default function AdvancedPresentation() {
                           className="font-bold text-white"
                           style={{
                             fontSize: `${previewFontSize}px`,
-                            lineHeight: settings.presentationTwoLines ? 1.14 : 1.28,
+                            lineHeight: 1.2,
                             textAlign: settings.presentationJustify,
                             textTransform: settings.presentationUppercase ? "uppercase" : "none",
                             textShadow: settings.presentationShadow ? "0 2px 10px rgba(0,0,0,0.75)" : "none",
-                            whiteSpace: "pre-line",
+                            whiteSpace: "normal",
+                            overflowWrap: "anywhere",
                             margin: 0,
                           }}
                         >
@@ -986,11 +986,13 @@ export default function AdvancedPresentation() {
                                 className="mt-4 font-bold"
                                 style={{
                                   fontSize: `${stagePreviewFontSize}px`,
-                                  lineHeight: settings.presentationTwoLines ? 1.15 : 1.28,
+                                  lineHeight: 1.2,
                                   textAlign: settings.presentationJustify || "center",
                                   textTransform: settings.presentationUppercase ? "uppercase" : "none",
                                   textShadow: settings.presentationShadow ? "0 4px 16px rgba(0,0,0,0.55)" : "none",
                                   color: settings.stageTextColor1 || "#ffffff",
+                                  whiteSpace: "normal",
+                                  overflowWrap: "anywhere",
                                   margin: 0,
                                 }}
                               >
