@@ -1,13 +1,9 @@
-import { Link, useParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
 
 import useAppSettings from "../hooks/useAppSettings";
 import useLibraryData from "../hooks/useLibraryData";
-import {
-  setSermonDisplayMode,
-  showNextSermonItem,
-  showPreviousSermonItem,
-} from "../utils/libraryData";
+import { setSermonDisplayMode } from "../utils/libraryData";
 
 const backgrounds = [
   "/bg/bg1.jpg",
@@ -43,22 +39,6 @@ function getStageBackground(settings) {
   }
 
   return `url(${backgrounds[settings.stageStillBackground || 0]})`;
-}
-
-function ControlButton({ active, children, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
-        active
-          ? "bg-[linear-gradient(135deg,#2563eb,#38bdf8)] text-white shadow-lg"
-          : "border border-white/10 bg-black/30 text-slate-100 hover:bg-white/10"
-      }`}
-    >
-      {children}
-    </button>
-  );
 }
 
 function StageSideCard({ title, children }) {
@@ -228,40 +208,31 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
             : "none",
         }}
       >
-          {activeItem ? (
+        {activeItem ? (
           <>
-            <p className="text-base font-semibold uppercase tracking-[0.36em] text-slate-300">
-              Live Presentation
-            </p>
-            <p className="mt-5 text-3xl font-bold text-white">
+            <p className="text-3xl font-bold text-white">
               {activeItem.bookTamil} {activeItem.chapter}:{activeItem.verse}
             </p>
-              {(() => {
-                const mainTextStyle = {
-                  fontSize: `${Math.max(Math.min(settings.presentationMaxFontSize || 90, 140), 48)}px`,
-                  lineHeight: settings.presentationTwoLines ? 1.14 : 1.28,
-                  textAlign: settings.presentationJustify || "center",
-                  textTransform: settings.presentationUppercase ? "uppercase" : "none",
-                  textShadow: settings.presentationShadow ? "0 4px 18px rgba(0,0,0,0.52)" : "none",
-                  WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
-                  whiteSpace: settings.presentationLineWrap ? "normal" : "nowrap",
-                  overflowWrap: settings.presentationLineWrap ? "break-word" : "normal",
-                };
+            {(() => {
+              const mainTextStyle = {
+                fontSize: `${Math.max(Math.min(settings.presentationMaxFontSize || 90, 110), 34)}px`,
+                lineHeight: settings.presentationTwoLines ? 1.14 : 1.24,
+                textAlign: settings.presentationJustify || "center",
+                textTransform: settings.presentationUppercase ? "uppercase" : "none",
+                textShadow: settings.presentationShadow ? "0 4px 18px rgba(0,0,0,0.52)" : "none",
+                WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
+                whiteSpace: settings.presentationLineWrap ? "normal" : "nowrap",
+                overflowWrap: settings.presentationLineWrap ? "break-word" : "normal",
+              };
 
-                return (
-                  <div>
-                    {settings.presentationHeaderBox ? (
-                      <div className="inline-block rounded px-3 py-1" style={{ background: "rgba(255,255,255,0.04)" }}>
-                        <p className="text-base font-semibold uppercase tracking-[0.36em] text-slate-300">Live Presentation</p>
-                      </div>
-                    ) : null}
-
-                    <p className="mt-6 font-bold text-white" style={mainTextStyle}>
-                      {activeItem.text}
-                    </p>
-                  </div>
-                );
-              })()}
+              return (
+                <div>
+                  <p className="mt-6 font-bold text-white" style={mainTextStyle}>
+                    {activeItem.text}
+                  </p>
+                </div>
+              );
+            })()}
           </>
         ) : (
           <div className="py-16 text-center">
@@ -295,8 +266,15 @@ export default function PresentationDisplay() {
   const background = isStage ? getStageBackground(settings) : getReaderBackground(settings);
   const overlayColor = settings.stageOverlayColor || "#000000";
   const displayMode = libraryData.sermon.displayMode || "live";
-  const [controlsVisible, setControlsVisible] = useState(true);
-  const hideControlsTimerRef = useRef(null);
+  const transitionKey = `${mode}:${displayMode}:${activeItem?.id || "none"}:${nextItem?.id || "none"}`;
+  const [renderState, setRenderState] = useState({
+    activeItem,
+    nextItem,
+    displayMode,
+    transitionKey,
+  });
+  const [isFading, setIsFading] = useState(false);
+  const transitionTimerRef = useRef(null);
 
   useEffect(() => {
     const displayElement = displayRef.current;
@@ -317,26 +295,38 @@ export default function PresentationDisplay() {
   }, []);
 
   useEffect(() => {
-    const showControls = () => {
-      setControlsVisible(true);
+    if (renderState.transitionKey === transitionKey) {
+      return undefined;
+    }
 
-      if (hideControlsTimerRef.current) {
-        window.clearTimeout(hideControlsTimerRef.current);
+    setIsFading(true);
+
+    if (transitionTimerRef.current) {
+      window.clearTimeout(transitionTimerRef.current);
+    }
+
+    transitionTimerRef.current = window.setTimeout(() => {
+      setRenderState({
+        activeItem,
+        nextItem,
+        displayMode,
+        transitionKey,
+      });
+      setIsFading(false);
+      transitionTimerRef.current = null;
+    }, 220);
+
+    return () => {
+      if (transitionTimerRef.current) {
+        window.clearTimeout(transitionTimerRef.current);
+        transitionTimerRef.current = null;
       }
-
-      hideControlsTimerRef.current = window.setTimeout(() => {
-        setControlsVisible(false);
-      }, 3200);
     };
+  }, [activeItem, nextItem, displayMode, transitionKey, renderState.transitionKey]);
 
+  useEffect(() => {
     const handleKey = (event) => {
-      showControls();
-
-      if (event.key === "ArrowRight") {
-        showNextSermonItem();
-      } else if (event.key === "ArrowLeft") {
-        showPreviousSermonItem();
-      } else if (event.key === "b" || event.key === "B") {
+      if (event.key === "b" || event.key === "B") {
         setSermonDisplayMode("black");
       } else if (event.key === "l" || event.key === "L") {
         setSermonDisplayMode("live");
@@ -346,23 +336,21 @@ export default function PresentationDisplay() {
         setSermonDisplayMode("logo");
       } else if (event.key === "a" || event.key === "A") {
         setSermonDisplayMode("announcement");
-      } else if (event.key === "h" || event.key === "H") {
-        setControlsVisible((current) => !current);
       }
     };
 
-    showControls();
-    window.addEventListener("mousemove", showControls);
-    window.addEventListener("touchstart", showControls);
     window.addEventListener("keydown", handleKey);
 
     return () => {
-      if (hideControlsTimerRef.current) {
-        window.clearTimeout(hideControlsTimerRef.current);
-      }
-      window.removeEventListener("mousemove", showControls);
-      window.removeEventListener("touchstart", showControls);
       window.removeEventListener("keydown", handleKey);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (transitionTimerRef.current) {
+        window.clearTimeout(transitionTimerRef.current);
+      }
     };
   }, []);
 
@@ -371,14 +359,17 @@ export default function PresentationDisplay() {
       ref={displayRef}
       className="relative min-h-screen overflow-hidden text-white"
       style={{
-        background: displayMode === "black" ? "#000000" : background,
+        background: renderState.displayMode === "black" ? "#000000" : background,
         backgroundSize: "cover",
         backgroundPosition: "center",
+        transition: "background 220ms ease-in-out",
       }}
     >
-      {displayMode !== "black" ? (
+      {renderState.displayMode !== "black" ? (
         <div
-          className="absolute inset-0"
+          className={`absolute inset-0 transition-opacity duration-200 ease-in-out ${
+            isFading ? "opacity-0" : "opacity-100"
+          }`}
           style={{
             background: isStage
               ? `linear-gradient(180deg, ${overlayColor}55, ${overlayColor}cc)`
@@ -388,13 +379,19 @@ export default function PresentationDisplay() {
       ) : null}
 
       {isEnabled ? (
-        <DisplayBody
-          isStage={isStage}
-          settings={settings}
-          activeItem={activeItem}
-          nextItem={nextItem}
-          displayMode={displayMode}
-        />
+        <div
+          className={`transition-opacity duration-200 ease-in-out ${
+            isFading ? "opacity-0" : "opacity-100"
+          }`}
+        >
+          <DisplayBody
+            isStage={isStage}
+            settings={settings}
+            activeItem={renderState.activeItem}
+            nextItem={renderState.nextItem}
+            displayMode={renderState.displayMode}
+          />
+        </div>
       ) : (
         <div className="relative z-10 flex min-h-screen items-center justify-center px-8">
           <div className="rounded-[2rem] border border-white/10 bg-black/35 px-10 py-12 text-center backdrop-blur-md">
@@ -410,40 +407,6 @@ export default function PresentationDisplay() {
           </div>
         </div>
       )}
-
-      <div
-        className={`pointer-events-none fixed bottom-4 left-4 right-4 z-30 flex flex-col gap-3 transition duration-300 xl:left-auto xl:right-4 xl:max-w-3xl ${
-          controlsVisible ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        <div className="pointer-events-auto rounded-[1.6rem] border border-white/10 bg-[rgba(5,10,20,0.72)] p-3 shadow-2xl backdrop-blur-xl">
-          <div className="flex flex-wrap items-center gap-2">
-            <ControlButton onClick={() => showPreviousSermonItem()}>Prev</ControlButton>
-            <ControlButton onClick={() => showNextSermonItem()}>Next</ControlButton>
-            <ControlButton active={displayMode === "live"} onClick={() => setSermonDisplayMode("live")}>
-              Live
-            </ControlButton>
-            <ControlButton active={displayMode === "title"} onClick={() => setSermonDisplayMode("title")}>
-              Title
-            </ControlButton>
-            <ControlButton active={displayMode === "logo"} onClick={() => setSermonDisplayMode("logo")}>
-              Logo
-            </ControlButton>
-            <ControlButton active={displayMode === "announcement"} onClick={() => setSermonDisplayMode("announcement")}>
-              Announcement
-            </ControlButton>
-            <ControlButton active={displayMode === "black"} onClick={() => setSermonDisplayMode("black")}>
-              Black
-            </ControlButton>
-            <Link
-              to="/presentation-remote"
-              className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
-            >
-              Remote
-            </Link>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
