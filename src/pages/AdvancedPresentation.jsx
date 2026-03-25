@@ -10,8 +10,15 @@ import {
   setSermonDisplayMode,
 } from "../utils/libraryData";
 import {
+  fetchPresentationServerInfo,
+  getCachedPresentationServerInfo,
+  getPresentationServerInfoEventName,
+} from "../utils/presentationBackend";
+import {
   getActiveRemoteDevices,
   getRemotePresenceEventName,
+  startRemotePresenceStream,
+  syncRemoteDevicesFromBackend,
 } from "../utils/presentationRemotePresence";
 import { getUIText } from "../utils/uiText";
 
@@ -119,6 +126,8 @@ const ConnectedDevicesPanel = memo(function ConnectedDevicesPanel() {
     };
 
     syncRemoteDevices();
+    startRemotePresenceStream();
+    void syncRemoteDevicesFromBackend();
 
     window.addEventListener("storage", syncRemoteDevices);
     window.addEventListener(getRemotePresenceEventName(), syncRemoteDevices);
@@ -297,8 +306,14 @@ export default function AdvancedPresentation() {
       ? queue[queue.findIndex((item) => item.id === activeItem.id) + 1] || null
       : queue[1] || null;
   const displayMode = libraryData.sermon.displayMode || "live";
-  const remoteUrl = `${window.location.origin}/presentation-remote`;
-  const remoteNeedsPublicHost = isLocalOnlyHost(window.location.hostname);
+  const [serverInfo, setServerInfo] = useState(() => getCachedPresentationServerInfo());
+  const remoteOrigin =
+    serverInfo?.candidateOrigins?.[0] ||
+    (isLocalOnlyHost(window.location.hostname)
+      ? null
+      : window.location.origin);
+  const remoteUrl = remoteOrigin ? `${remoteOrigin}/presentation-remote` : `${window.location.origin}/presentation-remote`;
+  const remoteNeedsPublicHost = !remoteOrigin;
   const [copiedRemoteUrl, setCopiedRemoteUrl] = useState(false);
 
   useEffect(() => {
@@ -333,6 +348,21 @@ export default function AdvancedPresentation() {
 
     return () => {
       mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const syncServerInfo = (event) => {
+      if (event?.type === getPresentationServerInfoEventName() && event.detail) {
+        setServerInfo(event.detail);
+      }
+    };
+
+    window.addEventListener(getPresentationServerInfoEventName(), syncServerInfo);
+    void fetchPresentationServerInfo();
+
+    return () => {
+      window.removeEventListener(getPresentationServerInfoEventName(), syncServerInfo);
     };
   }, []);
 
@@ -692,8 +722,8 @@ export default function AdvancedPresentation() {
               </button>
               {remoteNeedsPublicHost ? (
                 <p className="mt-3 rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-6 text-amber-100">
-                  This app is currently running on {window.location.hostname}. Phones usually cannot open that
-                  address. Start the app with a LAN/public URL, then scan this QR again.
+                  The app is currently open on {window.location.hostname}, which phones usually cannot reach.
+                  Start both the frontend and backend on your LAN, then this QR will point to your network address.
                 </p>
               ) : (
                 <p className="mt-3 text-xs leading-6 text-slate-500">

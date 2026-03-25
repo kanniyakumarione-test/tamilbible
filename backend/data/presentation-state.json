@@ -1,0 +1,9 @@
+{
+  "sermon": {
+    "queue": [],
+    "activeItem": null,
+    "displayMode": "live",
+    "updatedAt": null
+  },
+  "presence": []
+}

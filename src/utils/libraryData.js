@@ -1,4 +1,8 @@
 import bible from "./loadBible";
+import {
+  getCachedRemoteSermon,
+  pushPresentationSermonState,
+} from "./presentationBackend";
 
 const STORAGE_KEY = "appLibraryData";
 const EVENT_NAME = "app-library-change";
@@ -69,6 +73,21 @@ function emitChange(data) {
 }
 
 function normalizeLibraryData(stored) {
+  const remoteSermon = getCachedRemoteSermon();
+  const localSermon = {
+    ...defaultLibraryData.sermon,
+    ...(stored?.sermon || {}),
+    queue: stored?.sermon?.queue || [],
+  };
+  const sermon =
+    (remoteSermon?.updatedAt || 0) > (localSermon?.updatedAt || 0)
+      ? {
+          ...defaultLibraryData.sermon,
+          ...remoteSermon,
+          queue: remoteSermon?.queue || [],
+        }
+      : localSermon;
+
   return {
     ...defaultLibraryData,
     ...(stored || {}),
@@ -76,11 +95,7 @@ function normalizeLibraryData(stored) {
     notes: { ...defaultLibraryData.notes, ...(stored?.notes || {}) },
     prayers: { ...defaultLibraryData.prayers, ...(stored?.prayers || {}) },
     readingPlans: { ...defaultLibraryData.readingPlans, ...(stored?.readingPlans || {}) },
-    sermon: {
-      ...defaultLibraryData.sermon,
-      ...(stored?.sermon || {}),
-      queue: stored?.sermon?.queue || [],
-    },
+    sermon,
     bookmarks: stored?.bookmarks || [],
     favorites: stored?.favorites || [],
     history: stored?.history || [],
@@ -370,6 +385,7 @@ export function setSermonQueue(queue, activeItem = null) {
   };
 
   saveLibraryData(next);
+  void pushPresentationSermonState(next.sermon);
   return next;
 }
 
@@ -385,6 +401,7 @@ export function setActiveSermonItem(item) {
   };
 
   saveLibraryData(next);
+  void pushPresentationSermonState(next.sermon);
   return next;
 }
 
@@ -400,6 +417,7 @@ export function setSermonDisplayMode(displayMode) {
   };
 
   saveLibraryData(next);
+  void pushPresentationSermonState(next.sermon);
   return next;
 }
 

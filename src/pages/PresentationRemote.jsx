@@ -9,6 +9,8 @@ import {
 } from "../utils/libraryData";
 import {
   removeRemoteDevice,
+  startRemotePresenceStream,
+  syncRemoteDevicesFromBackend,
   upsertRemoteDevice,
 } from "../utils/presentationRemotePresence";
 
@@ -40,6 +42,9 @@ export default function PresentationRemote() {
   const remoteLabel = `${platform} Remote`;
 
   useEffect(() => {
+    startRemotePresenceStream();
+    void syncRemoteDevicesFromBackend();
+
     let remoteDevice = remoteDeviceRef.current;
 
     if (!remoteDevice) {

@@ -4,6 +4,11 @@ import {
   getLibraryData,
   getLibraryEventName,
 } from "../utils/libraryData";
+import {
+  fetchPresentationSermonState,
+  getPresentationSermonSyncEventName,
+  startPresentationSyncStream,
+} from "../utils/presentationBackend";
 
 export default function useLibraryData() {
   const [libraryData, setLibraryData] = useState(getLibraryData());
@@ -20,10 +25,17 @@ export default function useLibraryData() {
 
     window.addEventListener("storage", syncLibrary);
     window.addEventListener(getLibraryEventName(), syncLibrary);
+    window.addEventListener(getPresentationSermonSyncEventName(), syncLibrary);
+
+    startPresentationSyncStream();
+    void fetchPresentationSermonState().then(() => {
+      setLibraryData(getLibraryData());
+    });
 
     return () => {
       window.removeEventListener("storage", syncLibrary);
       window.removeEventListener(getLibraryEventName(), syncLibrary);
+      window.removeEventListener(getPresentationSermonSyncEventName(), syncLibrary);
     };
   }, []);
 

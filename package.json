@@ -4,10 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "backend": "node backend/index.mjs",
     "dev": "vite",
     "build": "node scripts/generate-seo.mjs && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "node backend/index.mjs"
   },
   "dependencies": {
     "html2canvas": "^1.4.1",
