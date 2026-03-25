@@ -215,8 +215,8 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
             </p>
             {(() => {
               const mainTextStyle = {
-                fontSize: `${Math.max(Math.min(settings.presentationMaxFontSize || 90, 110), 34)}px`,
-                lineHeight: settings.presentationTwoLines ? 1.14 : 1.24,
+                fontSize: `${Math.max(Math.min(settings.presentationMaxFontSize || 90, 72), 28)}px`,
+                lineHeight: settings.presentationTwoLines ? 1.16 : 1.3,
                 textAlign: settings.presentationJustify || "center",
                 textTransform: settings.presentationUppercase ? "uppercase" : "none",
                 textShadow: settings.presentationShadow ? "0 4px 18px rgba(0,0,0,0.52)" : "none",
