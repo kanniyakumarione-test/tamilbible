@@ -56,7 +56,6 @@ export default function SeoManager() {
 
   const seo = useMemo(() => {
     const pathname = location.pathname;
-    const absoluteUrl = toAbsoluteUrl(pathname);
     const defaultImage = toAbsoluteUrl("/icon-512.png");
     const breadcrumbItems = [
       {
@@ -71,6 +70,8 @@ export default function SeoManager() {
     let description =
       "Tamil Bible reading app with books, chapters, verses, Tanglish search, and mobile-friendly reading tools.";
     let type = "website";
+    let canonicalUrl = toAbsoluteUrl(pathname);
+    let robots = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
 
     const bookMatch = matchPath("/:book", pathname);
     const chapterMatch = matchPath("/:book/:chapter", pathname);
@@ -88,37 +89,40 @@ export default function SeoManager() {
         "@type": "ListItem",
         position: 2,
         name: t.books,
-        item: absoluteUrl,
+        item: canonicalUrl,
       });
     } else if (pathname === "/search") {
       title = `${t.search} | Tamil Bible Premium`;
       description =
         "Search Tamil Bible books and verses using Tamil, English, or Tanglish spellings.";
+      robots = "noindex, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
       breadcrumbItems.push({
         "@type": "ListItem",
         position: 2,
         name: t.search,
-        item: absoluteUrl,
+        item: canonicalUrl,
       });
     } else if (pathname === "/settings") {
       title = `${t.settings} | Tamil Bible Premium`;
       description =
         "Adjust Tamil Bible reading settings like font size, spacing, background, and layout for mobile and desktop.";
+      robots = "noindex, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
       breadcrumbItems.push({
         "@type": "ListItem",
         position: 2,
         name: t.settings,
-        item: absoluteUrl,
+        item: canonicalUrl,
       });
     } else if (pathname === "/advanced-presentation") {
       title = `${t.advancedPresentation} | Tamil Bible Premium`;
       description =
         "Configure advanced Tamil Bible presentation settings for church display, stage view, and screen layouts.";
+      robots = "noindex, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
       breadcrumbItems.push({
         "@type": "ListItem",
         position: 2,
         name: t.advancedPresentation,
-        item: absoluteUrl,
+        item: canonicalUrl,
       });
     }
 
@@ -137,6 +141,8 @@ export default function SeoManager() {
         ? `${bookTamil} ${chapter}:${verse} - ${verseText.slice(0, 150)}`
         : `Read ${bookTamil} ${chapter}:${verse} in the Tamil Bible.`;
       type = "article";
+      canonicalUrl = toAbsoluteUrl(`/${encodeURIComponent(bookEnglish)}/${chapter}`);
+      robots = "noindex, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
       breadcrumbItems.push(
         {
           "@type": "ListItem",
@@ -154,7 +160,7 @@ export default function SeoManager() {
           "@type": "ListItem",
           position: 4,
           name: `${bookTamil} ${chapter}:${verse}`,
-          item: absoluteUrl,
+          item: toAbsoluteUrl(pathname),
         }
       );
     } else if (chapterMatch?.params) {
@@ -181,7 +187,7 @@ export default function SeoManager() {
           "@type": "ListItem",
           position: 3,
           name: `${bookTamil} ${chapter}`,
-          item: absoluteUrl,
+          item: canonicalUrl,
         }
       );
     } else if (bookMatch?.params) {
@@ -198,15 +204,24 @@ export default function SeoManager() {
         "@type": "ListItem",
         position: 2,
         name: bookTamil,
-        item: absoluteUrl,
+        item: canonicalUrl,
       });
+    } else if (
+      pathname.startsWith("/presentation/") ||
+      pathname === "/presentation-remote" ||
+      pathname === "/sermon-mode" ||
+      pathname === "/sermon-control"
+    ) {
+      robots = "noindex, nofollow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
     }
 
     return {
       title,
       description,
       type,
-      absoluteUrl,
+      absoluteUrl: toAbsoluteUrl(pathname),
+      canonicalUrl,
+      robots,
       defaultImage,
       breadcrumbItems,
     };
@@ -222,7 +237,7 @@ export default function SeoManager() {
     });
     upsertMeta('meta[name="robots"]', {
       name: "robots",
-      content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
+      content: seo.robots,
     });
     upsertMeta('meta[property="og:title"]', {
       property: "og:title",
@@ -267,7 +282,7 @@ export default function SeoManager() {
 
     upsertLink('link[rel="canonical"]', {
       rel: "canonical",
-      href: seo.absoluteUrl,
+      href: seo.canonicalUrl,
     });
 
     upsertJsonLd("seo-website-schema", {

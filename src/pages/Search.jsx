@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import bible from "../utils/loadBible";
 import {
   findMatchingBooks,
   getHighlightedTextParts,
@@ -9,18 +8,8 @@ import {
 } from "../utils/bookSearch";
 import useAppSettings from "../hooks/useAppSettings";
 import { getUIText } from "../utils/uiText";
-
-const verseIndex = Object.values(bible).flatMap((bookData) =>
-  bookData.chapters.flatMap((ch) =>
-    ch.verses.map((v) => ({
-      englishBook: bookData.book.english,
-      book: bookData.book.tamil,
-      chapter: ch.chapter,
-      verse: v.verse,
-      text: v.text,
-    }))
-  )
-);
+import { getBibleByLanguage, getBookName } from "../utils/bibleContent";
+import { openReader } from "../utils/openReader";
 
 function HighlightedVerse({ text, query }) {
   const parts = getHighlightedTextParts(text, query);
@@ -47,8 +36,25 @@ export default function Search() {
   const navigate = useNavigate();
   const [settings] = useAppSettings();
   const t = getUIText(settings.language);
+  const activeBible = useMemo(() => getBibleByLanguage(settings.language), [settings.language]);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  const verseIndex = useMemo(
+    () =>
+      Object.values(activeBible).flatMap((bookData) =>
+        bookData.chapters.flatMap((ch) =>
+          ch.verses.map((v) => ({
+            englishBook: bookData.book.english,
+            book: getBookName(bookData, settings.language),
+            chapter: ch.chapter,
+            verse: v.verse,
+            text: v.text,
+          }))
+        )
+      ),
+    [activeBible, settings.language]
+  );
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -61,7 +67,7 @@ export default function Search() {
   const bookResults = useMemo(() => {
     const value = debouncedQuery.trim();
     return value ? findMatchingBooks(value).slice(0, 12) : [];
-  }, [debouncedQuery]);
+  }, [debouncedQuery, verseIndex]);
 
   const verseResults = useMemo(() => {
     const value = debouncedQuery.trim();
@@ -129,7 +135,7 @@ export default function Search() {
                   className="rounded-2xl border border-white/10 bg-[linear-gradient(180deg,_rgba(30,41,59,0.92),_rgba(15,23,42,0.86))] p-4 text-left transition hover:border-sky-400/30 hover:bg-slate-800"
                 >
                   <span className="block text-base font-semibold text-slate-100">
-                    {result.book.tamil}
+                    {settings.language === "en" ? result.book.english : result.book.tamil}
                   </span>
                 </button>
               ))}
@@ -150,8 +156,10 @@ export default function Search() {
               <button
                 key={`${r.englishBook}-${r.chapter}-${r.verse}-${i}`}
                 onClick={() =>
-                  navigate(
+                  openReader(
                     `/reader/${encodeURIComponent(r.englishBook)}/${r.chapter}/${r.verse}`
+                    ,
+                    navigate
                   )
                 }
                 className="block w-full rounded-[1.5rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(30,41,59,0.88),_rgba(15,23,42,0.86))] p-4 text-left transition hover:border-sky-400/30 hover:bg-slate-800"

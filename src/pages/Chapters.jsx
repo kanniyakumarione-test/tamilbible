@@ -1,24 +1,28 @@
 import { useParams, Link } from "react-router-dom";
-import bible from "../utils/loadBible";
+import useAppSettings from "../hooks/useAppSettings";
+import { getUIText } from "../utils/uiText";
+import { getBibleByLanguage, getBookName } from "../utils/bibleContent";
 
 export default function Chapters() {
   const { book } = useParams();
   const decodedBook = decodeURIComponent(book);
+  const [settings] = useAppSettings();
+  const t = getUIText(settings.language);
 
-  const bookData = bible[decodedBook];
+  const bookData = getBibleByLanguage(settings.language)[decodedBook];
 
   return (
     <div className="app-shell px-4 pb-24 pt-4 md:px-6 md:pt-6">
       <div className="mx-auto max-w-5xl">
         <section className="app-surface mb-5 rounded-[2rem] px-5 py-6 md:px-6">
           <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-400">
-            Chapters
+            {t.chapters}
           </p>
           <h1 className="mt-3 text-2xl font-bold text-white md:text-3xl">
-            {bookData?.book.tamil}
+            {getBookName(bookData, settings.language)}
           </h1>
           <p className="mt-2 text-sm text-slate-400">
-            Select a chapter to continue reading.
+            {t.selectChapter}
           </p>
         </section>
 

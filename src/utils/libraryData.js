@@ -1,4 +1,5 @@
 import bible from "./loadBible";
+import englishBible from "./loadEnglishBible";
 import {
   getCachedRemoteSermon,
   pushPresentationSermonState,
@@ -45,6 +46,19 @@ const verseIndex = books.flatMap((bookData) =>
       id: `${bookData.book.english.trim()}::${chapter.chapter}::${verse.verse}`,
       bookEnglish: bookData.book.english.trim(),
       bookTamil: bookData.book.tamil,
+      chapter: chapter.chapter,
+      verse: verse.verse,
+      text: verse.text,
+    }))
+  )
+);
+
+const englishVerseIndex = Object.values(englishBible).flatMap((bookData) =>
+  bookData.chapters.flatMap((chapter) =>
+    chapter.verses.map((verse) => ({
+      id: `${bookData.book.english.trim()}::${chapter.chapter}::${verse.verse}`,
+      bookEnglish: bookData.book.english.trim(),
+      bookTamil: bookData.book.english.trim(),
       chapter: chapter.chapter,
       verse: verse.verse,
       text: verse.text,
@@ -479,16 +493,17 @@ export function getRecentPrayers(data = getLibraryData(), limit = 4) {
     .slice(0, limit);
 }
 
-export function getVerseOfTheDay() {
+export function getVerseOfTheDay(language = "ta") {
+  const activeVerseIndex = language === "en" ? englishVerseIndex : verseIndex;
   const today = new Date();
   const key = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
   let hash = 0;
 
   for (let i = 0; i < key.length; i += 1) {
-    hash = (hash * 31 + key.charCodeAt(i)) % verseIndex.length;
+    hash = (hash * 31 + key.charCodeAt(i)) % activeVerseIndex.length;
   }
 
-  return verseIndex[hash];
+  return activeVerseIndex[hash];
 }
 
 export function getLibraryEventName() {

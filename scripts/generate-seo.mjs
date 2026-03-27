@@ -28,9 +28,6 @@ const newTestamentDir = path.join(dataDir, "newTestament");
 const routes = new Set([
   "/",
   "/books",
-  "/search",
-  "/settings",
-  "/advanced-presentation",
 ]);
 
 for (const book of books) {
@@ -58,14 +55,6 @@ for (const directory of [oldTestamentDir, newTestamentDir]) {
     for (const chapterData of bookData.chapters) {
       const chapter = chapterData.chapter;
       routes.add(`/${encodedBook}/${chapter}`);
-
-      if (!Array.isArray(chapterData.verses)) {
-        continue;
-      }
-
-      for (const verseData of chapterData.verses) {
-        routes.add(`/reader/${encodedBook}/${chapter}/${verseData.verse}`);
-      }
     }
   }
 }
@@ -78,14 +67,12 @@ ${[...routes]
     (route) => `  <url>
     <loc>${toAbsoluteUrl(route)}</loc>
     <lastmod>${now}</lastmod>
-    <changefreq>${route.startsWith("/reader/") ? "monthly" : "weekly"}</changefreq>
+    <changefreq>${route === "/" ? "weekly" : "monthly"}</changefreq>
     <priority>${
       route === "/"
         ? "1.0"
-        : route === "/books" || route === "/search"
+        : route === "/books"
         ? "0.9"
-        : route.startsWith("/reader/")
-        ? "0.7"
         : "0.8"
     }</priority>
   </url>`

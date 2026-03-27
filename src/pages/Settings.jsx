@@ -68,28 +68,36 @@ const presentationPresetMap = {
   },
 };
 
-function Panel({ title, subtitle, children, className = "" }) {
+function Panel({ title, subtitle, children, className = "", isTamil = false }) {
   return (
     <section
-      className={`rounded-[1.9rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(11,18,32,0.96),_rgba(7,12,23,0.98))] p-5 shadow-2xl shadow-black/20 ${className}`}
+      className={`w-full min-w-0 rounded-[1.9rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(11,18,32,0.96),_rgba(7,12,23,0.98))] p-5 shadow-2xl shadow-black/20 ${className}`}
     >
       <div className="mb-5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-cyan-300/70">
+        <p
+          className={`font-semibold text-cyan-300/70 ${
+            isTamil ? "text-sm tracking-normal" : "text-[11px] uppercase tracking-[0.3em]"
+          }`}
+        >
           {title}
         </p>
-        <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-400">{subtitle}</p>
+        <p className={`mt-2 max-w-2xl text-slate-400 ${isTamil ? "text-[15px] leading-8" : "text-sm leading-7"}`}>
+          {subtitle}
+        </p>
       </div>
       {children}
     </section>
   );
 }
 
-function TabButton({ active, children, onClick }) {
+function TabButton({ active, children, onClick, isTamil = false }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+      className={`rounded-full px-4 py-2.5 font-semibold transition ${
+        isTamil ? "text-[15px]" : "text-sm"
+      } ${
         active
           ? "bg-[linear-gradient(135deg,#0ea5e9,#22c55e)] text-slate-950 shadow-lg"
           : "border border-white/10 bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]"
@@ -100,10 +108,16 @@ function TabButton({ active, children, onClick }) {
   );
 }
 
-function MetricPill({ label, value }) {
+function MetricPill({ label, value, isTamil = false }) {
   return (
     <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.04] px-4 py-3">
-      <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">{label}</p>
+      <p
+        className={`text-slate-500 ${
+          isTamil ? "text-sm font-medium tracking-normal" : "text-[11px] uppercase tracking-[0.24em]"
+        }`}
+      >
+        {label}
+      </p>
       <p className="mt-2 text-base font-semibold text-white">{value}</p>
     </div>
   );
@@ -119,15 +133,15 @@ function StepControl({ label, valueLabel, value, min, max, step, onChange }) {
   };
 
   return (
-    <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium text-slate-200">{label}</p>
-        <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs text-slate-300">
+    <div className="w-full min-w-0 rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <p className="min-w-0 flex-1 break-words text-sm font-medium text-slate-200">{label}</p>
+        <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs text-slate-300">
           {valueLabel}
         </span>
       </div>
 
-      <div className="mt-4 flex items-center gap-3">
+      <div className="mt-4 flex min-w-0 items-center gap-3">
         <button
           type="button"
           onClick={() => updateValue(-1)}
@@ -150,17 +164,19 @@ function StepControl({ label, valueLabel, value, min, max, step, onChange }) {
   );
 }
 
-function ChoiceRow({ label, options, value, onChange }) {
+function ChoiceRow({ label, options, value, onChange, isTamil = false }) {
   return (
-    <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
-      <p className="text-sm font-medium text-slate-200">{label}</p>
+    <div className="w-full min-w-0 rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
+      <p className={`break-words font-medium text-slate-200 ${isTamil ? "text-[15px]" : "text-sm"}`}>{label}</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {options.map((option) => (
           <button
             key={option.value}
             type="button"
             onClick={() => onChange(option.value)}
-            className={`rounded-full px-3 py-2 text-xs font-semibold transition ${
+            className={`rounded-full px-3 py-2 font-semibold transition ${
+              isTamil ? "text-sm" : "text-xs"
+            } ${
               value === option.value
                 ? "bg-[linear-gradient(135deg,#38bdf8,#22c55e)] text-slate-950"
                 : "border border-white/10 bg-white/[0.05] text-slate-200 hover:bg-white/[0.08]"
@@ -176,9 +192,9 @@ function ChoiceRow({ label, options, value, onChange }) {
 
 function SwitchRow({ label, description, checked, onChange }) {
   return (
-    <label className="flex items-start justify-between gap-4 rounded-[1.5rem] border border-white/10 bg-black/20 px-4 py-4">
-      <div>
-        <p className="text-sm font-medium text-white">{label}</p>
+    <label className="flex w-full min-w-0 items-start justify-between gap-4 rounded-[1.5rem] border border-white/10 bg-black/20 px-4 py-4">
+      <div className="min-w-0 flex-1">
+        <p className="break-words text-sm font-medium text-white">{label}</p>
         {description ? <p className="mt-1 text-xs leading-6 text-slate-400">{description}</p> : null}
       </div>
       <span
@@ -263,6 +279,107 @@ export default function Settings() {
   const previewDraft = useDeferredValue(draft);
   const [previewFontSize, setPreviewFontSize] = useState(draft.fontSize);
   const t = getUIText(draft.language);
+  const isTamil = draft.language !== "en";
+  const isBilingual = draft.language === "ta-en";
+  const settingsPageText = useMemo(
+    () => ({
+      tabs: {
+        reader: isTamil ? "வாசிப்பு" : "Reader",
+        visual: isTamil ? "தோற்றம்" : "Visual",
+        app: isTamil ? "செயலி" : "App",
+      },
+      panels: {
+        readerControls: {
+          title: isTamil ? "வாசிப்பு கட்டுப்பாடுகள்" : "Reader Controls",
+          subtitle: isTamil
+            ? "எழுத்தளவு, வரி இடைவெளி, அட்டை தெளிவு, மற்றும் மொழியை உங்கள் வாசிப்பு முறைக்கு ஏற்றவாறு மாற்றுங்கள்."
+            : "Dial in type size, spacing, card strength, and language for your reading flow.",
+        },
+        quickModes: {
+          title: isTamil ? "விரைவு வாசிப்பு முறைகள்" : "Quick Reading Modes",
+          subtitle: isTamil
+            ? "சிறிய மாற்றங்கள் மூலம் வாசிப்பு உணர்வை உடனே மாற்றலாம்."
+            : "Small switches that change how the reader feels immediately.",
+        },
+        backgroundStudio: {
+          title: isTamil ? "பின்னணி அமைப்பு" : "Background Studio",
+          subtitle: isTamil
+            ? "படம் அல்லது நிறச்சரிவு பின்னணியை தேர்வு செய்து, விருப்பமிருந்தால் உங்கள் சொந்த படத்தையும் பயன்படுத்தலாம்."
+            : "Switch between photo and gradient backgrounds, then upload a custom image if you want a more personal reading atmosphere.",
+        },
+        visualShortcuts: {
+          title: isTamil ? "தோற்ற விரைவு தேர்வுகள்" : "Visual Shortcuts",
+          subtitle: isTamil
+            ? "பொதுவாக பயன்படுத்தப்படும் வாசிப்பு தோற்றங்களை விரைவாக மாற்றலாம்."
+            : "Fast switches for common reading looks without hunting through every control.",
+        },
+        installApp: {
+          title: t.installApp,
+          subtitle: isTamil
+            ? "இந்த வேதாகமத்தை மொபைல் அல்லது கணினியில் தனி செயலி போல பயன்படுத்தலாம்."
+            : "Make the Bible feel more like a native app with offline support and a home-screen shortcut.",
+        },
+        presentationDefaults: {
+          title: isTamil ? "வெளியீட்டு முன்னிருப்புகள்" : "Presentation Defaults",
+          subtitle: isTamil
+            ? "சபை திரை மற்றும் பிரசங்க காட்சிக்கான விரைவு செயலி அமைப்புகள்."
+            : "Quick app-level controls for sermon screens and projector-ready output.",
+        },
+        livePreview: {
+          title: t.livePreview,
+          subtitle: isTamil
+            ? "இங்கே செய்யும் மாற்றங்கள் உடனே முன்னோட்டத்தில் தெரியும்."
+            : "Every change is applied immediately so you can tune the reader without leaving this page.",
+        },
+        snapshot: {
+          title: isTamil ? "சுருக்கம்" : "Snapshot",
+          subtitle: isTamil
+            ? "தற்போதைய வாசிப்பு அமைப்பின் சுருக்கம்."
+            : "A quick summary of your current reading profile.",
+        },
+      },
+      labels: {
+        compactCard: isTamil ? "சுருக்கமான அட்டை" : "Compact card",
+        compactCardDesc: isTamil
+          ? "லேசான வாசிப்பு தோற்றத்திற்காக அட்டையின் தெளிவை குறைக்கவும்."
+          : "Lower the card opacity for a lighter reading layer.",
+        wideLayout: isTamil ? "அகலமான அமைப்பு" : "Wide layout",
+        wideLayoutDesc: isTamil
+          ? "டெஸ்க்டாப் வாசிப்பிற்கு அகலமான படிப்பகத்தை பயன்படுத்தவும்."
+          : "Use a wider reader width for desktop study sessions.",
+        backgroundType: isTamil ? "பின்னணி வகை" : "Background Type",
+        referenceFirst: isTamil ? "குறிப்பு முதலில்" : "Reference-first style",
+        referenceFirstDesc: isTamil
+          ? "ஆய்வு மற்றும் போதனைக்கு வசன குறிப்பை தெளிவாக காட்டும்."
+          : "Keeps the verse reference visible for study and teaching use.",
+        gradientMood: isTamil ? "நிறச்சரிவு தோற்றம்" : "Gradient mood",
+        gradientMoodDesc: isTamil
+          ? "படத்தின் பதிலாக மென்மையான நிறச்சரிவு பின்னணியை பயன்படுத்தும்."
+          : "Use a smooth gradient instead of image backgrounds.",
+        stretch: isTamil ? "நீட்டிப்பு" : "Stretch",
+        centerFocus: isTamil ? "மைய கவனம்" : "Center Focus",
+        minimal: isTamil ? "எளிமை" : "Minimal",
+        background: isTamil ? "பின்னணி" : "Background",
+        image: isTamil ? "படம்" : "Image",
+        gradient: isTamil ? "நிறச்சரிவு" : "Gradient",
+        custom: isTamil ? "தனிப்பயன்" : "Custom",
+        showReferenceDesc: isTamil
+          ? "முன்னோட்டம் மற்றும் வாசிப்பு அட்டையில் வசன குறிப்பை மேலே காட்டும்."
+          : "Show the verse reference above the preview and reader card.",
+        howToInstall: isTamil ? "நிறுவும் முறை" : "How To Install",
+        shadowDesc: isTamil
+          ? "ஒளிரும் திரைகளில் எழுத்து தெளிவாகத் தெரிய உதவும்."
+          : "Add more separation against bright projector backgrounds.",
+        boxDesc: isTamil
+          ? "வசனத்தை கறுப்பு பின்னணி பெட்டிக்குள் காட்டும்."
+          : "Show the verse inside a darker container on the presentation output.",
+        uppercaseDesc: isTamil
+          ? "திரை எழுத்துகளை முழு பெரிய எழுத்தாக மாற்றும்."
+          : "Use all-caps for bolder on-screen scripture.",
+      },
+    }),
+    [isTamil, t.installApp, t.livePreview]
+  );
 
   useEffect(() => {
     if (!areSettingsEqual(settings, draft)) {
@@ -387,33 +504,41 @@ export default function Settings() {
   const activeBackgrounds = draft.bgType === "gradient" ? gradients : backgrounds;
 
   return (
-    <div className="app-shell px-4 pb-20 pt-4 md:px-6 md:pt-6">
-      <div className="mx-auto max-w-7xl">
+    <div className="app-shell overflow-x-hidden px-4 pb-20 pt-4 md:px-6 md:pt-6">
+      <div className="mx-auto w-full max-w-7xl overflow-x-hidden">
         <section className="mb-6 overflow-hidden rounded-[2.2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.18),_transparent_24%),radial-gradient(circle_at_top_right,_rgba(56,189,248,0.18),_transparent_26%),linear-gradient(180deg,_rgba(8,15,29,0.98),_rgba(4,9,17,0.98))] p-6 shadow-2xl shadow-black/30 md:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.34em] text-cyan-300/70">
+              <p
+                className={`font-semibold text-cyan-300/70 ${
+                  isTamil ? "text-sm tracking-normal" : "text-xs uppercase tracking-[0.34em]"
+                }`}
+              >
                 {t.readingSetup}
               </p>
               <h1 className="mt-3 max-w-3xl text-3xl font-bold text-white md:text-5xl">
                 {t.settingsTitle}
               </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
+              <p className={`mt-4 max-w-2xl text-slate-300 md:text-base ${isTamil ? "text-[15px] leading-8" : "text-sm leading-7"}`}>
                 {t.settingsIntro}
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
-              <MetricPill label={t.fontSize} value={`${draft.fontSize}px`} />
-              <MetricPill label={t.language} value={draft.language === "en" ? t.english : t.tamil} />
-              <MetricPill label={t.readerWidth} value={`${draft.readerWidth}px`} />
+              <MetricPill label={t.fontSize} value={`${draft.fontSize}px`} isTamil={isTamil} />
+              <MetricPill
+                label={t.language}
+                value={draft.language === "en" ? t.english : isBilingual ? t.tamilEnglish : t.tamil}
+                isTamil={isTamil}
+              />
+              <MetricPill label={t.readerWidth} value={`${draft.readerWidth}px`} isTamil={isTamil} />
             </div>
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
             {tabs.map((item) => (
-              <TabButton key={item.id} active={tab === item.id} onClick={() => setTab(item.id)}>
-                {item.label}
+              <TabButton key={item.id} active={tab === item.id} onClick={() => setTab(item.id)} isTamil={isTamil}>
+                {settingsPageText.tabs[item.id]}
               </TabButton>
             ))}
 
@@ -428,10 +553,14 @@ export default function Settings() {
         </section>
 
         <div className="grid gap-6 xl:grid-cols-[1.15fr,0.85fr]">
-          <div className="space-y-6">
+          <div className="min-w-0 space-y-6">
             {tab === "reader" ? (
               <>
-                <Panel title="Reader Controls" subtitle="Dial in type size, spacing, card strength, and language for your reading flow.">
+                <Panel
+                  title={settingsPageText.panels.readerControls.title}
+                  subtitle={settingsPageText.panels.readerControls.subtitle}
+                  isTamil={isTamil}
+                >
                   <div className="grid gap-4 md:grid-cols-2">
                     <StepControl label={t.fontSize} value={draft.fontSize} valueLabel={`${draft.fontSize}px`} min={18} max={42} step={1} onChange={(fontSize) => updateDraft({ fontSize })} />
                     <StepControl label={t.lineSpacing} value={draft.lineHeight} valueLabel={`${draft.lineHeight.toFixed(1)}x`} min={1.3} max={2.4} step={0.1} onChange={(lineHeight) => updateDraft({ lineHeight })} />
@@ -444,6 +573,7 @@ export default function Settings() {
                       label={t.textAlign}
                       value={draft.textAlign}
                       onChange={(textAlign) => updateDraft({ textAlign })}
+                      isTamil={isTamil}
                       options={[
                         { value: "left", label: t.left },
                         { value: "center", label: t.center },
@@ -454,9 +584,11 @@ export default function Settings() {
                       label={t.language}
                       value={draft.language}
                       onChange={(language) => updateDraft({ language })}
+                      isTamil={isTamil}
                       options={[
                         { value: "ta", label: t.tamil },
                         { value: "en", label: t.english },
+                        { value: "ta-en", label: t.tamilEnglish },
                       ]}
                     />
                   </div>
@@ -464,24 +596,28 @@ export default function Settings() {
                   <div className="mt-4">
                     <SwitchRow
                       label={t.showReference}
-                      description="Show the verse reference above the preview and reader card."
+                      description={settingsPageText.labels.showReferenceDesc}
                       checked={draft.showReference}
                       onChange={(showReference) => updateDraft({ showReference })}
                     />
                   </div>
                 </Panel>
 
-                <Panel title="Quick Reading Modes" subtitle="Small switches that change how the reader feels immediately.">
+                <Panel
+                  title={settingsPageText.panels.quickModes.title}
+                  subtitle={settingsPageText.panels.quickModes.subtitle}
+                  isTamil={isTamil}
+                >
                   <div className="grid gap-4 md:grid-cols-2">
                     <SwitchRow
-                      label="Compact card"
-                      description="Lower the card opacity for a lighter reading layer."
+                      label={settingsPageText.labels.compactCard}
+                      description={settingsPageText.labels.compactCardDesc}
                       checked={draft.cardOpacity <= 0.4}
                       onChange={(checked) => updateDraft({ cardOpacity: checked ? 0.35 : 0.5 })}
                     />
                     <SwitchRow
-                      label="Wide layout"
-                      description="Use a wider reader width for desktop study sessions."
+                      label={settingsPageText.labels.wideLayout}
+                      description={settingsPageText.labels.wideLayoutDesc}
                       checked={draft.readerWidth >= 1040}
                       onChange={(checked) => updateDraft({ readerWidth: checked ? 1120 : 900 })}
                     />
@@ -492,13 +628,18 @@ export default function Settings() {
 
             {tab === "visual" ? (
               <>
-                <Panel title="Background Studio" subtitle="Switch between photo and gradient backgrounds, then upload a custom image if you want a more personal reading atmosphere.">
+                <Panel
+                  title={settingsPageText.panels.backgroundStudio.title}
+                  subtitle={settingsPageText.panels.backgroundStudio.subtitle}
+                  isTamil={isTamil}
+                >
                   <div className="grid gap-4 lg:grid-cols-[0.7fr,1.3fr]">
                     <div className="space-y-4">
                       <ChoiceRow
-                        label="Background Type"
+                        label={settingsPageText.labels.backgroundType}
                         value={draft.bgType === "gradient" ? "gradient" : "image"}
                         onChange={(mode) => updateDraft({ bgType: mode, bgIndex: draft.bgIndex ?? 0 })}
+                        isTamil={isTamil}
                         options={[
                           { value: "image", label: t.imageBackgrounds },
                           { value: "gradient", label: t.gradientBackgrounds },
@@ -557,17 +698,21 @@ export default function Settings() {
                   </div>
                 </Panel>
 
-                <Panel title="Visual Shortcuts" subtitle="Fast switches for common reading looks without hunting through every control.">
+                <Panel
+                  title={settingsPageText.panels.visualShortcuts.title}
+                  subtitle={settingsPageText.panels.visualShortcuts.subtitle}
+                  isTamil={isTamil}
+                >
                   <div className="grid gap-4 md:grid-cols-2">
                     <SwitchRow
-                      label="Reference-first style"
-                      description="Keeps the verse reference visible for study and teaching use."
+                      label={settingsPageText.labels.referenceFirst}
+                      description={settingsPageText.labels.referenceFirstDesc}
                       checked={draft.showReference}
                       onChange={(showReference) => updateDraft({ showReference })}
                     />
                     <SwitchRow
-                      label="Gradient mood"
-                      description="Use a smooth gradient instead of image backgrounds."
+                      label={settingsPageText.labels.gradientMood}
+                      description={settingsPageText.labels.gradientMoodDesc}
                       checked={draft.bgType === "gradient"}
                       onChange={(checked) => updateDraft({ bgType: checked ? "gradient" : "image", bgIndex: 0 })}
                     />
@@ -578,7 +723,11 @@ export default function Settings() {
 
             {tab === "app" ? (
               <>
-                <Panel title="Install App" subtitle="Make the Bible feel more like a native app with offline support and a home-screen shortcut.">
+                <Panel
+                  title={settingsPageText.panels.installApp.title}
+                  subtitle={settingsPageText.panels.installApp.subtitle}
+                  isTamil={isTamil}
+                >
                   <div className="rounded-[1.6rem] border border-emerald-400/20 bg-emerald-400/10 p-5">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                       <div>
@@ -605,24 +754,29 @@ export default function Settings() {
                             : "bg-white text-slate-950 shadow-lg"
                         }`}
                       >
-                        {isInstalled ? t.installed : canInstall ? t.installNow : "How To Install"}
+                        {isInstalled ? t.installed : canInstall ? t.installNow : settingsPageText.labels.howToInstall}
                       </button>
                     </div>
                   </div>
                 </Panel>
 
-                <Panel title="Presentation Defaults" subtitle="Quick app-level controls for sermon screens and projector-ready output.">
+                <Panel
+                  title={settingsPageText.panels.presentationDefaults.title}
+                  subtitle={settingsPageText.panels.presentationDefaults.subtitle}
+                  isTamil={isTamil}
+                >
                   <div className="grid gap-4 md:grid-cols-2">
                     <ChoiceRow
                       label={t.presets}
                       value={draft.presentationPreset}
                       onChange={(presentationPreset) => updateDraft({ presentationPreset, ...(presentationPresetMap[presentationPreset] || {}) })}
+                      isTamil={isTamil}
                       options={[
                         { value: "horizontal", label: t.fullScreenHorizontal },
                         { value: "primary", label: t.fullScreenPrimary },
-                        { value: "stretch", label: "Stretch" },
-                        { value: "center", label: "Center Focus" },
-                        { value: "minimal", label: "Minimal" },
+                        { value: "stretch", label: settingsPageText.labels.stretch },
+                        { value: "center", label: settingsPageText.labels.centerFocus },
+                        { value: "minimal", label: settingsPageText.labels.minimal },
                       ]}
                     />
                     <StepControl
@@ -637,17 +791,21 @@ export default function Settings() {
                   </div>
 
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <SwitchRow label={t.enableShadow} description="Add more separation against bright projector backgrounds." checked={draft.presentationShadow} onChange={(presentationShadow) => updateDraft({ presentationShadow })} />
-                    <SwitchRow label={t.enableBox} description="Show the verse inside a darker container on the presentation output." checked={draft.presentationBox} onChange={(presentationBox) => updateDraft({ presentationBox })} />
-                    <SwitchRow label={t.enableUppercase} description="Use all-caps for bolder on-screen scripture." checked={draft.presentationUppercase} onChange={(presentationUppercase) => updateDraft({ presentationUppercase })} />
+                    <SwitchRow label={t.enableShadow} description={settingsPageText.labels.shadowDesc} checked={draft.presentationShadow} onChange={(presentationShadow) => updateDraft({ presentationShadow })} />
+                    <SwitchRow label={t.enableBox} description={settingsPageText.labels.boxDesc} checked={draft.presentationBox} onChange={(presentationBox) => updateDraft({ presentationBox })} />
+                    <SwitchRow label={t.enableUppercase} description={settingsPageText.labels.uppercaseDesc} checked={draft.presentationUppercase} onChange={(presentationUppercase) => updateDraft({ presentationUppercase })} />
                   </div>
                 </Panel>
               </>
             ) : null}
           </div>
 
-          <div className="space-y-6">
-            <Panel title={t.livePreview} subtitle="Every change is applied immediately so you can tune the reader without leaving this page.">
+          <div className="min-w-0 space-y-6">
+            <Panel
+              title={settingsPageText.panels.livePreview.title}
+              subtitle={settingsPageText.panels.livePreview.subtitle}
+              isTamil={isTamil}
+            >
               <div
                 className="rounded-[1.8rem] border border-white/10 p-4"
                 style={{
@@ -668,7 +826,9 @@ export default function Settings() {
                 >
                   {previewDraft.showReference ? (
                     <p
-                      className="text-sm font-bold uppercase tracking-[0.18em] text-cyan-100/90"
+                      className={`font-bold text-cyan-100/90 ${
+                        isTamil ? "text-base tracking-normal" : "text-sm uppercase tracking-[0.18em]"
+                      }`}
                       style={{ textAlign: previewDraft.textAlign }}
                     >
                       {t.previewRef}
@@ -686,16 +846,43 @@ export default function Settings() {
                   >
                     {t.previewVerse}
                   </p>
+                  {isBilingual ? (
+                    <p
+                      className="mt-4 text-slate-200"
+                      style={{
+                        fontSize: `${Math.max(previewFontSize - 6, 18)}px`,
+                        lineHeight: Math.max(previewDraft.lineHeight - 0.1, 1.5),
+                        textAlign: previewDraft.textAlign,
+                        overflowWrap: "break-word",
+                      }}
+                    >
+                      {t.previewVerseEnglish}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </Panel>
 
-            <Panel title="Snapshot" subtitle="A quick summary of your current reading profile.">
+            <Panel
+              title={settingsPageText.panels.snapshot.title}
+              subtitle={settingsPageText.panels.snapshot.subtitle}
+              isTamil={isTamil}
+            >
               <div className="grid gap-3 sm:grid-cols-2">
-                <MetricPill label={t.textAlign} value={previewDraft.textAlign} />
-                <MetricPill label="Background" value={previewDraft.bgType === "gradient" ? "Gradient" : previewDraft.bgType === "custom" ? "Custom" : "Image"} />
-                <MetricPill label={t.cardOpacity} value={`${Math.round(previewDraft.cardOpacity * 100)}%`} />
-                <MetricPill label={t.showReference} value={previewDraft.showReference ? t.yes : t.no} />
+                <MetricPill label={t.textAlign} value={previewDraft.textAlign} isTamil={isTamil} />
+                <MetricPill
+                  label={settingsPageText.labels.background}
+                  value={
+                    previewDraft.bgType === "gradient"
+                      ? settingsPageText.labels.gradient
+                      : previewDraft.bgType === "custom"
+                      ? settingsPageText.labels.custom
+                      : settingsPageText.labels.image
+                  }
+                  isTamil={isTamil}
+                />
+                <MetricPill label={t.cardOpacity} value={`${Math.round(previewDraft.cardOpacity * 100)}%`} isTamil={isTamil} />
+                <MetricPill label={t.showReference} value={previewDraft.showReference ? t.yes : t.no} isTamil={isTamil} />
               </div>
             </Panel>
           </div>

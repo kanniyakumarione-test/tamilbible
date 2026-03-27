@@ -13,6 +13,8 @@ import {
   togglePrayerAnswered,
 } from "../utils/libraryData";
 import { getUIText } from "../utils/uiText";
+import { localizeChapterItem, localizeVerseItem } from "../utils/bibleContent";
+import { openReader } from "../utils/openReader";
 
 function StatCard({ label, value, sublabel }) {
   return (
@@ -32,14 +34,28 @@ export default function Home() {
   const libraryData = useLibraryData();
   const { canInstall, isInstalled, installInstructions, promptInstall } = useInstallPrompt();
   const [installMessage, setInstallMessage] = useState("");
+  const [verseOfDayPopupOpen, setVerseOfDayPopupOpen] = useState(false);
+  const [shareFeedback, setShareFeedback] = useState("");
   const t = getUIText(settings.language);
 
-  const verseOfTheDay = useMemo(() => getVerseOfTheDay(), []);
-  const continueReading = getContinueReading(libraryData.history);
-  const recentHistory = libraryData.history.slice(0, 4);
+  const verseOfTheDay = useMemo(() => getVerseOfTheDay(settings.language), [settings.language]);
+  const continueReadingRaw = getContinueReading(libraryData.history);
+  const continueReading = continueReadingRaw
+    ? continueReadingRaw.verse
+      ? localizeVerseItem(continueReadingRaw, settings.language)
+      : localizeChapterItem(continueReadingRaw, settings.language)
+    : null;
+  const recentHistory = libraryData.history.slice(0, 4).map((item) =>
+    item.verse ? localizeVerseItem(item, settings.language) : localizeChapterItem(item, settings.language)
+  );
   const readingPlans = getReadingPlanSummary(libraryData);
-  const groupedHighlights = getGroupedHighlights(libraryData);
-  const recentPrayers = getRecentPrayers(libraryData, 4);
+  const groupedHighlights = getGroupedHighlights(libraryData).map((folder) => ({
+    ...folder,
+    items: folder.items.map((item) => localizeVerseItem(item, settings.language)),
+  }));
+  const recentPrayers = getRecentPrayers(libraryData, 4).map((item) =>
+    localizeChapterItem(item, settings.language)
+  );
   const bookmarkCount = libraryData.bookmarks.length;
   const favoriteCount = libraryData.favorites.length;
   const highlightCount = Object.keys(libraryData.highlights).length;
@@ -49,11 +65,15 @@ export default function Home() {
   const goToItem = (item) => {
     if (!item) return;
 
-    navigate(
-      item.type === "verse" || item.verse
-        ? `/reader/${encodeURIComponent(item.bookEnglish)}/${item.chapter}/${item.verse || 1}`
-        : `/${encodeURIComponent(item.bookEnglish)}/${item.chapter}`
-    );
+    if (item.type === "verse" || item.verse) {
+      openReader(
+        `/reader/${encodeURIComponent(item.bookEnglish)}/${item.chapter}/${item.verse || 1}`,
+        navigate
+      );
+      return;
+    }
+
+    navigate(`/${encodeURIComponent(item.bookEnglish)}/${item.chapter}`);
   };
 
   const handleInstallClick = async () => {
@@ -65,6 +85,42 @@ export default function Home() {
     }
 
     setInstallMessage("");
+  };
+
+  const handleOpenVerseOfDay = () => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setVerseOfDayPopupOpen(true);
+      setShareFeedback("");
+      return;
+    }
+
+    openReader(
+      `/reader/${encodeURIComponent(verseOfTheDay.bookEnglish)}/${verseOfTheDay.chapter}/${verseOfTheDay.verse}`,
+      navigate
+    );
+  };
+
+  const shareVerseOfDay = async () => {
+    const shareText = `${verseOfTheDay.bookTamil} ${verseOfTheDay.chapter}:${verseOfTheDay.verse}\n\n${verseOfTheDay.text}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${verseOfTheDay.bookTamil} ${verseOfTheDay.chapter}:${verseOfTheDay.verse}`,
+          text: shareText,
+        });
+        return;
+      } catch {
+        return;
+      }
+    }
+
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(shareText);
+      setShareFeedback(
+        settings.language === "en" ? "Verse copied for sharing." : "பகிர்வதற்காக வசனம் நகலெடுக்கப்பட்டது."
+      );
+    }
   };
 
   return (
@@ -83,16 +139,16 @@ export default function Home() {
 
           <div className="mt-6 flex flex-wrap gap-3 text-xs text-slate-300 md:text-sm">
             <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
-              Reading plans
+              {settings.language === "en" ? "Reading plans" : "வாசிப்பு திட்டங்கள்"}
             </div>
             <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
-              Prayer journal
+              {settings.language === "en" ? "Prayer journal" : "ஜெப குறிப்பேடு"}
             </div>
             <div className="hidden rounded-full border border-white/10 bg-white/5 px-4 py-2 md:block">
-              Sermon mode
+              {settings.language === "en" ? "Sermon mode" : "பிரசங்க முறை"}
             </div>
             <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
-              Verse designer
+              {settings.language === "en" ? "Verse designer" : "வசன வடிவமைப்பான்"}
             </div>
           </div>
         </section>
@@ -100,7 +156,7 @@ export default function Home() {
         <section className="mb-6 grid gap-4 lg:grid-cols-[1.1fr,0.9fr]">
           <div className="app-surface rounded-[2rem] p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-              Continue Reading
+              {settings.language === "en" ? "Continue Reading" : "தொடர் வாசிப்பு"}
             </p>
             <h2 className="mt-2 text-xl font-bold text-white md:text-2xl">
               {continueReading ? continueReading.bookTamil : t.savedBookmark}
@@ -108,7 +164,9 @@ export default function Home() {
             <p className="mt-3 text-sm leading-7 text-slate-300">
               {continueReading
                 ? `${t.chapter} ${continueReading.chapter}${continueReading.verse ? ` • ${t.verse} ${continueReading.verse}` : ""}`
-                : "Open any book or verse once and it will appear here for quick return."}
+                : settings.language === "en"
+                ? "Open any book or verse once and it will appear here for quick return."
+                : "எந்த புத்தகம் அல்லது வசனத்தை ஒரு முறை திறந்தாலும், இங்கு விரைவாக மீண்டும் திறக்க காணப்படும்."}
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               {continueReading ? (
@@ -116,14 +174,14 @@ export default function Home() {
                   onClick={() => goToItem(continueReading)}
                   className="rounded-2xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-5 py-3 text-sm font-semibold text-white shadow-lg"
                 >
-                  Resume Now
+                  {settings.language === "en" ? "Resume Now" : "இப்போது தொடரு"}
                 </button>
               ) : null}
               <button
                 onClick={() => navigate("/books")}
                 className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
               >
-                Browse Books
+                {settings.language === "en" ? "Browse Books" : "புத்தகங்களை பார்"}
               </button>
             </div>
           </div>
@@ -136,10 +194,12 @@ export default function Home() {
                     {t.installApp}
                   </p>
                   <h2 className="mt-2 text-xl font-bold text-white md:text-2xl">
-                    Offline-First App
+                    {settings.language === "en" ? "Offline-First App" : "ஆஃப்லைன் ஆப்"}
                   </h2>
                   <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-300">
-                    Install the app for quicker startup, better offline behavior, and a more native reading experience.
+                    {settings.language === "en"
+                      ? "Install the app for quicker startup, better offline behavior, and a more native reading experience."
+                      : "விரைவான தொடக்கம், சிறந்த offline பயன்பாடு, மற்றும் native போன்ற வாசிப்பு அனுபவத்திற்காக ஆப்பை நிறுவுங்கள்."}
                   </p>
                 </div>
 
@@ -151,7 +211,7 @@ export default function Home() {
                       : "border border-white/10 bg-white/5 text-white shadow-none"
                   }`}
                 >
-                  {canInstall ? t.installNow : "How To Install"}
+                  {canInstall ? t.installNow : settings.language === "en" ? "How To Install" : "நிறுவுவது எப்படி"}
                 </button>
               </div>
               <p className="mt-4 text-sm leading-7 text-slate-400">
@@ -173,11 +233,7 @@ export default function Home() {
               {verseOfTheDay.text}
             </p>
             <button
-              onClick={() =>
-                navigate(
-                  `/reader/${encodeURIComponent(verseOfTheDay.bookEnglish)}/${verseOfTheDay.chapter}/${verseOfTheDay.verse}`
-                )
-              }
+              onClick={handleOpenVerseOfDay}
               className="mt-5 rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-lg"
               style={{
                 background: "linear-gradient(135deg, #2563eb, #38bdf8)",
@@ -190,8 +246,16 @@ export default function Home() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
             <StatCard label={t.bookmarksTitle} value={bookmarkCount} />
             <StatCard label={t.favoritesTitle} value={favoriteCount} />
-            <StatCard label={t.highlightsTitle} value={highlightCount} sublabel="with colors + folders" />
-            <StatCard label={t.notesTitle} value={noteCount} sublabel={`${prayerCount} prayer journal entries`} />
+            <StatCard
+              label={t.highlightsTitle}
+              value={highlightCount}
+              sublabel={settings.language === "en" ? "with colors + folders" : "நிறங்களும் அடைவுகளும் உடன்"}
+            />
+            <StatCard
+              label={t.notesTitle}
+              value={noteCount}
+              sublabel={settings.language === "en" ? `${prayerCount} prayer journal entries` : `${prayerCount} ஜெப குறிப்புகள்`}
+            />
           </div>
         </section>
 
@@ -199,16 +263,18 @@ export default function Home() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-                Daily Plans
+                {settings.language === "en" ? "Daily Plans" : "தினசரி திட்டங்கள்"}
               </p>
-              <h2 className="mt-2 text-xl font-bold text-white">Reading Plans</h2>
+              <h2 className="mt-2 text-xl font-bold text-white">
+                {settings.language === "en" ? "Reading Plans" : "வாசிப்பு திட்டங்கள்"}
+              </h2>
             </div>
             <button
               type="button"
               onClick={() => continueReading && goToItem(continueReading)}
               className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white"
             >
-              Track From Current Chapter
+              {settings.language === "en" ? "Track From Current Chapter" : "தற்போது அதிகாரத்திலிருந்து தொடர்"}
             </button>
           </div>
 
@@ -222,7 +288,9 @@ export default function Home() {
                   <div>
                     <p className="text-base font-semibold text-white">{plan.label}</p>
                     <p className="mt-2 text-sm text-slate-400">
-                      {plan.chaptersPerDay} chapter{plan.chaptersPerDay > 1 ? "s" : ""} per day
+                      {settings.language === "en"
+                        ? `${plan.chaptersPerDay} chapter${plan.chaptersPerDay > 1 ? "s" : ""} per day`
+                        : `ஒரு நாளுக்கு ${plan.chaptersPerDay} அதிகாரம்${plan.chaptersPerDay > 1 ? "கள்" : ""}`}
                     </p>
                   </div>
                   <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
@@ -239,11 +307,15 @@ export default function Home() {
 
                 <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-300">
                   <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Done</p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                      {settings.language === "en" ? "Done" : "முடிந்தது"}
+                    </p>
                     <p className="mt-2 font-semibold text-white">{plan.completedCount}</p>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Today</p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                      {settings.language === "en" ? "Today" : "இன்று"}
+                    </p>
                     <p className="mt-2 font-semibold text-white">
                       {plan.todayCount}/{plan.chaptersPerDay}
                     </p>
@@ -252,7 +324,7 @@ export default function Home() {
 
                 <div className="mt-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                    Next chapters
+                    {settings.language === "en" ? "Next chapters" : "அடுத்த அதிகாரங்கள்"}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {plan.nextChapters.slice(0, 3).map((chapter) => (
@@ -264,7 +336,7 @@ export default function Home() {
                         }
                         className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200"
                       >
-                        {chapter.bookTamil} {chapter.chapter}
+                        {localizeChapterItem(chapter, settings.language).bookTamil} {chapter.chapter}
                       </button>
                     ))}
                   </div>
@@ -279,9 +351,11 @@ export default function Home() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-                  Recent Reading
+                  {t.recentReading}
                 </p>
-                <h2 className="mt-2 text-xl font-bold text-white">Quick Return</h2>
+                <h2 className="mt-2 text-xl font-bold text-white">
+                  {settings.language === "en" ? "Quick Return" : "விரைவான திரும்பல்"}
+                </h2>
               </div>
             </div>
 
@@ -317,9 +391,11 @@ export default function Home() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-                  Prayer Journal
+                  {settings.language === "en" ? "Prayer Journal" : "ஜெப குறிப்பேடு"}
                 </p>
-                <h2 className="mt-2 text-xl font-bold text-white">Attached prayers</h2>
+                <h2 className="mt-2 text-xl font-bold text-white">
+                  {settings.language === "en" ? "Attached prayers" : "இணைக்கப்பட்ட ஜெபங்கள்"}
+                </h2>
               </div>
               <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300">
                 {prayerCount}
@@ -351,14 +427,22 @@ export default function Home() {
                             : "border border-white/10 bg-white/5 text-slate-200"
                         }`}
                       >
-                        {item.answered ? "Answered" : "Mark Answered"}
+                        {item.answered
+                          ? settings.language === "en"
+                            ? "Answered"
+                            : "பதிலளிக்கப்பட்டது"
+                          : settings.language === "en"
+                          ? "Mark Answered"
+                          : "பதிலாக குறி"}
                       </button>
                     </div>
                   </div>
                 ))
               ) : (
                 <p className="rounded-[1.4rem] border border-dashed border-white/10 px-4 py-5 text-sm text-slate-400">
-                  Add prayers to verses from the chapter screen and revisit them here.
+                  {settings.language === "en"
+                    ? "Add prayers to verses from the chapter screen and revisit them here."
+                    : "அதிகார திரையிலிருந்து வசனங்களுக்கு ஜெபங்களை சேர்த்து, இங்கு மீண்டும் பார்க்கலாம்."}
                 </p>
               )}
             </div>
@@ -370,9 +454,11 @@ export default function Home() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-                  Highlights
+                  {t.highlightsTitle}
                 </p>
-                <h2 className="mt-2 text-xl font-bold text-white">Highlight folders</h2>
+                <h2 className="mt-2 text-xl font-bold text-white">
+                  {settings.language === "en" ? "Highlight folders" : "ஹைலைட் அடைவுகள்"}
+                </h2>
               </div>
             </div>
 
@@ -407,7 +493,11 @@ export default function Home() {
                       </button>
                     ))}
                     {!folder.items.length ? (
-                      <p className="text-sm text-slate-400">No highlights in this folder yet.</p>
+                      <p className="text-sm text-slate-400">
+                        {settings.language === "en"
+                          ? "No highlights in this folder yet."
+                          : "இந்த அடைவில் இன்னும் ஹைலைட்கள் இல்லை."}
+                      </p>
                     ) : null}
                   </div>
                 </div>
@@ -417,23 +507,37 @@ export default function Home() {
 
           <div className="app-surface rounded-[2rem] p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-              Sharing + Presentation
+              {settings.language === "en" ? "Sharing + Presentation" : "பகிரல் + பிரசென்டேஷன்"}
             </p>
             <h2 className="mt-2 text-xl font-bold text-white">
-              <span className="md:hidden">Designer Tools</span>
-              <span className="hidden md:inline">Designer and Sermon Tools</span>
+              <span className="md:hidden">
+                {settings.language === "en" ? "Designer Tools" : "வடிவமைப்பு கருவிகள்"}
+              </span>
+              <span className="hidden md:inline">
+                {settings.language === "en"
+                  ? "Designer and Sermon Tools"
+                  : "வடிவமைப்பு மற்றும் பிரசங்க கருவிகள்"}
+              </span>
             </h2>
             <div className="mt-4 space-y-3">
               <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-sm font-semibold text-white">Verse image designer</p>
+                <p className="text-sm font-semibold text-white">
+                  {settings.language === "en" ? "Verse image designer" : "வசன பட வடிவமைப்பான்"}
+                </p>
                 <p className="mt-2 text-sm leading-7 text-slate-300">
-                  Share verse cards with templates, font size, watermark, and direct export for WhatsApp or Telegram from the reader popup.
+                  {settings.language === "en"
+                    ? "Share verse cards with templates, font size, watermark, and direct export for WhatsApp or Telegram from the reader popup."
+                    : "Reader popup-இலிருந்து template, font size, watermark, WhatsApp அல்லது Telegram export உடன் வசன கார்டுகளை பகிரலாம்."}
                 </p>
               </div>
               <div className="hidden rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4 md:block">
-                <p className="text-sm font-semibold text-white">Sermon mode</p>
+                <p className="text-sm font-semibold text-white">
+                  {settings.language === "en" ? "Sermon mode" : "பிரசங்க முறை"}
+                </p>
                 <p className="mt-2 text-sm leading-7 text-slate-300">
-                  Queue verses during preparation, open the sermon display on another screen, and control the active verse remotely from a second tab.
+                  {settings.language === "en"
+                    ? "Queue verses during preparation, open the sermon display on another screen, and control the active verse remotely from a second tab."
+                    : "தயாரிப்பில் வசனங்களை queue செய்து, மற்றொரு screen-இல் sermon display-ஐ திறந்து, இரண்டாம் tab-இலிருந்து active verse-ஐ control செய்யலாம்."}
                 </p>
               </div>
             </div>
@@ -443,18 +547,62 @@ export default function Home() {
                 onClick={() => navigate("/sermon-control")}
                 className="rounded-2xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-5 py-3 text-sm font-semibold text-white shadow-lg"
               >
-                Open Sermon Control
+                {settings.language === "en" ? "Open Sermon Control" : "பிரசங்க கட்டுப்பாட்டை திற"}
               </button>
               <button
                 type="button"
                 onClick={() => window.open("/sermon-mode", "_blank", "noopener,noreferrer")}
                 className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
               >
-                Launch Sermon Screen
+                {settings.language === "en" ? "Launch Sermon Screen" : "பிரசங்க திரையை தொடங்கு"}
               </button>
             </div>
           </div>
         </section>
+
+        {verseOfDayPopupOpen ? (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/80 px-4 backdrop-blur-sm md:hidden">
+            <button
+              type="button"
+              aria-label="Close verse of day popup"
+              className="absolute inset-0"
+              onClick={() => setVerseOfDayPopupOpen(false)}
+            />
+
+            <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.26),_transparent_32%),linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(8,17,32,0.98))] p-5 shadow-2xl shadow-black/40">
+              <p className="text-center text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
+                {t.verseOfDay}
+              </p>
+              <p className="mt-3 text-center text-sm font-semibold text-white">
+                {verseOfTheDay.bookTamil} {verseOfTheDay.chapter}:{verseOfTheDay.verse}
+              </p>
+              <p className="mt-5 text-center text-lg font-semibold leading-9 text-white">
+                {verseOfTheDay.text}
+              </p>
+
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={shareVerseOfDay}
+                  className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
+                >
+                  {t.share}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVerseOfDayPopupOpen(false)}
+                  className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
+                >
+                  {t.close}
+                </button>
+              </div>
+
+              {shareFeedback ? (
+                <p className="mt-4 text-center text-sm text-slate-300">{shareFeedback}</p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

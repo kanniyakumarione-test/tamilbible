@@ -5,6 +5,7 @@ import {
   removeSermonQueueItem,
   setActiveSermonItem,
 } from "../utils/libraryData";
+import { openReader } from "../utils/openReader";
 
 export default function SermonControl() {
   const navigate = useNavigate();
@@ -38,8 +39,9 @@ export default function SermonControl() {
               <button
                 type="button"
                 onClick={() =>
-                  navigate(
-                    `/reader/${encodeURIComponent(libraryData.sermon.activeItem.bookEnglish)}/${libraryData.sermon.activeItem.chapter}/${libraryData.sermon.activeItem.verse}`
+                  openReader(
+                    `/reader/${encodeURIComponent(libraryData.sermon.activeItem.bookEnglish)}/${libraryData.sermon.activeItem.chapter}/${libraryData.sermon.activeItem.verse}`,
+                    navigate
                   )
                 }
                 className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"

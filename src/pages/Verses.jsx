@@ -1,7 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 
-import bible from "../utils/loadBible";
 import booksList from "../data/Books.json";
 import { matchBookQuery } from "../utils/bookSearch";
 import useAppSettings from "../hooks/useAppSettings";
@@ -24,6 +23,13 @@ import {
   updateReadingPlanProgress,
 } from "../utils/libraryData";
 import { getUIText } from "../utils/uiText";
+import {
+  getBibleByLanguage,
+  getBookName,
+  getBookNameFromEntry,
+  isBilingualLanguage,
+} from "../utils/bibleContent";
+import { openReader } from "../utils/openReader";
 
 function loadImage(src) {
   return new Promise((resolve, reject) => {
@@ -183,6 +189,7 @@ export default function Verses() {
   const [settings] = useAppSettings();
   const libraryData = useLibraryData();
   const t = getUIText(settings.language);
+  const isBilingual = isBilingualLanguage(settings.language);
   const [bookQuery, setBookQuery] = useState("");
   const [isDesktopBookListExpanded, setIsDesktopBookListExpanded] = useState(false);
   const readingPaneRef = useRef(null);
@@ -321,7 +328,7 @@ export default function Verses() {
 
     ctx.fillStyle = "#ffffff";
     ctx.font = "700 42px Arial";
-    ctx.fillText(`${bookData?.book.tamil} ${chapter}:${verse.verse}`, cardX + 54, cardY + 144);
+    ctx.fillText(`${bookLabel} ${chapter}:${verse.verse}`, cardX + 54, cardY + 144);
 
     const textTop = cardY + 230;
     const textBottom = cardY + cardHeight - 120;
@@ -366,7 +373,11 @@ export default function Verses() {
 
     ctx.fillStyle = "rgba(226, 232, 240, 0.82)";
     ctx.font = "600 22px Arial";
-    ctx.fillText(design.watermark || "Tamil Bible", cardX + 54, cardY + cardHeight - 44);
+    ctx.fillText(
+      design.watermark || (settings.language === "en" ? "Holy Bible KJV" : "Tamil Bible"),
+      cardX + 54,
+      cardY + cardHeight - 44
+    );
 
     return canvasToBlob(canvas);
   };
@@ -404,13 +415,19 @@ export default function Verses() {
     };
   };
 
-  const bookData = bible[decodedBook];
+  const activeBible = getBibleByLanguage(settings.language);
+  const englishBible = getBibleByLanguage("en");
+  const bookData = activeBible[decodedBook];
+  const englishBookData = englishBible[decodedBook];
   const chapterData = bookData?.chapters.find((ch) => ch.chapter === chapter);
+  const englishChapterData = englishBookData?.chapters.find((ch) => ch.chapter === chapter);
+  const bookLabel = getBookName(bookData, settings.language) || decodedBook;
+  const englishBookLabel = getBookName(englishBookData, "en") || decodedBook;
   const chapterItem = {
     id: getChapterId(decodedBook, chapter),
     type: "chapter",
     bookEnglish: decodedBook,
-    bookTamil: bookData?.book.tamil || decodedBook,
+    bookTamil: bookLabel,
     chapter,
   };
   const chapterItemId = chapterItem.id;
@@ -421,11 +438,11 @@ export default function Verses() {
         id: chapterItemId,
         type: "chapter",
         bookEnglish: decodedBook,
-        bookTamil: bookData?.book.tamil || decodedBook,
+        bookTamil: bookLabel,
         chapter,
       });
     }
-  }, [bookData, chapterData, chapter, chapterItemId, decodedBook]);
+  }, [bookData, chapterData, chapter, chapterItemId, decodedBook, bookLabel]);
 
   useEffect(() => {
     if (!bookData || !chapterData) return;
@@ -537,11 +554,14 @@ export default function Verses() {
     id: getVerseId(decodedBook, chapter, verse.verse),
     type: "verse",
     bookEnglish: decodedBook,
-    bookTamil: bookData?.book.tamil || decodedBook,
+    bookTamil: bookLabel,
     chapter,
     verse: verse.verse,
     text: verse.text,
   });
+
+  const getEnglishVerseText = (verseNumber) =>
+    englishChapterData?.verses.find((item) => String(item.verse) === String(verseNumber))?.text || "";
 
   const getMobilePopupVerseStyle = (text) => {
     const length = text?.length || 0;
@@ -650,7 +670,7 @@ export default function Verses() {
       verse,
       template: "classic",
       fontSize: 48,
-      watermark: "Tamil Bible",
+      watermark: settings.language === "en" ? "Holy Bible KJV" : isBilingual ? "Tamil Bible + KJV" : "Tamil Bible",
     });
   };
 
@@ -669,14 +689,23 @@ export default function Verses() {
   const shareVerseCard = async (verse, destination = "system") => {
     const noteText = libraryData.notes[getVerseId(decodedBook, chapter, verse.verse)]?.text;
     const prayerText = libraryData.prayers[getVerseId(decodedBook, chapter, verse.verse)]?.text;
-    const shareText = `${bookData?.book.tamil} ${chapter}:${verse.verse}\n\n${verse.text}${
+    const englishVerseText = isBilingual ? getEnglishVerseText(verse.verse) : "";
+    const shareText = `${bookLabel} ${chapter}:${verse.verse}\n\n${verse.text}${
+      englishVerseText ? `\n\n${englishBookLabel} ${chapter}:${verse.verse}\n${englishVerseText}` : ""
+    }${
       noteText ? `\n\nNote: ${noteText}` : ""
     }${prayerText ? `\n\nPrayer: ${prayerText}` : ""}`;
     const design = shareDesigner
       ? {
           template: shareDesigner.template,
           fontSize: Number(shareDesigner.fontSize) || 48,
-          watermark: shareDesigner.watermark || "Tamil Bible",
+          watermark:
+            shareDesigner.watermark ||
+            (settings.language === "en"
+              ? "Holy Bible KJV"
+              : isBilingual
+              ? "Tamil Bible + KJV"
+              : "Tamil Bible"),
         }
       : {};
 
@@ -702,7 +731,7 @@ export default function Verses() {
         (!navigator.canShare || navigator.canShare({ files: [shareFile] }))
       ) {
         await navigator.share({
-          title: `${bookData?.book.tamil} ${chapter}:${verse.verse}`,
+          title: `${bookLabel} ${chapter}:${verse.verse}`,
           text: shareText,
           files: [shareFile],
         });
@@ -722,7 +751,7 @@ export default function Verses() {
       if (destination === "system" && navigator.share) {
         try {
           await navigator.share({
-            title: `${bookData?.book.tamil} ${chapter}:${verse.verse}`,
+            title: `${bookLabel} ${chapter}:${verse.verse}`,
             text: shareText,
           });
           return;
@@ -747,7 +776,7 @@ export default function Verses() {
       return;
     }
 
-    navigate(`/reader/${encodeURIComponent(decodedBook)}/${chapter}/${verse.verse}`);
+    openReader(`/reader/${encodeURIComponent(decodedBook)}/${chapter}/${verse.verse}`, navigate);
   };
 
   const toggleAutoScroll = (direction) => {
@@ -788,7 +817,7 @@ export default function Verses() {
     prevChapter = `/${decodedBook}/${parseInt(chapter) - 1}`;
   } else if (bookIndex > 0) {
     const prevBook = booksList[bookIndex - 1].book.english.trim();
-    const lastChapter = bible[prevBook].chapters.length;
+    const lastChapter = activeBible[prevBook].chapters.length;
     prevChapter = `/${prevBook}/${lastChapter}`;
   }
 
@@ -826,7 +855,7 @@ export default function Verses() {
               {t.navigator}
             </p>
             <h2 className="mt-3 text-xl font-bold text-white">
-              {bookData?.book.tamil}
+              {bookLabel}
             </h2>
             <p className="mt-1 text-sm text-slate-400">{t.chapter} {chapter}</p>
           </div>
@@ -860,7 +889,7 @@ export default function Verses() {
                         : "border border-white/10 bg-white/[0.03] text-slate-200 hover:bg-white/[0.07]"
                     }`}
                   >
-                    {b.book.tamil}
+                    {getBookNameFromEntry(b, settings.language)}
                   </button>
                 ))}
               </div>
@@ -896,8 +925,10 @@ export default function Verses() {
                   <button
                     key={v.verse}
                     onClick={() =>
-                      navigate(
+                      openReader(
                         `/reader/${encodeURIComponent(decodedBook)}/${chapter}/${v.verse}`
+                        ,
+                        navigate
                       )
                     }
                     className="rounded-xl border border-white/10 bg-white/[0.03] py-2 text-sm text-slate-300 transition hover:bg-white/[0.07]"
@@ -924,7 +955,7 @@ export default function Verses() {
                       {t.reading}
                     </p>
                     <h1 className="mt-3 text-2xl font-bold text-white md:text-3xl">
-                      {bookData?.book.tamil}
+                      {isBilingual ? `${getBookName(bookData, "ta")} / ${englishBookLabel}` : bookLabel}
                     </h1>
                     <p className="mt-2 text-sm text-slate-400">{t.chapter} {chapter}</p>
                   </div>
@@ -961,6 +992,7 @@ export default function Verses() {
                 const highlighted = libraryData.highlights[verseItem.id];
                 const note = libraryData.notes[verseItem.id];
                 const prayer = libraryData.prayers[verseItem.id];
+                const englishVerseText = isBilingual ? getEnglishVerseText(v.verse) : "";
 
                 return (
                   <div
@@ -974,14 +1006,19 @@ export default function Verses() {
                     }}
                   >
                     <button onClick={() => openVerse(v)} className="block min-w-0 w-full overflow-hidden text-left">
-                      <span
-                        className="mr-2 inline text-sm font-bold text-white md:text-base"
-                      >
-                        {v.verse}.
-                      </span>
-                      <span className="whitespace-normal break-words text-base text-slate-100 md:text-lg">
-                        {v.text}
-                      </span>
+                      <div className="min-w-0">
+                        <p className="text-base text-slate-100 md:text-lg">
+                          <span className="mr-2 inline text-sm font-bold text-white md:text-base">
+                            {v.verse}.
+                          </span>
+                          <span className="whitespace-normal break-words">{v.text}</span>
+                        </p>
+                        {englishVerseText ? (
+                          <p className="mt-3 break-words text-sm leading-7 text-slate-300 md:text-base">
+                            {englishVerseText}
+                          </p>
+                        ) : null}
+                      </div>
                     </button>
 
                     <div className="mt-4 flex flex-wrap gap-2">
@@ -1023,19 +1060,19 @@ export default function Verses() {
                             : "border border-white/10 bg-white/5 text-slate-200"
                         }`}
                       >
-                        Prayer
+                        {settings.language === "en" ? "Prayer" : "ஜெபம்"}
                       </button>
                       <button
                         onClick={() => handleAddToSermon(verseItem)}
                         className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200 md:inline-block"
                       >
-                        Sermon
+                        {settings.language === "en" ? "Sermon" : "பிரசங்கம்"}
                       </button>
                       <button
                         onClick={() => openShareDesigner(v)}
                         className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200"
                       >
-                        Share
+                        {t.share}
                       </button>
                     </div>
 
@@ -1139,13 +1176,18 @@ export default function Verses() {
               }}
             />
             <div className="relative z-10">
+            {(() => {
+              const selectedEnglishVerseText = isBilingual ? getEnglishVerseText(selectedVerse.verse) : "";
+
+              return (
+                <>
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
                   {t.verse}
                 </p>
                 <p className="mt-2 text-sm font-bold text-white">
-                  {bookData?.book.tamil} {chapter}:{selectedVerse.verse}
+                  {isBilingual ? `${getBookName(bookData, "ta")} / ${englishBookLabel}` : bookLabel} {chapter}:{selectedVerse.verse}
                 </p>
               </div>
               <button
@@ -1164,6 +1206,15 @@ export default function Verses() {
               {selectedVerse.text}
             </p>
 
+            {selectedEnglishVerseText ? (
+              <p
+                className="mt-4 break-words text-left text-slate-200"
+                style={getMobilePopupVerseStyle(selectedEnglishVerseText)}
+              >
+                {selectedEnglishVerseText}
+              </p>
+            ) : null}
+
             <button
               type="button"
               onClick={() => openShareDesigner(selectedVerse)}
@@ -1171,6 +1222,9 @@ export default function Verses() {
             >
               {t.share}
             </button>
+                </>
+              );
+            })()}
             </div>
           </div>
         </div>
@@ -1257,10 +1311,10 @@ export default function Verses() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-200/80">
-                  Prayer Journal
+                  {settings.language === "en" ? "Prayer Journal" : "ஜெப குறிப்பேடு"}
                 </p>
                 <h3 className="mt-2 text-lg font-semibold text-white">
-                  Attach a prayer to this verse
+                  {settings.language === "en" ? "Attach a prayer to this verse" : "இந்த வசனத்திற்கு ஒரு ஜெபத்தை இணைக்கவும்"}
                 </h3>
                 <p className="mt-2 text-sm text-slate-400">
                   {prayerEditor.item.bookTamil} {prayerEditor.item.chapter}:{prayerEditor.item.verse}
@@ -1325,10 +1379,10 @@ export default function Verses() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-200/80">
-                  Highlight
+                  {t.highlight}
                 </p>
                 <h3 className="mt-2 text-lg font-semibold text-white">
-                  Choose color and folder
+                  {settings.language === "en" ? "Choose color and folder" : "நிறமும் அடைவையும் தேர்வுசெய்க"}
                 </h3>
                 <p className="mt-2 text-sm text-slate-400">
                   {highlightEditor.item.bookTamil} {highlightEditor.item.chapter}:{highlightEditor.item.verse}
@@ -1443,13 +1497,13 @@ export default function Verses() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-indigo-200/80">
-                  Verse Designer
+                  {settings.language === "en" ? "Verse Designer" : "வசன வடிவமைப்பான்"}
                 </p>
                 <h3 className="mt-2 text-lg font-semibold text-white">
-                  Share to family, WhatsApp, or Telegram
+                  {settings.language === "en" ? "Share to family, WhatsApp, or Telegram" : "குடும்பத்தாருக்கு, WhatsApp அல்லது Telegram மூலம் பகிரவும்"}
                 </h3>
                 <p className="mt-2 text-sm text-slate-400">
-                  {bookData?.book.tamil} {chapter}:{shareDesigner.verse.verse}
+                  {bookLabel} {chapter}:{shareDesigner.verse.verse}
                 </p>
               </div>
               <button
@@ -1577,7 +1631,7 @@ export default function Verses() {
                   {t.chapters}
                 </p>
                 <h3 className="mt-2 text-lg font-semibold text-white">
-                  {bookData?.book.tamil}
+                  {bookLabel}
                 </h3>
                 <p className="mt-2 text-sm text-slate-400">
                   {t.chapter} {chapter}

@@ -1,7 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useRef, useState, useMemo } from "react";
 
-import bible from "../utils/loadBible";
 import useAppSettings from "../hooks/useAppSettings";
 import useLibraryData from "../hooks/useLibraryData";
 import {
@@ -9,6 +8,12 @@ import {
   recordHistory,
 } from "../utils/libraryData";
 import { getUIText } from "../utils/uiText";
+import {
+  getBibleByLanguage,
+  getBookName,
+  getParallelVerseData,
+  isBilingualLanguage,
+} from "../utils/bibleContent";
 
 export default function Reader() {
   const { book, chapter, verse } = useParams();
@@ -19,13 +24,14 @@ export default function Reader() {
   const [settings] = useAppSettings();
   const libraryData = useLibraryData();
   const t = getUIText(settings.language);
+  const isBilingual = isBilingualLanguage(settings.language);
   const [fade, setFade] = useState(true);
   const [isFullscreenActive, setIsFullscreenActive] = useState(
     () => Boolean(document.fullscreenElement)
   );
-  const [fullscreenCheckComplete, setFullscreenCheckComplete] = useState(false);
   const readerFrameRef = useRef(null);
   const navigatedRef = useRef(false);
+  const hadFullscreenRef = useRef(false);
   const scrollContainerRef = useRef(null);
   const autoScrollFrameRef = useRef(null);
   const lastAutoScrollTimeRef = useRef(null);
@@ -50,7 +56,8 @@ export default function Reader() {
     "linear-gradient(to right, #000428, #004e92)",
   ];
 
-  const bookData = bible[decodedBook];
+  const activeBible = getBibleByLanguage(settings.language);
+  const bookData = activeBible[decodedBook];
   const chapterData = bookData?.chapters.find(
     (ch) => String(ch.chapter) === String(chapter)
   );
@@ -59,6 +66,21 @@ export default function Reader() {
     (v) => String(v.verse) === String(verse)
   );
   const verseData = verses[currentVerseIndex];
+  const parallelVerseData = isBilingual
+    ? getParallelVerseData(decodedBook, chapter, verse)
+    : null;
+  const tamilVerseText = isBilingual
+    ? parallelVerseData?.tamilVerseData?.text || ""
+    : "";
+  const englishVerseText = isBilingual
+    ? parallelVerseData?.englishVerseData?.text || ""
+    : "";
+  const tamilBookLabel = isBilingual
+    ? getBookName(parallelVerseData?.tamilBookData, "ta") || decodedBook
+    : "";
+  const englishBookLabel = isBilingual
+    ? getBookName(parallelVerseData?.englishBookData, "en") || decodedBook
+    : "";
   const verseItem = useMemo(() => {
     if (!verseData) return null;
 
@@ -74,14 +96,6 @@ export default function Reader() {
   }, [decodedBook, chapter, verseData?.verse, verseData?.text, bookData?.book.tamil]);
 
   useEffect(() => {
-    if (!isDesktopRef.current || !fullscreenCheckComplete || isFullscreenActive || navigatedRef.current) {
-      return;
-    }
-
-    navigate(chapterPath, { replace: true });
-  }, [chapterPath, fullscreenCheckComplete, isFullscreenActive, navigate]);
-
-  useEffect(() => {
     if (!isDesktopRef.current) {
       return undefined;
     }
@@ -95,18 +109,17 @@ export default function Reader() {
     const requestFullscreen = () => {
       if (document.fullscreenElement === frame) {
         setIsFullscreenActive(true);
-        setFullscreenCheckComplete(true);
+        hadFullscreenRef.current = true;
         return;
       }
 
       frame.requestFullscreen?.()
         .then(() => {
           setIsFullscreenActive(true);
-          setFullscreenCheckComplete(true);
+          hadFullscreenRef.current = true;
         })
         .catch(() => {
           setIsFullscreenActive(false);
-          setFullscreenCheckComplete(true);
         });
     };
 
@@ -119,12 +132,15 @@ export default function Reader() {
 
       const active = document.fullscreenElement === frame;
       setIsFullscreenActive(active);
-      setFullscreenCheckComplete(true);
+
+      if (!active && hadFullscreenRef.current) {
+        navigatedRef.current = true;
+        navigate(chapterPath, { replace: true });
+      }
     };
 
     const handleFullscreenError = () => {
       setIsFullscreenActive(false);
-      setFullscreenCheckComplete(true);
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
@@ -135,7 +151,7 @@ export default function Reader() {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       document.removeEventListener("fullscreenerror", handleFullscreenError);
     };
-  }, []);
+  }, [chapterPath, navigate]);
 
   useEffect(() => {
     return () => {
@@ -316,10 +332,17 @@ export default function Reader() {
       >
         {settings.showReference !== false && (
           <p
-            className="mb-5 text-base font-bold text-white md:text-sm"
-            style={{ textShadow: "0 2px 10px rgba(0, 0, 0, 0.65)" }}
+            className={`mb-6 font-bold text-white ${
+              isBilingual ? "text-lg md:text-2xl" : "text-base md:text-sm"
+            }`}
+            style={{
+              textShadow: "0 2px 10px rgba(0, 0, 0, 0.65)",
+              lineHeight: 1.3,
+            }}
           >
-            {bookData?.book.tamil} {chapter}:{verseData?.verse}
+            {isBilingual
+              ? `${tamilBookLabel} / ${englishBookLabel} ${chapter}:${verseData?.verse}`
+              : `${bookData?.book.tamil} ${chapter}:${verseData?.verse}`}
           </p>
         )}
 
@@ -329,18 +352,47 @@ export default function Reader() {
           className="min-h-0 flex-1 overflow-y-auto pr-1 custom-scroll"
         >
           <div>
-            <p
-              style={{
-                fontSize: `${Math.max(settings.fontSize, 22)}px`,
-                lineHeight: settings.lineHeight || 1.8,
-                textShadow: "0 2px 14px rgba(0, 0, 0, 0.5)",
-              }}
-              className={`font-bold transition-opacity duration-300 ${
-                fade ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              {verseData?.text}
-            </p>
+            {isBilingual ? (
+              <div
+                className={`space-y-6 transition-opacity duration-300 ${
+                  fade ? "opacity-100" : "opacity-0"
+                }`}
+              >
+                <p
+                  style={{
+                    fontSize: `${Math.max(settings.fontSize, 22)}px`,
+                    lineHeight: settings.lineHeight || 1.8,
+                    textShadow: "0 2px 14px rgba(0, 0, 0, 0.5)",
+                  }}
+                  className="font-bold"
+                >
+                  {tamilVerseText}
+                </p>
+                <p
+                  style={{
+                    fontSize: `${Math.max(settings.fontSize - 1, 24)}px`,
+                    lineHeight: Math.max((settings.lineHeight || 1.8) - 0.1, 1.55),
+                    textShadow: "0 2px 14px rgba(0, 0, 0, 0.5)",
+                  }}
+                  className="font-semibold text-white/95"
+                >
+                  {englishVerseText}
+                </p>
+              </div>
+            ) : (
+              <p
+                style={{
+                  fontSize: `${Math.max(settings.fontSize, 22)}px`,
+                  lineHeight: settings.lineHeight || 1.8,
+                  textShadow: "0 2px 14px rgba(0, 0, 0, 0.5)",
+                }}
+                className={`font-bold transition-opacity duration-300 ${
+                  fade ? "opacity-100" : "opacity-0"
+                }`}
+              >
+                {verseData?.text}
+              </p>
+            )}
           </div>
 
           {verseItem && libraryData.notes[verseItem.id] ? (
