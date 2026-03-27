@@ -105,6 +105,26 @@ export function normalizeRoman(text = "") {
     .replace(/(.)\1+/g, "$1");
 }
 
+function splitNormalizedRomanWords(text = "") {
+  return text
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .map((part) => normalizeRoman(part))
+    .filter(Boolean);
+}
+
+function containsTamil(text = "") {
+  return /[\u0B80-\u0BFF]/.test(text);
+}
+
+function normalizeTamil(text = "") {
+  return text
+    .normalize("NFC")
+    .trim()
+    .replace(/[.,/#!$%^&*;:{}=\-_`~()?"'[\]\\|]/g, "")
+    .replace(/\s+/g, " ");
+}
+
 export function consonantKey(text = "") {
   return normalizeRoman(text).replace(/[aeiou]/g, "");
 }
@@ -113,7 +133,9 @@ export function matchTamilTextQuery(text, query) {
   const trimmedQuery = query.trim();
   if (!trimmedQuery) return true;
 
+  const tamilQuery = containsTamil(trimmedQuery);
   const queryLower = trimmedQuery.toLowerCase();
+  const queryTamil = normalizeTamil(trimmedQuery);
   const queryRoman = normalizeRoman(trimmedQuery);
   const queryConsonants = consonantKey(trimmedQuery);
 
@@ -124,8 +146,17 @@ export function matchTamilTextQuery(text, query) {
 
   return terms.some((term) => {
     const termLower = term.toLowerCase();
+    const termTamil = normalizeTamil(term);
     const termRoman = normalizeRoman(term);
     const termConsonants = consonantKey(term);
+
+    if (tamilQuery) {
+      return termLower.includes(queryLower) || termTamil.includes(queryTamil);
+    }
+
+    if (queryRoman.length < 5) {
+      return termLower.includes(queryLower) || termRoman.includes(queryRoman);
+    }
 
     return (
       termLower.includes(queryLower) ||
@@ -141,13 +172,33 @@ function matchWordQuery(word, query) {
 
   if (!trimmedWord || !trimmedQuery) return false;
 
+  const tamilQuery = containsTamil(trimmedQuery);
   const wordLower = trimmedWord.toLowerCase();
   const queryLower = trimmedQuery.toLowerCase();
+  const wordTamil = normalizeTamil(trimmedWord);
+  const queryTamil = normalizeTamil(trimmedQuery);
   const wordRoman = normalizeRoman(trimmedWord);
   const queryRoman = normalizeRoman(trimmedQuery);
   const wordTanglishRoman = normalizeRoman(tamilToTanglish(trimmedWord));
   const queryConsonants = consonantKey(trimmedQuery);
   const wordConsonants = consonantKey(trimmedWord);
+  const queryWords = splitNormalizedRomanWords(trimmedQuery);
+
+  if (tamilQuery) {
+    return wordLower.includes(queryLower) || wordTamil.includes(queryTamil);
+  }
+
+  if (queryWords.length === 1) {
+    return (
+      wordLower === queryLower ||
+      wordRoman === queryRoman ||
+      wordTanglishRoman === queryRoman
+    );
+  }
+
+  if (queryWords.length > 1) {
+    return queryWords.includes(wordRoman) || queryWords.includes(wordTanglishRoman);
+  }
 
   return (
     wordLower.includes(queryLower) ||

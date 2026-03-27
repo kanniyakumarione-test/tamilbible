@@ -4,6 +4,12 @@ import { defaultSettings } from "../utils/settings";
 import useAppSettings from "../hooks/useAppSettings";
 import useInstallPrompt from "../hooks/useInstallPrompt";
 import { getUIText } from "../utils/uiText";
+import {
+  FONT_FAMILY_OPTIONS,
+  TAMIL_FONT_OPTIONS,
+  getPresentationFontFamily,
+  getReaderFontFamily,
+} from "../utils/appearance";
 
 const backgrounds = [
   "/bg/bg1.jpg",
@@ -190,6 +196,72 @@ function ChoiceRow({ label, options, value, onChange, isTamil = false }) {
   );
 }
 
+function PopupSelectRow({ label, options, value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef(null);
+  const selected = options.find((option) => option.value === value) || options[0];
+
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      if (wrapperRef.current?.contains(event.target)) {
+        return;
+      }
+
+      setOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={wrapperRef} className="relative w-full min-w-0 rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
+      <p className="break-words text-sm font-medium text-slate-200">{label}</p>
+
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="mt-4 flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-left text-sm text-white transition hover:border-sky-400/30 hover:bg-white/[0.08]"
+      >
+        <span>{selected?.label}</span>
+        <span className={`text-slate-400 transition ${open ? "rotate-180" : ""}`}>v</span>
+      </button>
+
+      {open && (
+        <div className="absolute left-4 right-4 top-[calc(100%-0.25rem)] z-30 rounded-[1.3rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(8,17,32,0.98))] p-2 shadow-2xl shadow-black/40">
+          <div className="max-h-64 overflow-y-auto pr-1 custom-scroll">
+            {options.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm transition ${
+                  option.value === value
+                    ? "bg-sky-400/15 text-sky-100"
+                    : "text-slate-200 hover:bg-white/[0.05]"
+                }`}
+              >
+                <span>{option.label}</span>
+                {option.value === value ? <span className="text-xs text-sky-300">Selected</span> : null}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SwitchRow({ label, description, checked, onChange }) {
   return (
     <label className="flex w-full min-w-0 items-start justify-between gap-4 rounded-[1.5rem] border border-white/10 bg-black/20 px-4 py-4">
@@ -366,6 +438,25 @@ export default function Settings() {
         showReferenceDesc: isTamil
           ? "முன்னோட்டம் மற்றும் வாசிப்பு அட்டையில் வசன குறிப்பை மேலே காட்டும்."
           : "Show the verse reference above the preview and reader card.",
+        referencePosition: isTamil ? "குறிப்பு இடம்" : "Reference position",
+        referencePositionDesc: isTamil
+          ? "வசன குறிப்பை மேலே, கீழே, அல்லது மறைக்க தேர்வு செய்யுங்கள்."
+          : "Choose whether the verse reference appears at the top, bottom, or stays hidden.",
+        top: isTamil ? "மேல்" : "Top",
+        bottom: isTamil ? "கீழ்" : "Bottom",
+        hidden: isTamil ? "மறை" : "Hidden",
+        readerBox: isTamil ? "வாசிப்பு பெட்டி" : "Reader box",
+        readerBoxDesc: isTamil
+          ? "வசனத்தை கருப்பு வாசிப்பு பெட்டிக்குள் காட்டும். அணைத்தால் உரை பின்னணியின் மேலே நேரடியாக தெரியும்."
+          : "Show the verse inside the dark reader card. Turn it off to place the text directly on the background.",
+        keepScreenAwake: isTamil ? "திரை அணையாமல் வைத்திரு" : "Keep screen awake",
+        keepScreenAwakeDesc: isTamil
+          ? "வாசிக்கும் போது திரை தானாக அணையாமல் பாதுகாக்கும்."
+          : "Try to keep the device screen awake while you are reading verses.",
+        tamilKeyboardAutoOpen: isTamil ? "தமிழ் விசைப்பலகை தானாக திற" : "Tamil keyboard auto-open",
+        tamilKeyboardAutoOpenDesc: isTamil
+          ? "தேடல் பெட்டியில் கவனம் சென்றவுடன் தமிழ் விசைப்பலகை தானாக திறக்கும்."
+          : "Open the Tamil keyboard automatically when the search box gets focus.",
         howToInstall: isTamil ? "நிறுவும் முறை" : "How To Install",
         shadowDesc: isTamil
           ? "ஒளிரும் திரைகளில் எழுத்து தெளிவாகத் தெரிய உதவும்."
@@ -459,6 +550,7 @@ export default function Settings() {
     previewDraft.readerWidth,
     previewDraft.cardOpacity,
     previewDraft.showReference,
+    previewDraft.referencePosition,
     t.previewVerse,
     t.previewRef,
   ]);
@@ -591,15 +683,59 @@ export default function Settings() {
                         { value: "ta-en", label: t.tamilEnglish },
                       ]}
                     />
+                    <PopupSelectRow
+                      label="Font Family"
+                      value={draft.fontFamily}
+                      onChange={(fontFamily) => updateDraft({ fontFamily })}
+                      options={FONT_FAMILY_OPTIONS}
+                    />
+                    <PopupSelectRow
+                      label="Tamil Font Family"
+                      value={draft.tamilFontFamily}
+                      onChange={(tamilFontFamily) => updateDraft({ tamilFontFamily })}
+                      options={TAMIL_FONT_OPTIONS}
+                    />
                   </div>
 
                   <div className="mt-4">
-                    <SwitchRow
-                      label={t.showReference}
-                      description={settingsPageText.labels.showReferenceDesc}
-                      checked={draft.showReference}
-                      onChange={(showReference) => updateDraft({ showReference })}
-                    />
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <ChoiceRow
+                        label={settingsPageText.labels.referencePosition}
+                        value={draft.referencePosition || (draft.showReference === false ? "hidden" : "top")}
+                        onChange={(referencePosition) =>
+                          updateDraft({
+                            referencePosition,
+                            showReference: referencePosition !== "hidden",
+                          })
+                        }
+                        isTamil={isTamil}
+                        options={[
+                          { value: "top", label: settingsPageText.labels.top },
+                          { value: "bottom", label: settingsPageText.labels.bottom },
+                          { value: "hidden", label: settingsPageText.labels.hidden },
+                        ]}
+                      />
+                      <SwitchRow
+                        label={settingsPageText.labels.readerBox}
+                        description={settingsPageText.labels.readerBoxDesc}
+                        checked={draft.showReaderBox !== false}
+                        onChange={(showReaderBox) => updateDraft({ showReaderBox })}
+                      />
+                      <SwitchRow
+                        label={settingsPageText.labels.keepScreenAwake}
+                        description={settingsPageText.labels.keepScreenAwakeDesc}
+                        checked={draft.keepScreenAwake === true}
+                        onChange={(keepScreenAwake) => updateDraft({ keepScreenAwake })}
+                      />
+                      {draft.language !== "en" ? (
+                        <SwitchRow
+                          label={settingsPageText.labels.tamilKeyboardAutoOpen}
+                          description={settingsPageText.labels.tamilKeyboardAutoOpenDesc}
+                          checked={draft.tamilKeyboardAutoOpen !== false}
+                          onChange={(tamilKeyboardAutoOpen) => updateDraft({ tamilKeyboardAutoOpen })}
+                        />
+                      ) : null}
+                    </div>
                   </div>
                 </Panel>
 
@@ -707,8 +843,13 @@ export default function Settings() {
                     <SwitchRow
                       label={settingsPageText.labels.referenceFirst}
                       description={settingsPageText.labels.referenceFirstDesc}
-                      checked={draft.showReference}
-                      onChange={(showReference) => updateDraft({ showReference })}
+                      checked={(draft.referencePosition || (draft.showReference === false ? "hidden" : "top")) === "top"}
+                      onChange={(checked) =>
+                        updateDraft({
+                          referencePosition: checked ? "top" : "bottom",
+                          showReference: true,
+                        })
+                      }
                     />
                     <SwitchRow
                       label={settingsPageText.labels.gradientMood}
@@ -788,12 +929,39 @@ export default function Settings() {
                       step={2}
                       onChange={(presentationMaxFontSize) => updateDraft({ presentationMaxFontSize })}
                     />
+                    <PopupSelectRow
+                      label="Presentation Font"
+                      value={draft.presentationFontFamily}
+                      onChange={(presentationFontFamily) => updateDraft({ presentationFontFamily })}
+                      options={FONT_FAMILY_OPTIONS}
+                    />
+                    <StepControl
+                      label="Letter Spacing"
+                      value={draft.presentationLetterSpacing}
+                      valueLabel={`${draft.presentationLetterSpacing}px`}
+                      min={0}
+                      max={12}
+                      step={1}
+                      onChange={(presentationLetterSpacing) => updateDraft({ presentationLetterSpacing })}
+                    />
+                    <StepControl
+                      label="Overlay Opacity"
+                      value={draft.presentationOverlayOpacity}
+                      valueLabel={`${Math.round(draft.presentationOverlayOpacity * 100)}%`}
+                      min={0.2}
+                      max={0.95}
+                      step={0.05}
+                      onChange={(presentationOverlayOpacity) => updateDraft({ presentationOverlayOpacity })}
+                    />
                   </div>
 
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <SwitchRow label={t.enableShadow} description={settingsPageText.labels.shadowDesc} checked={draft.presentationShadow} onChange={(presentationShadow) => updateDraft({ presentationShadow })} />
                     <SwitchRow label={t.enableBox} description={settingsPageText.labels.boxDesc} checked={draft.presentationBox} onChange={(presentationBox) => updateDraft({ presentationBox })} />
                     <SwitchRow label={t.enableUppercase} description={settingsPageText.labels.uppercaseDesc} checked={draft.presentationUppercase} onChange={(presentationUppercase) => updateDraft({ presentationUppercase })} />
+                    <SwitchRow label={t.enableTransition} description="Fade changes between presentation states." checked={draft.presentationTransition} onChange={(presentationTransition) => updateDraft({ presentationTransition })} />
+                    <SwitchRow label={t.enableLineWrap} description="Wrap long presentation lines instead of letting them run wide." checked={draft.presentationLineWrap} onChange={(presentationLineWrap) => updateDraft({ presentationLineWrap })} />
+                    <SwitchRow label={t.enableBorder} description="Draw a subtle border around the presentation card." checked={draft.presentationBorder} onChange={(presentationBorder) => updateDraft({ presentationBorder })} />
                   </div>
                 </Panel>
               </>
@@ -816,15 +984,16 @@ export default function Settings() {
               >
                 <div
                   ref={previewCardRef}
-                  className="rounded-[1.6rem] border border-white/10 px-5 py-5 shadow-2xl shadow-black/20"
+                  className={`${previewDraft.showReaderBox === false ? "px-0 py-2 shadow-none border-transparent bg-transparent" : "rounded-[1.6rem] border border-white/10 px-5 py-5 shadow-2xl shadow-black/20"}`}
                   style={{
                     maxWidth: `${previewDraft.readerWidth}px`,
                     minHeight: "24rem",
-                    background: `rgba(2, 6, 23, ${previewDraft.cardOpacity})`,
-                    backdropFilter: "blur(12px)",
+                    background: previewDraft.showReaderBox === false ? "transparent" : `rgba(2, 6, 23, ${previewDraft.cardOpacity})`,
+                    backdropFilter: previewDraft.showReaderBox === false ? "none" : "blur(12px)",
+                    fontFamily: getReaderFontFamily(previewDraft, previewDraft.language),
                   }}
                 >
-                  {previewDraft.showReference ? (
+                  {(previewDraft.referencePosition || (previewDraft.showReference === false ? "hidden" : "top")) === "top" ? (
                     <p
                       className={`font-bold text-cyan-100/90 ${
                         isTamil ? "text-base tracking-normal" : "text-sm uppercase tracking-[0.18em]"
@@ -842,6 +1011,7 @@ export default function Settings() {
                       lineHeight: previewDraft.lineHeight,
                       textAlign: previewDraft.textAlign,
                       overflowWrap: "break-word",
+                      fontFamily: getReaderFontFamily(previewDraft, previewDraft.language),
                     }}
                   >
                     {t.previewVerse}
@@ -854,9 +1024,20 @@ export default function Settings() {
                         lineHeight: Math.max(previewDraft.lineHeight - 0.1, 1.5),
                         textAlign: previewDraft.textAlign,
                         overflowWrap: "break-word",
+                        fontFamily: getReaderFontFamily(previewDraft, "en"),
                       }}
                     >
                       {t.previewVerseEnglish}
+                    </p>
+                  ) : null}
+                  {(previewDraft.referencePosition || (previewDraft.showReference === false ? "hidden" : "top")) === "bottom" ? (
+                    <p
+                      className={`mt-4 font-bold text-cyan-100/90 ${
+                        isTamil ? "text-base tracking-normal" : "text-sm uppercase tracking-[0.18em]"
+                      }`}
+                      style={{ textAlign: previewDraft.textAlign }}
+                    >
+                      {t.previewRef}
                     </p>
                   ) : null}
                 </div>
@@ -882,7 +1063,17 @@ export default function Settings() {
                   isTamil={isTamil}
                 />
                 <MetricPill label={t.cardOpacity} value={`${Math.round(previewDraft.cardOpacity * 100)}%`} isTamil={isTamil} />
-                <MetricPill label={t.showReference} value={previewDraft.showReference ? t.yes : t.no} isTamil={isTamil} />
+                <MetricPill
+                  label={settingsPageText.labels.referencePosition}
+                  value={(() => {
+                    const position = previewDraft.referencePosition || (previewDraft.showReference === false ? "hidden" : "top");
+                    if (position === "bottom") return settingsPageText.labels.bottom;
+                    if (position === "hidden") return settingsPageText.labels.hidden;
+                    return settingsPageText.labels.top;
+                  })()}
+                  isTamil={isTamil}
+                />
+                <MetricPill label={settingsPageText.labels.readerBox} value={previewDraft.showReaderBox === false ? t.no : t.yes} isTamil={isTamil} />
               </div>
             </Panel>
           </div>

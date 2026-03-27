@@ -4,6 +4,9 @@ import { useParams } from "react-router-dom";
 import useAppSettings from "../hooks/useAppSettings";
 import useLibraryData from "../hooks/useLibraryData";
 import { setSermonDisplayMode } from "../utils/libraryData";
+import {
+  getPresentationFontFamily,
+} from "../utils/appearance";
 
 const backgrounds = [
   "/bg/bg1.jpg",
@@ -13,15 +16,15 @@ const backgrounds = [
   "/bg/bg5.jpg",
 ];
 
-const gradients = [
-  "linear-gradient(to right, #000000, #434343)",
-  "linear-gradient(to right, #1e3c72, #2a5298)",
-  "linear-gradient(to right, #42275a, #734b6d)",
-  "linear-gradient(to right, #0f2027, #203a43, #2c5364)",
-  "linear-gradient(to right, #000428, #004e92)",
-];
-
 function getReaderBackground(settings) {
+  const gradients = [
+    "linear-gradient(to right, #000000, #434343)",
+    "linear-gradient(to right, #1e3c72, #2a5298)",
+    "linear-gradient(to right, #42275a, #734b6d)",
+    "linear-gradient(to right, #0f2027, #203a43, #2c5364)",
+    "linear-gradient(to right, #000428, #004e92)",
+  ];
+
   if (settings.bgType === "custom" && settings.customBackground) {
     return `url(${settings.customBackground})`;
   }
@@ -57,6 +60,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
   const subtitle = settings.presentationSubtitle || "Live Scripture Display";
   const announcementTitle = settings.presentationAnnouncementTitle || "Welcome";
   const announcementBody = settings.presentationAnnouncementBody || "Service will begin shortly.";
+  const presentationFont = getPresentationFontFamily(settings);
 
   if (displayMode === "black") {
     return (
@@ -120,15 +124,17 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
       fontSize: `${Math.max(Math.min(settings.presentationMaxFontSize || 90, 140), 40)}px`,
       lineHeight: 1.2,
       textAlign: settings.presentationJustify || "center",
-      textTransform: settings.presentationUppercase ? "uppercase" : "none",
-      textShadow: settings.presentationShadow ? "0 4px 16px rgba(0,0,0,0.55)" : "none",
-      color: settings.stageTextColor1 || "#ffffff",
-      WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
-      whiteSpace: "normal",
-      overflowWrap: "anywhere",
-      wordBreak: "break-word",
-      maxWidth: "100%",
-    };
+              textTransform: settings.presentationUppercase ? "uppercase" : "none",
+              textShadow: settings.presentationShadow ? "0 4px 16px rgba(0,0,0,0.55)" : "none",
+              color: settings.stageTextColor1 || "#ffffff",
+              WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
+              whiteSpace: settings.presentationLineWrap === false ? "nowrap" : "normal",
+              overflowWrap: "anywhere",
+              wordBreak: "break-word",
+              maxWidth: "100%",
+              fontFamily: presentationFont,
+              letterSpacing: `${settings.presentationLetterSpacing || 0}px`,
+            };
 
     return (
       <div className="relative z-10 grid min-h-screen gap-6 px-8 py-8 xl:grid-cols-[1.3fr,0.7fr]">
@@ -223,11 +229,13 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
                 textTransform: settings.presentationUppercase ? "uppercase" : "none",
                 textShadow: settings.presentationShadow ? "0 4px 18px rgba(0,0,0,0.52)" : "none",
                 WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
-                whiteSpace: "normal",
+                whiteSpace: settings.presentationLineWrap === false ? "nowrap" : "normal",
                 overflowWrap: "anywhere",
                 wordBreak: "break-word",
                 maxWidth: "100%",
                 marginInline: "auto",
+                fontFamily: presentationFont,
+                letterSpacing: `${settings.presentationLetterSpacing || 0}px`,
               };
 
               return (
@@ -270,6 +278,7 @@ export default function PresentationDisplay() {
     : settings.enableMainPresentation;
   const background = isStage ? getStageBackground(settings) : getReaderBackground(settings);
   const overlayColor = settings.stageOverlayColor || "#000000";
+  const overlayOpacity = settings.presentationOverlayOpacity ?? 0.72;
   const displayMode = libraryData.sermon.displayMode || "live";
   const transitionKey = `${mode}:${displayMode}:${activeItem?.id || "none"}:${nextItem?.id || "none"}`;
   const [renderState, setRenderState] = useState({
@@ -377,8 +386,8 @@ export default function PresentationDisplay() {
           }`}
           style={{
             background: isStage
-              ? `linear-gradient(180deg, ${overlayColor}55, ${overlayColor}cc)`
-              : "linear-gradient(180deg, rgba(7,17,31,0.34), rgba(7,17,31,0.72))",
+              ? `linear-gradient(180deg, ${overlayColor}${Math.round((overlayOpacity * 0.45) * 255).toString(16).padStart(2, "0")}, ${overlayColor}${Math.round(overlayOpacity * 255).toString(16).padStart(2, "0")})`
+              : `linear-gradient(180deg, rgba(7,17,31,${Math.max(overlayOpacity - 0.38, 0.12)}), rgba(7,17,31,${overlayOpacity}))`,
           }}
         />
       ) : null}

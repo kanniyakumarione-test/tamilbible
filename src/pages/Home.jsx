@@ -18,12 +18,13 @@ import { openReader } from "../utils/openReader";
 
 function StatCard({ label, value, sublabel }) {
   return (
-    <div className="app-surface rounded-[1.75rem] p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">
+    <div className="overflow-hidden rounded-[1.85rem] border border-white/10 bg-[linear-gradient(180deg,rgba(18,26,45,0.92),rgba(8,14,27,0.98))] p-5 shadow-[0_20px_50px_rgba(2,6,23,0.28)]">
+      <div className="mb-4 h-px w-16 bg-gradient-to-r from-sky-300/70 to-transparent" />
+      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">
         {label}
       </p>
-      <p className="mt-3 text-3xl font-bold text-white">{value}</p>
-      {sublabel ? <p className="mt-2 text-sm text-slate-400">{sublabel}</p> : null}
+      <p className="mt-4 text-3xl font-bold tracking-tight text-white">{value}</p>
+      {sublabel ? <p className="mt-2 text-sm leading-6 text-slate-400">{sublabel}</p> : null}
     </div>
   );
 }
@@ -39,28 +40,44 @@ export default function Home() {
   const t = getUIText(settings.language);
 
   const verseOfTheDay = useMemo(() => getVerseOfTheDay(settings.language), [settings.language]);
-  const continueReadingRaw = getContinueReading(libraryData.history);
-  const continueReading = continueReadingRaw
-    ? continueReadingRaw.verse
-      ? localizeVerseItem(continueReadingRaw, settings.language)
-      : localizeChapterItem(continueReadingRaw, settings.language)
-    : null;
-  const recentHistory = libraryData.history.slice(0, 4).map((item) =>
-    item.verse ? localizeVerseItem(item, settings.language) : localizeChapterItem(item, settings.language)
-  );
-  const readingPlans = getReadingPlanSummary(libraryData);
-  const groupedHighlights = getGroupedHighlights(libraryData).map((folder) => ({
-    ...folder,
-    items: folder.items.map((item) => localizeVerseItem(item, settings.language)),
-  }));
-  const recentPrayers = getRecentPrayers(libraryData, 4).map((item) =>
-    localizeChapterItem(item, settings.language)
-  );
-  const bookmarkCount = libraryData.bookmarks.length;
-  const favoriteCount = libraryData.favorites.length;
-  const highlightCount = Object.keys(libraryData.highlights).length;
-  const noteCount = Object.keys(libraryData.notes).length;
-  const prayerCount = Object.keys(libraryData.prayers).length;
+  const {
+    continueReading,
+    recentHistory,
+    readingPlans,
+    groupedHighlights,
+    recentPrayers,
+    bookmarkCount,
+    favoriteCount,
+    highlightCount,
+    noteCount,
+    prayerCount,
+  } = useMemo(() => {
+    const continueReadingRaw = getContinueReading(libraryData.history);
+
+    return {
+      continueReading: continueReadingRaw
+        ? continueReadingRaw.verse
+          ? localizeVerseItem(continueReadingRaw, settings.language)
+          : localizeChapterItem(continueReadingRaw, settings.language)
+        : null,
+      recentHistory: libraryData.history.slice(0, 4).map((item) =>
+        item.verse ? localizeVerseItem(item, settings.language) : localizeChapterItem(item, settings.language)
+      ),
+      readingPlans: getReadingPlanSummary(libraryData),
+      groupedHighlights: getGroupedHighlights(libraryData).map((folder) => ({
+        ...folder,
+        items: folder.items.map((item) => localizeVerseItem(item, settings.language)),
+      })),
+      recentPrayers: getRecentPrayers(libraryData, 4).map((item) =>
+        localizeChapterItem(item, settings.language)
+      ),
+      bookmarkCount: libraryData.bookmarks.length,
+      favoriteCount: libraryData.favorites.length,
+      highlightCount: Object.keys(libraryData.highlights).length,
+      noteCount: Object.keys(libraryData.notes).length,
+      prayerCount: Object.keys(libraryData.prayers).length,
+    };
+  }, [libraryData, settings.language]);
 
   const goToItem = (item) => {
     if (!item) return;
@@ -124,9 +141,9 @@ export default function Home() {
   };
 
   return (
-    <div className="app-shell px-4 pb-24 pt-4 md:px-6 md:pt-6">
+    <div className="home-shell app-shell px-4 pb-24 pt-4 md:px-6 md:pt-6">
       <div className="mx-auto max-w-6xl">
-        <section className="mb-6 overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.26),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(56,189,248,0.18),_transparent_26%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(8,17,32,0.96))] px-5 py-8 shadow-2xl shadow-black/30 md:px-8 md:py-10">
+        <section className="relative mb-6 overflow-hidden rounded-[2.35rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.18),_transparent_24%),radial-gradient(circle_at_85%_20%,_rgba(56,189,248,0.22),_transparent_22%),radial-gradient(circle_at_bottom_left,_rgba(14,165,233,0.16),_transparent_26%),linear-gradient(135deg,_rgba(8,15,29,0.98),_rgba(5,10,20,0.99))] px-5 py-8 shadow-[0_28px_90px_rgba(2,6,23,0.42)] md:px-8 md:py-10">
           <p className="text-xs font-semibold uppercase tracking-[0.34em] text-slate-400">
             {t.tamilBible}
           </p>

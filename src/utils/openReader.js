@@ -4,5 +4,11 @@ export function openReader(path, navigate) {
     return;
   }
 
+  const fullscreenTarget = document.documentElement;
+
+  if (!document.fullscreenElement && fullscreenTarget?.requestFullscreen) {
+    fullscreenTarget.requestFullscreen().catch(() => {});
+  }
+
   navigate(path);
 }

@@ -14,6 +14,9 @@ import {
   getParallelVerseData,
   isBilingualLanguage,
 } from "../utils/bibleContent";
+import {
+  getReaderFontFamily,
+} from "../utils/appearance";
 
 export default function Reader() {
   const { book, chapter, verse } = useParams();
@@ -36,6 +39,7 @@ export default function Reader() {
   const autoScrollFrameRef = useRef(null);
   const lastAutoScrollTimeRef = useRef(null);
   const verseChangeTimeoutRef = useRef(null);
+  const wakeLockRef = useRef(null);
   const isDesktopRef = useRef(
     typeof window !== "undefined" ? window.innerWidth >= 768 : true
   );
@@ -55,6 +59,9 @@ export default function Reader() {
     "linear-gradient(to right, #0f2027, #203a43, #2c5364)",
     "linear-gradient(to right, #000428, #004e92)",
   ];
+  const tamilFontFamily = getReaderFontFamily(settings, "ta");
+  const englishFontFamily = getReaderFontFamily(settings, "en");
+  const primaryFontFamily = settings.language === "en" ? englishFontFamily : tamilFontFamily;
 
   const activeBible = getBibleByLanguage(settings.language);
   const bookData = activeBible[decodedBook];
@@ -81,6 +88,7 @@ export default function Reader() {
   const englishBookLabel = isBilingual
     ? getBookName(parallelVerseData?.englishBookData, "en") || decodedBook
     : "";
+  const primaryBookLabel = getBookName(bookData, settings.language) || decodedBook;
   const verseItem = useMemo(() => {
     if (!verseData) return null;
 
@@ -100,38 +108,14 @@ export default function Reader() {
       return undefined;
     }
 
-    const frame = readerFrameRef.current;
-
-    if (!frame) {
-      return undefined;
-    }
-
-    const requestFullscreen = () => {
-      if (document.fullscreenElement === frame) {
-        setIsFullscreenActive(true);
-        hadFullscreenRef.current = true;
-        return;
-      }
-
-      frame.requestFullscreen?.()
-        .then(() => {
-          setIsFullscreenActive(true);
-          hadFullscreenRef.current = true;
-        })
-        .catch(() => {
-          setIsFullscreenActive(false);
-        });
-    };
-
-    const fullscreenRequestId = window.requestAnimationFrame(requestFullscreen);
-
     const handleFullscreenChange = () => {
       if (navigatedRef.current) {
         return;
       }
 
-      const active = document.fullscreenElement === frame;
+      const active = Boolean(document.fullscreenElement);
       setIsFullscreenActive(active);
+      hadFullscreenRef.current = hadFullscreenRef.current || active;
 
       if (!active && hadFullscreenRef.current) {
         navigatedRef.current = true;
@@ -143,11 +127,13 @@ export default function Reader() {
       setIsFullscreenActive(false);
     };
 
+    setIsFullscreenActive(Boolean(document.fullscreenElement));
+    hadFullscreenRef.current = Boolean(document.fullscreenElement);
+
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     document.addEventListener("fullscreenerror", handleFullscreenError);
 
     return () => {
-      window.cancelAnimationFrame(fullscreenRequestId);
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       document.removeEventListener("fullscreenerror", handleFullscreenError);
     };
@@ -166,7 +152,7 @@ export default function Reader() {
     const closeReader = () => {
       navigatedRef.current = true;
 
-      if (document.fullscreenElement && document.fullscreenElement === readerFrameRef.current) {
+      if (document.fullscreenElement) {
         document
           .exitFullscreen?.()
           .then(() => {
@@ -250,6 +236,55 @@ export default function Reader() {
   }, []);
 
   useEffect(() => {
+    if (!settings.keepScreenAwake || typeof window === "undefined" || !("wakeLock" in navigator)) {
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().catch(() => {});
+        wakeLockRef.current = null;
+      }
+      return undefined;
+    }
+
+    let mounted = true;
+
+    const requestWakeLock = async () => {
+      try {
+        const sentinel = await navigator.wakeLock.request("screen");
+        if (!mounted) {
+          await sentinel.release().catch(() => {});
+          return;
+        }
+
+        wakeLockRef.current = sentinel;
+        sentinel.addEventListener("release", () => {
+          if (wakeLockRef.current === sentinel) {
+            wakeLockRef.current = null;
+          }
+        });
+      } catch {
+        wakeLockRef.current = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && !wakeLockRef.current) {
+        void requestWakeLock();
+      }
+    };
+
+    void requestWakeLock();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      mounted = false;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().catch(() => {});
+        wakeLockRef.current = null;
+      }
+    };
+  }, [settings.keepScreenAwake]);
+
+  useEffect(() => {
     const container = scrollContainerRef.current;
 
     if (!container) return undefined;
@@ -320,17 +355,24 @@ export default function Reader() {
       }}
     >
       <div
-        className="flex max-h-[calc(100vh-2rem)] w-full flex-col rounded-3xl border border-white/20 px-6 py-10 backdrop-blur-md md:px-10 md:py-12"
+        className={`flex max-h-[calc(100vh-2rem)] w-full flex-col ${
+          settings.showReaderBox === false
+            ? "px-2 py-4 md:px-4 md:py-6"
+            : "rounded-3xl border border-white/20 px-6 py-10 backdrop-blur-md md:px-10 md:py-12"
+        }`}
         style={{
           maxWidth: `${settings.readerWidth || 960}px`,
-          background: `rgba(0, 0, 0, ${settings.cardOpacity ?? 0.5})`,
+          background: settings.showReaderBox === false ? "transparent" : `rgba(0, 0, 0, ${settings.cardOpacity ?? 0.5})`,
           textAlign: settings.textAlign || "center",
           boxShadow: verseItem && libraryData.highlights[verseItem.id]
-            ? `0 0 0 2px ${libraryData.highlights[verseItem.id].color} inset`
+            ? settings.showReaderBox === false
+              ? `0 0 0 2px ${libraryData.highlights[verseItem.id].color}`
+              : `0 0 0 2px ${libraryData.highlights[verseItem.id].color} inset`
             : undefined,
+          backdropFilter: settings.showReaderBox === false ? "none" : undefined,
         }}
       >
-        {settings.showReference !== false && (
+        {(settings.referencePosition || (settings.showReference === false ? "hidden" : "top")) === "top" && (
           <p
             className={`mb-6 font-bold text-white ${
               isBilingual ? "text-lg md:text-2xl" : "text-base md:text-sm"
@@ -338,11 +380,13 @@ export default function Reader() {
             style={{
               textShadow: "0 2px 10px rgba(0, 0, 0, 0.65)",
               lineHeight: 1.3,
+              color: "#ffffff",
+              fontFamily: isBilingual ? tamilFontFamily : primaryFontFamily,
             }}
           >
             {isBilingual
               ? `${tamilBookLabel} / ${englishBookLabel} ${chapter}:${verseData?.verse}`
-              : `${bookData?.book.tamil} ${chapter}:${verseData?.verse}`}
+              : `${primaryBookLabel} ${chapter}:${verseData?.verse}`}
           </p>
         )}
 
@@ -363,6 +407,8 @@ export default function Reader() {
                     fontSize: `${Math.max(settings.fontSize, 22)}px`,
                     lineHeight: settings.lineHeight || 1.8,
                     textShadow: "0 2px 14px rgba(0, 0, 0, 0.5)",
+                    fontFamily: tamilFontFamily,
+                    color: "#ffffff",
                   }}
                   className="font-bold"
                 >
@@ -373,8 +419,10 @@ export default function Reader() {
                     fontSize: `${Math.max(settings.fontSize - 1, 24)}px`,
                     lineHeight: Math.max((settings.lineHeight || 1.8) - 0.1, 1.55),
                     textShadow: "0 2px 14px rgba(0, 0, 0, 0.5)",
+                    fontFamily: englishFontFamily,
+                    color: "#f8fafc",
                   }}
-                  className="font-semibold text-white/95"
+                  className="font-semibold"
                 >
                   {englishVerseText}
                 </p>
@@ -385,6 +433,8 @@ export default function Reader() {
                   fontSize: `${Math.max(settings.fontSize, 22)}px`,
                   lineHeight: settings.lineHeight || 1.8,
                   textShadow: "0 2px 14px rgba(0, 0, 0, 0.5)",
+                  fontFamily: primaryFontFamily,
+                  color: "#ffffff",
                 }}
                 className={`font-bold transition-opacity duration-300 ${
                   fade ? "opacity-100" : "opacity-0"
@@ -395,12 +445,30 @@ export default function Reader() {
             )}
           </div>
 
+          {(settings.referencePosition || (settings.showReference === false ? "hidden" : "top")) === "bottom" ? (
+            <p
+              className={`mt-6 font-bold text-white ${
+                isBilingual ? "text-lg md:text-2xl" : "text-base md:text-sm"
+              }`}
+              style={{
+                textShadow: "0 2px 10px rgba(0, 0, 0, 0.65)",
+                lineHeight: 1.3,
+                color: "#ffffff",
+                fontFamily: isBilingual ? tamilFontFamily : primaryFontFamily,
+              }}
+            >
+              {isBilingual
+                ? `${tamilBookLabel} / ${englishBookLabel} ${chapter}:${verseData?.verse}`
+                : `${primaryBookLabel} ${chapter}:${verseData?.verse}`}
+            </p>
+          ) : null}
+
           {verseItem && libraryData.notes[verseItem.id] ? (
             <div className="mt-5 rounded-3xl border border-white/10 bg-black/20 px-4 py-4 text-left">
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
                 {t.note}
               </p>
-              <p className="mt-2 text-sm leading-7 text-slate-200">
+              <p className="mt-2 text-sm leading-7 text-slate-200" style={{ fontFamily: tamilFontFamily }}>
                 {libraryData.notes[verseItem.id].text}
               </p>
             </div>

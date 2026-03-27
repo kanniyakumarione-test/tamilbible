@@ -11,6 +11,12 @@
   --app-text: #f8fafc;
   --app-muted: #94a3b8;
   --app-glow: rgba(99, 102, 241, 0.18);
+  --app-selection: rgba(96, 165, 250, 0.28);
+  --app-shell-background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.07), transparent 24%),
+    radial-gradient(circle at top right, rgba(99, 102, 241, 0.12), transparent 30%);
+  --app-ui-font-family: "Segoe UI", Inter, Arial, sans-serif;
+  --app-tamil-font-family: "Noto Sans Tamil", sans-serif;
 }
 
 html,
@@ -26,7 +32,7 @@ body {
     radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 28%),
     radial-gradient(circle at top right, rgba(99, 102, 241, 0.2), transparent 32%),
     linear-gradient(180deg, #08111d 0%, #050b14 100%);
-  font-family: "Noto Sans Tamil", sans-serif;
+  font-family: var(--app-tamil-font-family);
   overscroll-behavior: none;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
@@ -55,7 +61,7 @@ html.lenis body {
 }
 
 ::selection {
-  background: rgba(96, 165, 250, 0.28);
+  background: var(--app-selection);
   color: #fff;
 }
 
@@ -74,9 +80,7 @@ html.lenis body {
 
 .app-shell {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(56, 189, 248, 0.07), transparent 24%),
-    radial-gradient(circle at top right, rgba(99, 102, 241, 0.12), transparent 30%);
+  background: var(--app-shell-background);
 }
 
 .app-surface {
@@ -94,4 +98,114 @@ html.lenis body {
 
 .app-outline {
   border: 1px solid var(--app-border);
+}
+
+.app-page-transition {
+  animation: app-page-enter 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: center top;
+}
+
+.home-shell > div > section:first-child {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2.35rem;
+  border-color: rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.18), transparent 24%),
+    radial-gradient(circle at 85% 20%, rgba(56, 189, 248, 0.22), transparent 22%),
+    radial-gradient(circle at bottom left, rgba(14, 165, 233, 0.16), transparent 26%),
+    linear-gradient(135deg, rgba(8, 15, 29, 0.98), rgba(5, 10, 20, 0.99));
+  box-shadow: 0 28px 90px rgba(2, 6, 23, 0.42);
+}
+
+.home-shell > div > section:first-child::before {
+  content: "";
+  position: absolute;
+  right: -3rem;
+  top: 2.5rem;
+  width: 10rem;
+  height: 10rem;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.1);
+  filter: blur(50px);
+}
+
+.home-shell > div > section:first-child::after {
+  content: "";
+  position: absolute;
+  left: -2.5rem;
+  bottom: -1rem;
+  width: 9rem;
+  height: 9rem;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.1);
+  filter: blur(44px);
+}
+
+.home-shell > div > section:first-child > p:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(224, 242, 254, 0.82);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+}
+
+.home-shell > div > section:first-child > p:first-child::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #86efac;
+  box-shadow: 0 0 12px rgba(110, 231, 183, 0.8);
+}
+
+.home-shell > div > section:first-child > h1 {
+  margin-top: 1.25rem;
+  font-size: clamp(2.5rem, 5vw, 4.75rem);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+}
+
+.home-shell > div > section:first-child > p:nth-of-type(2) {
+  margin-top: 1.25rem;
+  max-width: 42rem;
+  line-height: 2rem;
+}
+
+.home-shell > div > section:first-child > div:last-child > div {
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+}
+
+.home-shell .app-surface {
+  border-radius: 2rem;
+  background: linear-gradient(180deg, rgba(16, 24, 40, 0.96), rgba(7, 12, 23, 0.98));
+  box-shadow: 0 22px 60px rgba(2, 6, 23, 0.28);
+}
+
+@keyframes app-page-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.992);
+    filter: blur(6px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-page-transition {
+    animation: none;
+  }
 }
