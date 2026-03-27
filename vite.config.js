@@ -21,7 +21,7 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "apple-touch-icon.png", "icon-192.png", "icon-512.png"],
       workbox: {
-        maximumFileSizeToCacheInBytes: 16 * 1024 * 1024,
+        maximumFileSizeToCacheInBytes: 24 * 1024 * 1024,
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.destination === "image",
