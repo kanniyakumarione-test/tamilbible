@@ -234,18 +234,18 @@ export default function Verses() {
       throw new Error("Canvas not available");
     }
 
-    if (settings.bgType === "gradient") {
+    if (settings.bgType === "gradient" || settings.bgType === "motion") {
       const gradient = ctx.createLinearGradient(0, 0, width, height);
-      gradient.addColorStop(0, "#0f172a");
-      gradient.addColorStop(1, "#1d4ed8");
+      gradient.addColorStop(0, settings.bgType === "motion" ? "#020617" : "#0f172a");
+      gradient.addColorStop(1, settings.bgType === "motion" ? "#0f766e" : "#1d4ed8");
 
       const gradientMatches = gradients[settings.bgIndex]?.match(/#[0-9a-fA-F]{6}/g);
 
-      if (gradientMatches?.[0]) {
+      if (settings.bgType !== "motion" && gradientMatches?.[0]) {
         gradient.addColorStop(0, gradientMatches[0]);
       }
 
-      if (gradientMatches?.[1]) {
+      if (settings.bgType !== "motion" && gradientMatches?.[1]) {
         gradient.addColorStop(1, gradientMatches[1]);
       }
 

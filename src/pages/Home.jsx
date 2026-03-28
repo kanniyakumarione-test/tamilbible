@@ -222,13 +222,13 @@ export default function Home() {
 
                 <button
                   onClick={handleInstallClick}
-                  className={`rounded-2xl px-5 py-3 text-sm font-semibold shadow-lg ${
+                  className={`rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-lg ${
                     canInstall
-                      ? "bg-gradient-to-br from-indigo-500 to-sky-500 text-white shadow-indigo-950/30"
-                      : "border border-white/10 bg-white/5 text-white shadow-none"
+                      ? "bg-gradient-to-br from-indigo-500 to-sky-500 shadow-indigo-950/30"
+                      : "bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)] shadow-sky-950/20"
                   }`}
                 >
-                  {canInstall ? t.installNow : settings.language === "en" ? "How To Install" : "நிறுவுவது எப்படி"}
+                  {t.installNow}
                 </button>
               </div>
               <p className="mt-4 text-sm leading-7 text-slate-400">

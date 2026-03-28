@@ -190,6 +190,341 @@ html.lenis body {
   box-shadow: 0 22px 60px rgba(2, 6, 23, 0.28);
 }
 
+.motion-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+  transform: translateZ(0);
+}
+
+.motion-bg__layer {
+  position: absolute;
+  inset: -15%;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+.motion-bg--stars {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(56, 189, 248, 0.2), transparent 20%),
+    radial-gradient(circle at 82% 12%, rgba(99, 102, 241, 0.22), transparent 22%),
+    radial-gradient(circle at 52% 78%, rgba(14, 165, 233, 0.08), transparent 24%),
+    linear-gradient(180deg, #010510 0%, #07111f 50%, #020712 100%);
+}
+
+.motion-bg--stars .motion-bg__layer--base {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,0.08), transparent 38%),
+    linear-gradient(120deg, transparent 20%, rgba(125, 211, 252, 0.06) 50%, transparent 80%);
+  opacity: 0.7;
+}
+
+.motion-bg--stars .motion-bg__layer--one {
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.95) 0 1px, transparent 1.7px),
+    radial-gradient(circle, rgba(191,219,254,0.8) 0 1.2px, transparent 1.9px),
+    radial-gradient(circle, rgba(125,211,252,0.55) 0 1.4px, transparent 2.2px);
+  background-size: 110px 110px, 170px 170px, 240px 240px;
+  background-position: 0 0, 40px 70px, 120px 30px;
+  opacity: 0.92;
+  animation: motion-stars-drift 42s linear infinite;
+}
+
+.motion-bg--stars .motion-bg__layer--two {
+  background:
+    radial-gradient(circle at 30% 42%, rgba(56,189,248,0.28), transparent 10%),
+    radial-gradient(circle at 72% 58%, rgba(167,139,250,0.22), transparent 12%),
+    radial-gradient(circle at 58% 18%, rgba(34,197,94,0.14), transparent 9%);
+  filter: blur(26px);
+  animation: motion-float 18s ease-in-out infinite alternate;
+}
+
+.motion-bg--stars .motion-bg__layer--three {
+  background:
+    linear-gradient(115deg, transparent 28%, rgba(255,255,255,0.08) 50%, transparent 68%),
+    linear-gradient(180deg, transparent 0%, rgba(2,6,23,0.16) 100%);
+  opacity: 0.6;
+  animation: motion-shimmer 9s ease-in-out infinite;
+}
+
+.motion-bg--stars .motion-bg__layer--four {
+  background: radial-gradient(circle at center, rgba(255,255,255,0.08), transparent 30%);
+  animation: motion-pulse 6.5s ease-in-out infinite;
+}
+
+.motion-bg--waves {
+  background:
+    radial-gradient(circle at 20% 16%, rgba(14,165,233,0.14), transparent 24%),
+    linear-gradient(180deg, #03101b 0%, #082234 48%, #04111d 100%);
+}
+
+.motion-bg--waves .motion-bg__layer--base {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.06), transparent 24%),
+    radial-gradient(circle at 50% 120%, rgba(125,211,252,0.12), transparent 45%);
+}
+
+.motion-bg--waves .motion-bg__layer--one,
+.motion-bg--waves .motion-bg__layer--two,
+.motion-bg--waves .motion-bg__layer--three,
+.motion-bg--waves .motion-bg__layer--four {
+  border-radius: 44%;
+}
+
+.motion-bg--waves .motion-bg__layer--one {
+  inset: auto -10% -42% -10%;
+  height: 72%;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(56,189,248,0.24), rgba(14,165,233,0.05) 56%, transparent 70%),
+    linear-gradient(180deg, rgba(255,255,255,0.08), transparent 30%);
+  animation: motion-wave 16s ease-in-out infinite;
+}
+
+.motion-bg--waves .motion-bg__layer--two {
+  inset: auto -16% -50% -16%;
+  height: 80%;
+  opacity: 0.78;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(96,165,250,0.2), rgba(14,165,233,0.04) 58%, transparent 72%);
+  animation: motion-wave 23s ease-in-out infinite reverse;
+}
+
+.motion-bg--waves .motion-bg__layer--three {
+  inset: auto -4% -32% -4%;
+  height: 55%;
+  opacity: 0.32;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02) 30%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(186,230,253,0.22), transparent 68%);
+  filter: blur(8px);
+  animation: motion-wave-highlight 11s ease-in-out infinite;
+}
+
+.motion-bg--waves .motion-bg__layer--four {
+  inset: -8% -8% auto -8%;
+  height: 30%;
+  opacity: 0.24;
+  background: radial-gradient(circle at 50% 50%, rgba(56,189,248,0.2), transparent 60%);
+  filter: blur(18px);
+  animation: motion-float 22s ease-in-out infinite alternate;
+}
+
+.motion-bg--particles {
+  background:
+    radial-gradient(circle at 15% 20%, rgba(34,197,94,0.16), transparent 22%),
+    radial-gradient(circle at 85% 25%, rgba(56,189,248,0.18), transparent 24%),
+    radial-gradient(circle at 50% 75%, rgba(20,184,166,0.1), transparent 20%),
+    linear-gradient(180deg, #031018 0%, #08131d 100%);
+}
+
+.motion-bg--particles .motion-bg__layer--base {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.04), transparent 40%),
+    linear-gradient(180deg, rgba(255,255,255,0.02), transparent 28%);
+}
+
+.motion-bg--particles .motion-bg__layer--one {
+  background-image:
+    radial-gradient(circle, rgba(186,230,253,0.8) 0 2px, transparent 2.5px),
+    radial-gradient(circle, rgba(134,239,172,0.72) 0 1.5px, transparent 2.2px),
+    radial-gradient(circle, rgba(255,255,255,0.58) 0 1px, transparent 1.8px),
+    radial-gradient(circle, rgba(45,212,191,0.45) 0 2.2px, transparent 3px);
+  background-size: 160px 160px, 220px 220px, 110px 110px, 260px 260px;
+  opacity: 0.78;
+  animation: motion-particles-rise 24s linear infinite;
+}
+
+.motion-bg--particles .motion-bg__layer--two {
+  background:
+    radial-gradient(circle at 20% 80%, rgba(34,197,94,0.22), transparent 9%),
+    radial-gradient(circle at 80% 25%, rgba(56,189,248,0.22), transparent 11%),
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08), transparent 16%);
+  filter: blur(16px);
+  animation: motion-float 14s ease-in-out infinite alternate;
+}
+
+.motion-bg--particles .motion-bg__layer--three {
+  background:
+    linear-gradient(180deg, transparent, rgba(2,6,23,0.18)),
+    linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+  animation: motion-shimmer 10s ease-in-out infinite;
+}
+
+.motion-bg--particles .motion-bg__layer--four {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,0.16), transparent 7%),
+    radial-gradient(circle at 70% 68%, rgba(186,230,253,0.14), transparent 8%),
+    radial-gradient(circle at 48% 42%, rgba(134,239,172,0.12), transparent 7%);
+  filter: blur(10px);
+  animation: motion-pulse 7.2s ease-in-out infinite;
+}
+
+.motion-bg--aurora {
+  background:
+    radial-gradient(circle at 50% 20%, rgba(16,185,129,0.1), transparent 24%),
+    linear-gradient(180deg, #020711 0%, #07111f 48%, #031018 100%);
+}
+
+.motion-bg--aurora .motion-bg__layer--base {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,0.05), transparent 42%),
+    linear-gradient(180deg, rgba(255,255,255,0.02), transparent 30%);
+}
+
+.motion-bg--aurora .motion-bg__layer--one {
+  background:
+    linear-gradient(115deg, transparent 15%, rgba(45,212,191,0.22) 35%, rgba(125,211,252,0.12) 52%, transparent 72%),
+    linear-gradient(70deg, transparent 20%, rgba(167,139,250,0.18) 45%, transparent 70%);
+  filter: blur(24px);
+  animation: motion-aurora-sweep 18s ease-in-out infinite alternate;
+}
+
+.motion-bg--aurora .motion-bg__layer--two {
+  background:
+    linear-gradient(100deg, transparent 10%, rgba(34,197,94,0.16) 32%, rgba(56,189,248,0.14) 48%, transparent 68%);
+  filter: blur(30px);
+  opacity: 0.9;
+  animation: motion-aurora-sweep 24s ease-in-out infinite alternate-reverse;
+}
+
+.motion-bg--aurora .motion-bg__layer--three {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255,255,255,0.08), transparent 10%),
+    radial-gradient(circle at 80% 18%, rgba(255,255,255,0.06), transparent 12%);
+  animation: motion-pulse 8s ease-in-out infinite;
+}
+
+.motion-bg--aurora .motion-bg__layer--four {
+  background: linear-gradient(180deg, transparent, rgba(2,6,23,0.22));
+}
+
+.motion-bg--embers {
+  background:
+    radial-gradient(circle at 50% 90%, rgba(249,115,22,0.16), transparent 28%),
+    linear-gradient(180deg, #120606 0%, #1f0a06 52%, #090509 100%);
+}
+
+.motion-bg--embers .motion-bg__layer--base {
+  background:
+    radial-gradient(circle at 50% 100%, rgba(251,146,60,0.14), transparent 36%),
+    linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.2) 100%);
+}
+
+.motion-bg--embers .motion-bg__layer--one {
+  background-image:
+    radial-gradient(circle, rgba(254,215,170,0.85) 0 2px, transparent 2.8px),
+    radial-gradient(circle, rgba(251,146,60,0.65) 0 2.5px, transparent 3.4px),
+    radial-gradient(circle, rgba(248,113,113,0.5) 0 1.6px, transparent 2.4px);
+  background-size: 180px 180px, 260px 260px, 130px 130px;
+  opacity: 0.78;
+  animation: motion-embers-rise 16s linear infinite;
+}
+
+.motion-bg--embers .motion-bg__layer--two {
+  background:
+    radial-gradient(circle at 40% 75%, rgba(249,115,22,0.22), transparent 12%),
+    radial-gradient(circle at 60% 82%, rgba(251,191,36,0.16), transparent 10%);
+  filter: blur(18px);
+  animation: motion-float 10s ease-in-out infinite alternate;
+}
+
+.motion-bg--embers .motion-bg__layer--three {
+  background:
+    linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.05) 24%, transparent 42%),
+    linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+  opacity: 0.42;
+  animation: motion-shimmer 8s ease-in-out infinite;
+}
+
+.motion-bg--embers .motion-bg__layer--four {
+  background: radial-gradient(circle at 50% 100%, rgba(255,255,255,0.08), transparent 28%);
+  animation: motion-pulse 6s ease-in-out infinite;
+}
+
+.motion-bg--halo {
+  background:
+    radial-gradient(circle at center, rgba(56,189,248,0.08), transparent 22%),
+    linear-gradient(180deg, #030712 0%, #08111d 100%);
+}
+
+.motion-bg--halo .motion-bg__layer--base {
+  background:
+    radial-gradient(circle at center, rgba(255,255,255,0.04), transparent 38%),
+    linear-gradient(180deg, rgba(255,255,255,0.02), transparent 32%);
+}
+
+.motion-bg--halo .motion-bg__layer--one {
+  inset: 12% 18%;
+  border-radius: 999px;
+  border: 1px solid rgba(125,211,252,0.18);
+  box-shadow:
+    0 0 60px rgba(56,189,248,0.18),
+    inset 0 0 40px rgba(255,255,255,0.04);
+  animation: motion-halo-spin 28s linear infinite;
+}
+
+.motion-bg--halo .motion-bg__layer--two {
+  inset: 20% 26%;
+  border-radius: 999px;
+  border: 1px solid rgba(167,139,250,0.16);
+  box-shadow: 0 0 50px rgba(167,139,250,0.14);
+  animation: motion-halo-spin 18s linear infinite reverse;
+}
+
+.motion-bg--halo .motion-bg__layer--three {
+  background:
+    radial-gradient(circle at center, rgba(255,255,255,0.12), transparent 8%),
+    radial-gradient(circle at center, rgba(56,189,248,0.14), transparent 18%);
+  animation: motion-pulse 7s ease-in-out infinite;
+}
+
+.motion-bg--halo .motion-bg__layer--four {
+  background: linear-gradient(180deg, transparent, rgba(2,6,23,0.18));
+}
+
+.motion-bg--mist {
+  background:
+    radial-gradient(circle at 25% 20%, rgba(148,163,184,0.12), transparent 24%),
+    linear-gradient(180deg, #04070d 0%, #0b1220 54%, #050812 100%);
+}
+
+.motion-bg--mist .motion-bg__layer--base {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.03), transparent 28%),
+    radial-gradient(circle at 50% 110%, rgba(148,163,184,0.08), transparent 44%);
+}
+
+.motion-bg--mist .motion-bg__layer--one {
+  background:
+    radial-gradient(circle at 20% 60%, rgba(226,232,240,0.16), transparent 18%),
+    radial-gradient(circle at 58% 50%, rgba(148,163,184,0.14), transparent 22%),
+    radial-gradient(circle at 78% 66%, rgba(203,213,225,0.1), transparent 18%);
+  filter: blur(24px);
+  animation: motion-mist-drift 22s ease-in-out infinite alternate;
+}
+
+.motion-bg--mist .motion-bg__layer--two {
+  background:
+    radial-gradient(circle at 35% 72%, rgba(255,255,255,0.08), transparent 16%),
+    radial-gradient(circle at 72% 34%, rgba(226,232,240,0.07), transparent 14%);
+  filter: blur(30px);
+  opacity: 0.8;
+  animation: motion-mist-drift 30s ease-in-out infinite alternate-reverse;
+}
+
+.motion-bg--mist .motion-bg__layer--three {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+  opacity: 0.4;
+  animation: motion-shimmer 12s ease-in-out infinite;
+}
+
+.motion-bg--mist .motion-bg__layer--four {
+  background: radial-gradient(circle at center, rgba(255,255,255,0.05), transparent 30%);
+  animation: motion-pulse 9s ease-in-out infinite;
+}
+
 @keyframes app-page-enter {
   0% {
     opacity: 0;
@@ -204,8 +539,128 @@ html.lenis body {
   }
 }
 
+@keyframes motion-stars-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-80px, 120px, 0);
+  }
+}
+
+@keyframes motion-float {
+  from {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+
+  to {
+    transform: translate3d(2%, 2%, 0) scale(1.05);
+  }
+}
+
+@keyframes motion-pulse {
+  0%, 100% {
+    opacity: 0.28;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes motion-shimmer {
+  0%, 100% {
+    transform: translate3d(-2%, 0, 0);
+    opacity: 0.3;
+  }
+
+  50% {
+    transform: translate3d(2%, -1%, 0);
+    opacity: 0.7;
+  }
+}
+
+@keyframes motion-wave {
+  0%, 100% {
+    transform: translate3d(-3%, 0, 0) rotate(0deg);
+  }
+
+  50% {
+    transform: translate3d(3%, -3%, 0) rotate(7deg);
+  }
+}
+
+@keyframes motion-wave-highlight {
+  0%, 100% {
+    transform: translate3d(-2%, 0, 0) scaleY(1);
+    opacity: 0.16;
+  }
+
+  50% {
+    transform: translate3d(2%, -2%, 0) scaleY(1.08);
+    opacity: 0.36;
+  }
+}
+
+@keyframes motion-particles-rise {
+  from {
+    transform: translate3d(0, 16%, 0);
+  }
+
+  to {
+    transform: translate3d(0, -16%, 0);
+  }
+}
+
+@keyframes motion-aurora-sweep {
+  from {
+    transform: translate3d(-4%, 0, 0) rotate(-5deg) scale(1);
+  }
+
+  to {
+    transform: translate3d(4%, -2%, 0) rotate(6deg) scale(1.06);
+  }
+}
+
+@keyframes motion-embers-rise {
+  from {
+    transform: translate3d(0, 18%, 0);
+  }
+
+  to {
+    transform: translate3d(0, -18%, 0);
+  }
+}
+
+@keyframes motion-halo-spin {
+  from {
+    transform: rotate(0deg) scale(1);
+  }
+
+  to {
+    transform: rotate(360deg) scale(1.02);
+  }
+}
+
+@keyframes motion-mist-drift {
+  from {
+    transform: translate3d(-3%, 0, 0) scale(1);
+  }
+
+  to {
+    transform: translate3d(3%, -2%, 0) scale(1.08);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-page-transition {
     animation: none;
+  }
+
+  .motion-bg__layer {
+    animation: none !important;
   }
 }

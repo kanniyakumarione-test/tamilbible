@@ -66,7 +66,7 @@ function Layout() {
 
       <div className={isReader ? "" : "pb-24 md:pb-0"}>
         <Suspense fallback={<RouteLoadingScreen />}>
-          <div key={location.pathname} className={isReader ? "" : "app-page-transition"}>
+          <div key={isReader ? "reader-shell" : location.pathname} className={isReader ? "" : "app-page-transition"}>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/books" element={<Books />} />

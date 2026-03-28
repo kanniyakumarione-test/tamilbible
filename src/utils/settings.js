@@ -5,6 +5,7 @@ export const defaultSettings = {
   tamilFontFamily: "noto-sans-tamil",
   bgIndex: 0,
   bgType: "image",
+  motionBackground: "stars",
   customBackground: null,
   cardOpacity: 0.5,
   showReaderBox: true,

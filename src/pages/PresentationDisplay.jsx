@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import useAppSettings from "../hooks/useAppSettings";
 import useLibraryData from "../hooks/useLibraryData";
 import { setSermonDisplayMode } from "../utils/libraryData";
+import MotionBackground from "../components/MotionBackground";
 import {
   getPresentationFontFamily,
 } from "../utils/appearance";
@@ -24,6 +25,10 @@ function getReaderBackground(settings) {
     "linear-gradient(to right, #0f2027, #203a43, #2c5364)",
     "linear-gradient(to right, #000428, #004e92)",
   ];
+
+  if (settings.bgType === "motion") {
+    return "#07111f";
+  }
 
   if (settings.bgType === "custom" && settings.customBackground) {
     return `url(${settings.customBackground})`;
@@ -379,6 +384,9 @@ export default function PresentationDisplay() {
         transition: "background 220ms ease-in-out",
       }}
     >
+      {renderState.displayMode !== "black" && !isStage && settings.bgType === "motion" ? (
+        <MotionBackground variant={settings.motionBackground} />
+      ) : null}
       {renderState.displayMode !== "black" ? (
         <div
           className={`absolute inset-0 transition-opacity duration-200 ease-in-out ${

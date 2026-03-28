@@ -21,6 +21,7 @@ import {
   syncRemoteDevicesFromBackend,
 } from "../utils/presentationRemotePresence";
 import { getUIText } from "../utils/uiText";
+import MotionBackground from "../components/MotionBackground";
 
 const backgrounds = [
   "/bg/bg1.jpg",
@@ -365,7 +366,9 @@ export default function AdvancedPresentation() {
   }, []);
 
   const previewBackground =
-    settings.bgType === "custom" && settings.customBackground
+    settings.bgType === "motion"
+      ? "#07111f"
+      : settings.bgType === "custom" && settings.customBackground
       ? `url(${settings.customBackground})`
       : settings.bgType === "gradient"
       ? gradients[settings.bgIndex]
@@ -860,11 +863,12 @@ export default function AdvancedPresentation() {
                 <div>
                   <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Main Preview</p>
                   <div
-                    className="flex h-52 items-center justify-center rounded-[1.5rem] border border-white/10 bg-black p-4 shadow-inner shadow-black/40"
-                    style={{ backgroundImage: previewBackground, backgroundSize: "cover", backgroundPosition: "center" }}
+                    className="relative flex h-52 items-center justify-center overflow-hidden rounded-[1.5rem] border border-white/10 bg-black p-4 shadow-inner shadow-black/40"
+                    style={{ background: previewBackground, backgroundImage: settings.bgType === "motion" ? undefined : previewBackground, backgroundSize: "cover", backgroundPosition: "center" }}
                   >
+                    {settings.bgType === "motion" ? <MotionBackground variant={settings.motionBackground} /> : null}
                     <div
-                      className="w-full rounded-2xl px-5 py-4 text-center backdrop-blur-sm"
+                      className="relative z-10 w-full rounded-2xl px-5 py-4 text-center backdrop-blur-sm"
                       style={{
                         background: settings.presentationBox ? "rgba(0,0,0,0.45)" : "transparent",
                         boxShadow: settings.presentationBorder ? "0 0 0 1px rgba(255,255,255,0.2) inset" : "none",
@@ -900,7 +904,9 @@ export default function AdvancedPresentation() {
 
                 <div>
                   <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">{t.backgroundImage}</p>
-                  <div className="h-44 rounded-[1.5rem] border border-white/10 bg-black" style={{ backgroundImage: previewBackground, backgroundSize: "cover", backgroundPosition: "center" }} />
+                  <div className="relative h-44 overflow-hidden rounded-[1.5rem] border border-white/10 bg-black" style={{ background: previewBackground, backgroundImage: settings.bgType === "motion" ? undefined : previewBackground, backgroundSize: "cover", backgroundPosition: "center" }}>
+                    {settings.bgType === "motion" ? <MotionBackground variant={settings.motionBackground} /> : null}
+                  </div>
                 </div>
 
                 <div>

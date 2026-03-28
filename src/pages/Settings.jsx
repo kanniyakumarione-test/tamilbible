@@ -4,6 +4,7 @@ import { defaultSettings } from "../utils/settings";
 import useAppSettings from "../hooks/useAppSettings";
 import useInstallPrompt from "../hooks/useInstallPrompt";
 import { getUIText } from "../utils/uiText";
+import MotionBackground from "../components/MotionBackground";
 import {
   FONT_FAMILY_OPTIONS,
   TAMIL_FONT_OPTIONS,
@@ -31,6 +32,16 @@ const tabs = [
   { id: "reader", label: "Reader" },
   { id: "visual", label: "Visual" },
   { id: "app", label: "App" },
+];
+
+const motionBackgroundOptions = [
+  { value: "stars", key: "stars" },
+  { value: "waves", key: "waves" },
+  { value: "particles", key: "particles" },
+  { value: "aurora", key: "aurora" },
+  { value: "embers", key: "embers" },
+  { value: "halo", key: "halo" },
+  { value: "mist", key: "mist" },
 ];
 
 const presentationPresetMap = {
@@ -343,6 +354,11 @@ export default function Settings() {
   const [settings, update] = useAppSettings();
   const { canInstall, isInstalled, installInstructions, promptInstall } = useInstallPrompt();
   const [draft, setDraft] = useState(settings);
+  const [backgroundUrl, setBackgroundUrl] = useState(() =>
+    typeof settings.customBackground === "string" && /^https?:\/\//i.test(settings.customBackground)
+      ? settings.customBackground
+      : ""
+  );
   const [tab, setTab] = useState("reader");
   const [installFeedback, setInstallFeedback] = useState("");
   const backgroundInputRef = useRef(null);
@@ -556,6 +572,10 @@ export default function Settings() {
   ]);
 
   const previewBackground = useMemo(() => {
+    if (previewDraft.bgType === "motion") {
+      return null;
+    }
+
     if (previewDraft.bgType === "custom" && previewDraft.customBackground) {
       return `url(${previewDraft.customBackground})`;
     }
@@ -568,6 +588,17 @@ export default function Settings() {
   const updateDraft = (patch) => setDraft((current) => ({ ...current, ...patch }));
 
   const resetSettings = () => setDraft(defaultSettings);
+
+  useEffect(() => {
+    if (typeof draft.customBackground === "string" && /^https?:\/\//i.test(draft.customBackground)) {
+      setBackgroundUrl(draft.customBackground);
+      return;
+    }
+
+    if (!draft.customBackground) {
+      setBackgroundUrl("");
+    }
+  }, [draft.customBackground]);
 
   const handleBackgroundUpload = async (event) => {
     const file = event.target.files?.[0];
@@ -582,6 +613,16 @@ export default function Settings() {
     event.target.value = "";
   };
 
+  const handleBackgroundUrlApply = () => {
+    const trimmedUrl = backgroundUrl.trim();
+    if (!trimmedUrl) return;
+
+    updateDraft({
+      bgType: "custom",
+      customBackground: trimmedUrl,
+    });
+  };
+
   const handleInstall = async () => {
     const didPrompt = await promptInstall();
 
@@ -593,7 +634,12 @@ export default function Settings() {
     setInstallFeedback("");
   };
 
-  const activeBackgrounds = draft.bgType === "gradient" ? gradients : backgrounds;
+  const activeBackgrounds =
+    draft.bgType === "gradient"
+      ? gradients
+      : draft.bgType === "motion"
+      ? motionBackgroundOptions
+      : backgrounds;
 
   return (
     <div className="app-shell overflow-x-hidden px-4 pb-20 pt-4 md:px-6 md:pt-6">
@@ -773,11 +819,12 @@ export default function Settings() {
                     <div className="space-y-4">
                       <ChoiceRow
                         label={settingsPageText.labels.backgroundType}
-                        value={draft.bgType === "gradient" ? "gradient" : "image"}
+                        value={draft.bgType === "gradient" ? "gradient" : draft.bgType === "motion" ? "motion" : "image"}
                         onChange={(mode) => updateDraft({ bgType: mode, bgIndex: draft.bgIndex ?? 0 })}
                         isTamil={isTamil}
                         options={[
                           { value: "image", label: t.imageBackgrounds },
+                          { value: "motion", label: t.motionBackground },
                           { value: "gradient", label: t.gradientBackgrounds },
                         ]}
                       />
@@ -785,7 +832,27 @@ export default function Settings() {
                       <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
                         <p className="text-sm font-medium text-white">{t.customBackground}</p>
                         <p className="mt-2 text-xs leading-6 text-slate-400">{t.customBackgroundIntro}</p>
+                        <label className="mt-4 block">
+                          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                            {t.imageUrl}
+                          </span>
+                          <input
+                            type="url"
+                            value={backgroundUrl}
+                            onChange={(event) => setBackgroundUrl(event.target.value)}
+                            placeholder="https://example.com/background.jpg"
+                            className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400/40"
+                          />
+                        </label>
                         <div className="mt-4 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={handleBackgroundUrlApply}
+                            disabled={!backgroundUrl.trim()}
+                            className="rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2.5 text-sm font-semibold text-sky-100 transition hover:border-sky-300/50 hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {t.useImageLink}
+                          </button>
                           <button
                             type="button"
                             onClick={() => backgroundInputRef.current?.click()}
@@ -796,7 +863,10 @@ export default function Settings() {
                           {draft.customBackground ? (
                             <button
                               type="button"
-                              onClick={() => updateDraft({ customBackground: null, bgType: "image", bgIndex: 0 })}
+                              onClick={() => {
+                                setBackgroundUrl("");
+                                updateDraft({ customBackground: null, bgType: "image", bgIndex: 0 });
+                              }}
                               className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-semibold text-white"
                             >
                               {t.removeImage}
@@ -809,19 +879,37 @@ export default function Settings() {
 
                     <div>
                       <p className="mb-3 text-sm text-slate-400">
-                        {draft.bgType === "gradient" ? t.gradientBackgroundsIntro : t.imageBackgroundsIntro}
+                        {draft.bgType === "gradient"
+                          ? t.gradientBackgroundsIntro
+                          : draft.bgType === "motion"
+                          ? t.motionBackgroundsIntro
+                          : t.imageBackgroundsIntro}
                       </p>
                       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                         {activeBackgrounds.map((item, index) => {
                           const isGradientItem = typeof item === "string" && item.startsWith("linear-gradient");
+                          const isMotionItem = draft.bgType === "motion";
 
                           return (
                             <BackgroundTile
                               key={`${draft.bgType}-${index}`}
-                              active={draft.bgIndex === index}
-                              onClick={() => updateDraft({ bgType: isGradientItem ? "gradient" : "image", bgIndex: index })}
+                              active={isMotionItem ? draft.motionBackground === item.value : draft.bgIndex === index}
+                              onClick={() =>
+                                updateDraft(
+                                  isMotionItem
+                                    ? { bgType: "motion", motionBackground: item.value }
+                                    : { bgType: isGradientItem ? "gradient" : "image", bgIndex: index }
+                                )
+                              }
                             >
-                              {isGradientItem ? (
+                              {isMotionItem ? (
+                                <div className="relative h-24 w-full overflow-hidden bg-slate-950">
+                                  <MotionBackground variant={item.value} />
+                                  <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/70 to-transparent px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white">
+                                    {t[item.key]}
+                                  </div>
+                                </div>
+                              ) : isGradientItem ? (
                                 <div className="h-24 w-full" style={{ background: item }} />
                               ) : (
                                 <img src={item} alt={`background-${index + 1}`} className="h-24 w-full object-cover" />
@@ -975,16 +1063,23 @@ export default function Settings() {
               isTamil={isTamil}
             >
               <div
-                className="rounded-[1.8rem] border border-white/10 p-4"
+                className="relative overflow-hidden rounded-[1.8rem] border border-white/10 p-4"
                 style={{
-                  backgroundImage: previewBackground,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
+                  background: previewBackground || "#07111f",
+                  backgroundImage:
+                    previewBackground && !previewBackground.startsWith("linear-gradient")
+                      ? previewBackground
+                      : undefined,
+                  backgroundSize: previewBackground ? "cover" : undefined,
+                  backgroundPosition: previewBackground ? "center" : undefined,
                 }}
               >
+                {previewDraft.bgType === "motion" ? (
+                  <MotionBackground variant={previewDraft.motionBackground} />
+                ) : null}
                 <div
                   ref={previewCardRef}
-                  className={`${previewDraft.showReaderBox === false ? "px-0 py-2 shadow-none border-transparent bg-transparent" : "rounded-[1.6rem] border border-white/10 px-5 py-5 shadow-2xl shadow-black/20"}`}
+                  className={`relative z-10 ${previewDraft.showReaderBox === false ? "px-0 py-2 shadow-none border-transparent bg-transparent" : "rounded-[1.6rem] border border-white/10 px-5 py-5 shadow-2xl shadow-black/20"}`}
                   style={{
                     maxWidth: `${previewDraft.readerWidth}px`,
                     minHeight: "24rem",
@@ -1056,6 +1151,8 @@ export default function Settings() {
                   value={
                     previewDraft.bgType === "gradient"
                       ? settingsPageText.labels.gradient
+                      : previewDraft.bgType === "motion"
+                      ? t.motionBackground
                       : previewDraft.bgType === "custom"
                       ? settingsPageText.labels.custom
                       : settingsPageText.labels.image

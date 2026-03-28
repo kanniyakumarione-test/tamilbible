@@ -17,6 +17,7 @@ import {
 import {
   getReaderFontFamily,
 } from "../utils/appearance";
+import MotionBackground from "../components/MotionBackground";
 
 export default function Reader() {
   const { book, chapter, verse } = useParams();
@@ -342,9 +343,12 @@ export default function Reader() {
   return (
     <div
       ref={readerFrameRef}
-      className="flex h-screen w-screen items-center justify-center overflow-hidden px-4 text-white"
+      className="relative flex h-screen w-screen items-center justify-center overflow-hidden px-4 text-white"
       style={{
         background:
+          settings.bgType === "motion"
+            ? "#07111f"
+            :
           settings.bgType === "custom" && settings.customBackground
             ? `url(${settings.customBackground})`
             : settings.bgType === "gradient"
@@ -354,8 +358,9 @@ export default function Reader() {
         backgroundPosition: "center",
       }}
     >
+      {settings.bgType === "motion" ? <MotionBackground variant={settings.motionBackground} /> : null}
       <div
-        className={`flex max-h-[calc(100vh-2rem)] w-full flex-col ${
+        className={`relative z-10 flex max-h-[calc(100vh-2rem)] w-full flex-col ${
           settings.showReaderBox === false
             ? "px-2 py-4 md:px-4 md:py-6"
             : "rounded-3xl border border-white/20 px-6 py-10 backdrop-blur-md md:px-10 md:py-12"

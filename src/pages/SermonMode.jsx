@@ -1,6 +1,7 @@
 import useAppSettings from "../hooks/useAppSettings";
 import useLibraryData from "../hooks/useLibraryData";
 import { getUIText } from "../utils/uiText";
+import MotionBackground from "../components/MotionBackground";
 
 const backgrounds = [
   "/bg/bg1.jpg",
@@ -25,7 +26,9 @@ export default function SermonMode() {
   const activeItem = libraryData.sermon.activeItem;
 
   const background =
-    settings.bgType === "custom" && settings.customBackground
+    settings.bgType === "motion"
+      ? "#07111f"
+      : settings.bgType === "custom" && settings.customBackground
       ? `url(${settings.customBackground})`
       : settings.bgType === "gradient"
       ? gradients[settings.bgIndex]
@@ -33,13 +36,14 @@ export default function SermonMode() {
 
   return (
     <div
-      className="flex min-h-screen items-center justify-center px-6 py-10 text-white"
+      className="relative flex min-h-screen items-center justify-center px-6 py-10 text-white"
       style={{
         background,
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
     >
+      {settings.bgType === "motion" ? <MotionBackground variant={settings.motionBackground} /> : null}
       <div className="absolute inset-0 bg-slate-950/55" />
       <div
         className="relative z-10 w-full max-w-6xl rounded-[2rem] border border-white/15 px-8 py-10 shadow-2xl"
