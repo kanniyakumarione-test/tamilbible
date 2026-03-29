@@ -35,6 +35,7 @@ export default function Home() {
   const libraryData = useLibraryData();
   const { canInstall, isInstalled, installInstructions, promptInstall } = useInstallPrompt();
   const [installMessage, setInstallMessage] = useState("");
+  const [installPopupOpen, setInstallPopupOpen] = useState(false);
   const [verseOfDayPopupOpen, setVerseOfDayPopupOpen] = useState(false);
   const [shareFeedback, setShareFeedback] = useState("");
   const t = getUIText(settings.language);
@@ -104,6 +105,11 @@ export default function Home() {
     setInstallMessage("");
   };
 
+  const handleOpenInstallPopup = () => {
+    setInstallMessage("");
+    setInstallPopupOpen(true);
+  };
+
   const handleOpenVerseOfDay = () => {
     if (typeof window !== "undefined" && window.innerWidth < 768) {
       setVerseOfDayPopupOpen(true);
@@ -141,9 +147,9 @@ export default function Home() {
   };
 
   return (
-    <div className="home-shell app-shell px-4 pb-24 pt-4 md:px-6 md:pt-6">
-      <div className="mx-auto max-w-6xl">
-        <section className="relative mb-6 overflow-hidden rounded-[2.35rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.18),_transparent_24%),radial-gradient(circle_at_85%_20%,_rgba(56,189,248,0.22),_transparent_22%),radial-gradient(circle_at_bottom_left,_rgba(14,165,233,0.16),_transparent_26%),linear-gradient(135deg,_rgba(8,15,29,0.98),_rgba(5,10,20,0.99))] px-5 py-8 shadow-[0_28px_90px_rgba(2,6,23,0.42)] md:px-8 md:py-10">
+    <div className="home-shell app-shell app-page pb-24 pt-4 md:pt-6">
+      <div className="app-page-inner">
+        <section className="app-hero relative mb-6 overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.18),_transparent_24%),radial-gradient(circle_at_85%_20%,_rgba(56,189,248,0.22),_transparent_22%),radial-gradient(circle_at_bottom_left,_rgba(14,165,233,0.16),_transparent_26%),linear-gradient(135deg,_rgba(8,15,29,0.98),_rgba(5,10,20,0.99))] px-5 py-8 md:px-8 md:py-10">
           <p className="text-xs font-semibold uppercase tracking-[0.34em] text-slate-400">
             {t.tamilBible}
           </p>
@@ -168,6 +174,17 @@ export default function Home() {
               {settings.language === "en" ? "Verse designer" : "வசன வடிவமைப்பான்"}
             </div>
           </div>
+          {!isInstalled ? (
+            <div className="mt-6 md:hidden">
+              <button
+                type="button"
+                onClick={handleOpenInstallPopup}
+                className="rounded-2xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-5 py-3 text-sm font-semibold text-white shadow-lg"
+              >
+                {t.installNow}
+              </button>
+            </div>
+          ) : null}
         </section>
 
         <section className="mb-6 grid gap-4 lg:grid-cols-[1.1fr,0.9fr]">
@@ -204,7 +221,7 @@ export default function Home() {
           </div>
 
           {!isInstalled ? (
-            <div className="app-surface rounded-[2rem] p-5">
+            <div className="hidden app-surface rounded-[2rem] p-5 md:block">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
@@ -617,6 +634,49 @@ export default function Home() {
               {shareFeedback ? (
                 <p className="mt-4 text-center text-sm text-slate-300">{shareFeedback}</p>
               ) : null}
+            </div>
+          </div>
+        ) : null}
+        {installPopupOpen ? (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/80 px-4 backdrop-blur-sm md:hidden">
+            <button
+              type="button"
+              aria-label="Close install popup"
+              className="absolute inset-0"
+              onClick={() => setInstallPopupOpen(false)}
+            />
+
+            <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.22),_transparent_32%),linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(8,17,32,0.98))] p-5 shadow-2xl shadow-black/40">
+              <p className="text-center text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
+                {t.installApp}
+              </p>
+              <h3 className="mt-3 text-center text-xl font-bold text-white">
+                {settings.language === "en" ? "Install the app" : "ஆப்பை நிறுவுங்கள்"}
+              </h3>
+              <p className="mt-4 text-center text-sm leading-7 text-slate-300">
+                {installMessage || installInstructions || t.installHelp}
+              </p>
+
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleInstallClick}
+                  className={`rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-lg ${
+                    canInstall
+                      ? "bg-gradient-to-br from-indigo-500 to-sky-500 shadow-indigo-950/30"
+                      : "bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)] shadow-sky-950/20"
+                  }`}
+                >
+                  {t.installNow}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInstallPopupOpen(false)}
+                  className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
+                >
+                  {t.close}
+                </button>
+              </div>
             </div>
           </div>
         ) : null}

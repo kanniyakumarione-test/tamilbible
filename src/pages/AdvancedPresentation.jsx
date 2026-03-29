@@ -286,7 +286,7 @@ export default function AdvancedPresentation() {
   const previewTextRef = useRef(null);
   const previewContainerRef = useRef(null);
   const [previewFontSize, setPreviewFontSize] = useState(
-    Math.min(settings.presentationMaxFontSize || 80, 42)
+    Math.min(settings.presentationMaxFontSize || 80, 80)
   );
 
   const stagePreviewTextRef = useRef(null);
@@ -418,7 +418,7 @@ export default function AdvancedPresentation() {
       const textEl = previewTextRef.current;
       if (!container || !textEl) return;
 
-      const max = Math.min(settings.presentationMaxFontSize || 80, 42);
+      const max = Math.min(settings.presentationMaxFontSize || 80, 80);
       const min = 18;
 
       // binary search for best font size
@@ -496,7 +496,7 @@ export default function AdvancedPresentation() {
 
   return (
     <div className="hidden px-4 pb-24 pt-4 md:block md:px-6 md:pt-6">
-      <div className="mx-auto max-w-7xl space-y-5">
+      <div className="w-full space-y-5">
         <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.22),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(56,189,248,0.16),_transparent_24%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(8,17,32,0.98))] p-5 shadow-2xl shadow-black/30 md:p-7">
           <p className="text-xs font-semibold uppercase tracking-[0.34em] text-slate-400">
             {t.screenSetup}

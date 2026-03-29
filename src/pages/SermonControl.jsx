@@ -14,9 +14,9 @@ export default function SermonControl() {
   const activeId = libraryData.sermon.activeItem?.id;
 
   return (
-    <div className="app-shell px-4 pb-24 pt-4 md:px-6 md:pt-6">
-      <div className="mx-auto max-w-5xl">
-        <section className="mb-6 overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.2),_transparent_28%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(8,17,32,0.96))] px-5 py-8 shadow-2xl shadow-black/30 md:px-8">
+    <div className="app-shell app-page pb-24 pt-4 md:pt-6">
+      <div className="app-page-inner">
+        <section className="app-hero mb-6 overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.2),_transparent_28%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(8,17,32,0.96))] px-5 py-8 md:px-8">
           <p className="text-xs font-semibold uppercase tracking-[0.34em] text-slate-400">
             Presentation
           </p>

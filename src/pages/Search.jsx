@@ -473,9 +473,9 @@ export default function Search() {
   };
 
   return (
-    <div className="app-shell px-4 pb-24 pt-4 md:px-6 md:pt-6">
-      <div className="mx-auto max-w-5xl">
-        <section className="relative z-20 mb-5 overflow-visible rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.22),_transparent_28%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(8,17,32,0.96))] px-5 py-7 shadow-2xl shadow-black/25 md:px-7 md:py-8">
+    <div className="app-shell app-page pb-24 pt-4 md:pt-6">
+      <div className="app-page-inner">
+        <section className="app-hero relative z-20 mb-5 overflow-visible bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.22),_transparent_28%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(8,17,32,0.96))] px-5 py-7 md:px-7 md:py-8">
           <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-400">
             {t.globalSearch}
           </p>

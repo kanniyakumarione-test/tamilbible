@@ -351,6 +351,9 @@ function areSettingsEqual(left, right) {
 }
 
 export default function Settings() {
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    () => (typeof window !== "undefined" ? window.innerWidth < 768 : false)
+  );
   const [settings, update] = useAppSettings();
   const { canInstall, isInstalled, installInstructions, promptInstall } = useInstallPrompt();
   const [draft, setDraft] = useState(settings);
@@ -369,6 +372,15 @@ export default function Settings() {
   const t = getUIText(draft.language);
   const isTamil = draft.language !== "en";
   const isBilingual = draft.language === "ta-en";
+  const backgroundTypeOptions = useMemo(
+    () =>
+      [
+        { value: "image", label: t.imageBackgrounds },
+        ...(!isMobileViewport ? [{ value: "motion", label: t.motionBackground }] : []),
+        { value: "gradient", label: t.gradientBackgrounds },
+      ],
+    [isMobileViewport, t.gradientBackgrounds, t.imageBackgrounds, t.motionBackground]
+  );
   const settingsPageText = useMemo(
     () => ({
       tabs: {
@@ -590,6 +602,22 @@ export default function Settings() {
   const resetSettings = () => setDraft(defaultSettings);
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    const handleResize = () => {
+      setIsMobileViewport(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  useEffect(() => {
     if (typeof draft.customBackground === "string" && /^https?:\/\//i.test(draft.customBackground)) {
       setBackgroundUrl(draft.customBackground);
       return;
@@ -642,8 +670,8 @@ export default function Settings() {
       : backgrounds;
 
   return (
-    <div className="app-shell overflow-x-hidden px-4 pb-20 pt-4 md:px-6 md:pt-6">
-      <div className="mx-auto w-full max-w-7xl overflow-x-hidden">
+    <div className="app-shell app-page overflow-x-hidden pb-20 pt-4 md:pt-6">
+      <div className="app-page-inner overflow-x-hidden">
         <section className="mb-6 overflow-hidden rounded-[2.2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.18),_transparent_24%),radial-gradient(circle_at_top_right,_rgba(56,189,248,0.18),_transparent_26%),linear-gradient(180deg,_rgba(8,15,29,0.98),_rgba(4,9,17,0.98))] p-6 shadow-2xl shadow-black/30 md:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -819,17 +847,19 @@ export default function Settings() {
                     <div className="space-y-4">
                       <ChoiceRow
                         label={settingsPageText.labels.backgroundType}
-                        value={draft.bgType === "gradient" ? "gradient" : draft.bgType === "motion" ? "motion" : "image"}
+                        value={
+                          draft.bgType === "gradient"
+                            ? "gradient"
+                            : draft.bgType === "motion" && !isMobileViewport
+                            ? "motion"
+                            : "image"
+                        }
                         onChange={(mode) => updateDraft({ bgType: mode, bgIndex: draft.bgIndex ?? 0 })}
                         isTamil={isTamil}
-                        options={[
-                          { value: "image", label: t.imageBackgrounds },
-                          { value: "motion", label: t.motionBackground },
-                          { value: "gradient", label: t.gradientBackgrounds },
-                        ]}
+                        options={backgroundTypeOptions}
                       />
 
-                      <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
+                      <div className="hidden rounded-[1.5rem] border border-white/10 bg-black/20 p-4 md:block">
                         <p className="text-sm font-medium text-white">{t.customBackground}</p>
                         <p className="mt-2 text-xs leading-6 text-slate-400">{t.customBackgroundIntro}</p>
                         <label className="mt-4 block">
@@ -881,14 +911,14 @@ export default function Settings() {
                       <p className="mb-3 text-sm text-slate-400">
                         {draft.bgType === "gradient"
                           ? t.gradientBackgroundsIntro
-                          : draft.bgType === "motion"
+                          : draft.bgType === "motion" && !isMobileViewport
                           ? t.motionBackgroundsIntro
                           : t.imageBackgroundsIntro}
                       </p>
                       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-                        {activeBackgrounds.map((item, index) => {
+                        {(draft.bgType === "motion" && isMobileViewport ? backgrounds : activeBackgrounds).map((item, index) => {
                           const isGradientItem = typeof item === "string" && item.startsWith("linear-gradient");
-                          const isMotionItem = draft.bgType === "motion";
+                          const isMotionItem = draft.bgType === "motion" && !isMobileViewport;
 
                           return (
                             <BackgroundTile

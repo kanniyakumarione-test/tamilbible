@@ -69,9 +69,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
 
   if (displayMode === "black") {
     return (
-      <div className="relative z-10 flex min-h-screen items-center justify-center bg-black">
-        <p className="text-lg uppercase tracking-[0.4em] text-slate-500">Black Screen</p>
-      </div>
+      <div className="relative z-10 flex min-h-screen items-center justify-center bg-black" />
     );
   }
 

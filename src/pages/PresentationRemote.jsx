@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import bible from "../utils/loadBible";
+import oldBible from "../utils/loadOldTestament";
+import newBible from "../utils/loadNewTestament";
 import useLibraryData from "../hooks/useLibraryData";
+import useAppSettings from "../hooks/useAppSettings";
 import {
   addSermonQueueItem,
   removeSermonQueueItem,
@@ -15,6 +18,7 @@ import {
   syncRemoteDevicesFromBackend,
   upsertRemoteDevice,
 } from "../utils/presentationRemotePresence";
+import { getBookNameFromEntry } from "../utils/bibleContent";
 
 function RemoteButton({ active, children, onClick }) {
   return (
@@ -32,43 +36,67 @@ function RemoteButton({ active, children, onClick }) {
   );
 }
 
-function SelectField({ label, value, onChange, options }) {
+function NumberGridButton({ active, children, onClick }) {
   return (
-    <label className="block">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-        {label}
-      </p>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex h-14 items-center justify-center rounded-2xl border text-lg font-semibold transition ${
+        active
+          ? "border-sky-300/40 bg-[linear-gradient(135deg,#4f46e5,#38bdf8)] text-white shadow-lg"
+          : "border-white/10 bg-white/[0.03] text-slate-200"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function PickerModal({ open, title, actionLabel, onClose, children }) {
+  if (!open) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/70 p-3 backdrop-blur-sm">
+      <div className="w-full max-w-2xl rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(8,17,32,0.98))] shadow-2xl shadow-black/40">
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
+              Picker
+            </p>
+            <h3 className="mt-2 text-lg font-bold text-white">{title}</h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200"
+          >
+            {actionLabel || "Done"}
+          </button>
+        </div>
+        <div className="max-h-[70vh] overflow-y-auto p-5">{children}</div>
+      </div>
+    </div>
   );
 }
 
 export default function PresentationRemote() {
+  const [settings] = useAppSettings();
   const libraryData = useLibraryData();
   const queue = libraryData.sermon.queue || [];
   const activeItem = libraryData.sermon.activeItem || queue[0] || null;
   const displayMode = libraryData.sermon.displayMode || "live";
-  const bookOptions = useMemo(
-    () =>
-      Object.values(bible).map((bookData) => ({
-        value: bookData.book.english.trim(),
-        label: bookData.book.tamil || bookData.book.english.trim(),
-      })),
-    []
-  );
-  const initialBook = activeItem?.bookEnglish || bookOptions[0]?.value || "Genesis";
+  const initialBook = activeItem?.bookEnglish || oldBible[0]?.book.english?.trim() || "Genesis";
   const [selectedBook, setSelectedBook] = useState(initialBook);
+  const initialTestament = useMemo(
+    () => (newBible.some((bookData) => bookData.book.english.trim() === initialBook) ? "new" : "old"),
+    [initialBook]
+  );
+  const [selectedTestament, setSelectedTestament] = useState(initialTestament);
+  const [pickerModal, setPickerModal] = useState(null);
   const selectedBookData = bible[selectedBook] || Object.values(bible)[0];
+  const visibleBooks = selectedTestament === "new" ? newBible : oldBible;
   const chapterOptions = useMemo(
     () =>
       (selectedBookData?.chapters || []).map((chapterData) => ({
@@ -95,20 +123,9 @@ export default function PresentationRemote() {
     [selectedBookData, selectedChapter]
   );
   const selectedVerses = selectedChapterData?.verses || [];
-
-  useEffect(() => {
-    if (!selectedBookData?.chapters?.length) {
-      return;
-    }
-
-    const hasSelectedChapter = selectedBookData.chapters.some(
-      (chapterData) => String(chapterData.chapter) === String(selectedChapter)
-    );
-
-    if (!hasSelectedChapter) {
-      setSelectedChapter(String(selectedBookData.chapters[0].chapter));
-    }
-  }, [selectedBookData, selectedChapter]);
+  const selectedBookLabel = selectedBookData
+    ? getBookNameFromEntry(selectedBookData, settings.language)
+    : selectedBook;
 
   const buildVerseItem = (verse) => ({
     id: `${selectedBook}::${selectedChapterData.chapter}::${verse.verse}`,
@@ -126,8 +143,16 @@ export default function PresentationRemote() {
     setActiveSermonItem(item);
   };
 
-  const handleAddVerse = (verse) => {
-    addSermonQueueItem(buildVerseItem(verse));
+  const handleSelectBook = (bookData) => {
+    const bookEnglish = bookData.book.english.trim();
+    setSelectedBook(bookEnglish);
+    setSelectedChapter(String(bookData.chapters?.[0]?.chapter || 1));
+    setPickerModal("chapter");
+  };
+
+  const handleSelectChapter = (chapterValue) => {
+    setSelectedChapter(chapterValue);
+    setPickerModal("verse");
   };
 
   useEffect(() => {
@@ -183,9 +208,9 @@ export default function PresentationRemote() {
   }, [platform, remoteLabel]);
 
   return (
-    <div className="app-shell min-h-screen px-4 pb-24 pt-4 md:px-6 md:pt-6">
-      <div className="mx-auto max-w-4xl">
-        <section className="mb-6 overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.2),_transparent_28%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(8,17,32,0.96))] px-5 py-8 shadow-2xl shadow-black/30 md:px-8">
+    <div className="app-shell app-page min-h-screen pb-24 pt-4 md:pt-6">
+      <div className="app-page-inner">
+        <section className="app-hero mb-6 overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.2),_transparent_28%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(8,17,32,0.96))] px-5 py-8 md:px-8">
           <p className="text-xs font-semibold uppercase tracking-[0.34em] text-slate-400">
             Phone Remote
           </p>
@@ -239,58 +264,56 @@ export default function PresentationRemote() {
         </section>
 
         <section className="mb-6 app-surface rounded-[2rem] p-5">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
                 Verse Picker
               </p>
-              <h2 className="mt-2 text-xl font-bold text-white">Choose book, chapter, and verse</h2>
+              <h2 className="mt-2 text-xl font-bold text-white">Choose a verse fast</h2>
             </div>
             <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300">
               {selectedVerses.length}
             </span>
           </div>
 
-          <div className="mt-5 grid gap-4">
-            <SelectField
-              label="Book"
-              value={selectedBook}
-              onChange={setSelectedBook}
-              options={bookOptions}
-            />
-            <SelectField
-              label="Chapter"
-              value={String(selectedChapter)}
-              onChange={setSelectedChapter}
-              options={chapterOptions}
-            />
+          <div className="mt-5 rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
+                Current Selection
+              </p>
+              <button
+                type="button"
+                onClick={() => setPickerModal("book")}
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200"
+              >
+                Change Book
+              </button>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setPickerModal("book")}
+                className="rounded-full bg-[linear-gradient(135deg,#4f46e5,#38bdf8)] px-4 py-2 text-sm font-semibold text-white shadow-lg"
+              >
+                {selectedBookLabel}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPickerModal("chapter")}
+                className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-slate-100"
+              >
+                Chapter {selectedChapter}
+              </button>
+              <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-slate-300">
+                {selectedVerses.length} verses
+              </div>
+            </div>
           </div>
 
-          <div className="mt-5 space-y-3">
-            {selectedVerses.map((verse) => {
-              const item = buildVerseItem(verse);
-              const isActive = item.id === activeItem?.id;
-
-              return (
-                <div
-                  key={verse.verse}
-                  className={`rounded-[1.5rem] border p-4 ${
-                    isActive ? "border-sky-400/40 bg-sky-400/10" : "border-white/10 bg-white/[0.03]"
-                  }`}
-                >
-                  <button type="button" onClick={() => handleShowVerse(verse)} className="w-full text-left">
-                    <p className="text-base font-semibold text-white">
-                      {item.bookTamil} {item.chapter}:{item.verse}
-                    </p>
-                    <p className="mt-2 text-sm leading-7 text-slate-300">{item.text}</p>
-                  </button>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <RemoteButton onClick={() => handleShowVerse(verse)}>Show Live</RemoteButton>
-                    <RemoteButton onClick={() => handleAddVerse(verse)}>Add Queue</RemoteButton>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="mt-5 grid grid-cols-3 gap-2">
+            <RemoteButton onClick={() => setPickerModal("book")}>Book</RemoteButton>
+            <RemoteButton onClick={() => setPickerModal("chapter")}>Chapter</RemoteButton>
+            <RemoteButton onClick={() => setPickerModal("verse")}>Verse</RemoteButton>
           </div>
         </section>
 
@@ -346,6 +369,134 @@ export default function PresentationRemote() {
           </div>
         </section>
       </div>
+
+      <PickerModal
+        open={pickerModal === "book"}
+        title="Choose Book"
+        onClose={() => setPickerModal(null)}
+      >
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+          Testament
+        </p>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedTestament("old");
+              if (!oldBible.some((bookData) => bookData.book.english.trim() === selectedBook)) {
+                const firstBook = oldBible[0];
+                if (firstBook) {
+                  setSelectedBook(firstBook.book.english.trim());
+                  setSelectedChapter(String(firstBook.chapters?.[0]?.chapter || 1));
+                }
+              }
+            }}
+            className={`rounded-[1.25rem] border px-4 py-4 text-left transition ${
+              selectedTestament === "old"
+                ? "border-indigo-300/70 bg-[radial-gradient(circle_at_top_left,_rgba(129,140,248,0.45),_transparent_45%),linear-gradient(180deg,_rgba(79,70,229,0.7),_rgba(30,41,59,0.92))] text-white shadow-xl shadow-indigo-950/30"
+                : "border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.92),_rgba(15,23,42,0.74))] text-slate-100"
+            }`}
+          >
+            <span className="block text-sm font-semibold">Old Testament</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedTestament("new");
+              if (!newBible.some((bookData) => bookData.book.english.trim() === selectedBook)) {
+                const firstBook = newBible[0];
+                if (firstBook) {
+                  setSelectedBook(firstBook.book.english.trim());
+                  setSelectedChapter(String(firstBook.chapters?.[0]?.chapter || 1));
+                }
+              }
+            }}
+            className={`rounded-[1.25rem] border px-4 py-4 text-left transition ${
+              selectedTestament === "new"
+                ? "border-cyan-300/70 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.38),_transparent_45%),linear-gradient(180deg,_rgba(8,145,178,0.58),_rgba(15,23,42,0.92))] text-white shadow-xl shadow-cyan-950/30"
+                : "border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.92),_rgba(15,23,42,0.74))] text-slate-100"
+            }`}
+          >
+            <span className="block text-sm font-semibold">New Testament</span>
+          </button>
+        </div>
+
+        <div className="mt-5 flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+            Books
+          </p>
+          <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300">
+            {visibleBooks.length}
+          </span>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {visibleBooks.map((bookData) => {
+            const bookEnglish = bookData.book.english.trim();
+            const isActive = selectedBook === bookEnglish;
+
+            return (
+              <button
+                key={bookEnglish}
+                type="button"
+                onClick={() => handleSelectBook(bookData)}
+                className={`rounded-2xl border px-4 py-3 text-left transition ${
+                  isActive
+                    ? "border-sky-300/40 bg-[linear-gradient(135deg,#4f46e5,#38bdf8)] text-white shadow-lg"
+                    : "border-white/10 bg-[linear-gradient(180deg,_rgba(30,41,59,0.92),_rgba(15,23,42,0.86))] text-slate-100"
+                }`}
+              >
+                <span className="block text-sm font-semibold">
+                  {getBookNameFromEntry(bookData, settings.language)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </PickerModal>
+
+      <PickerModal
+        open={pickerModal === "chapter"}
+        title={`Choose Chapter - ${selectedBookLabel}`}
+        onClose={() => setPickerModal(null)}
+      >
+        <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
+          {chapterOptions.map((chapterOption) => (
+            <NumberGridButton
+              key={chapterOption.value}
+              active={String(selectedChapter) === String(chapterOption.value)}
+              onClick={() => handleSelectChapter(chapterOption.value)}
+            >
+              {chapterOption.value}
+            </NumberGridButton>
+          ))}
+        </div>
+      </PickerModal>
+
+      <PickerModal
+        open={pickerModal === "verse"}
+        title={`Choose Verse - ${selectedBookLabel} ${selectedChapter}`}
+        onClose={() => setPickerModal(null)}
+      >
+        <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
+          {selectedVerses.map((verse) => {
+            const item = buildVerseItem(verse);
+            const isActive = item.id === activeItem?.id;
+
+            return (
+              <NumberGridButton
+                key={verse.verse}
+                active={isActive}
+                onClick={() => {
+                  handleShowVerse(verse);
+                  setPickerModal(null);
+                }}
+              >
+                {item.verse}
+              </NumberGridButton>
+            );
+          })}
+        </div>
+      </PickerModal>
     </div>
   );
 }

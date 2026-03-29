@@ -26,8 +26,8 @@ const PresentationRemote = lazy(() => import("./pages/PresentationRemote"));
 
 function RouteLoadingScreen() {
   return (
-    <div className="app-shell px-4 pb-24 pt-4 md:px-6 md:pt-6">
-      <div className="mx-auto max-w-6xl">
+    <div className="app-shell app-page pb-24 pt-4 md:pt-6">
+      <div className="app-page-inner">
         <div className="app-surface rounded-[2rem] p-6 md:p-8">
           <div className="flex items-center gap-3 text-slate-300">
             <span className="h-3 w-3 animate-pulse rounded-full bg-sky-300" />

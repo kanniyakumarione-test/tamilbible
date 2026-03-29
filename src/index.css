@@ -4,16 +4,17 @@
 
 :root {
   color-scheme: dark;
-  --app-bg: #07111f;
-  --app-surface: rgba(15, 23, 42, 0.78);
-  --app-surface-strong: rgba(15, 23, 42, 0.94);
-  --app-border: rgba(148, 163, 184, 0.14);
+  --app-bg: #06101d;
+  --app-surface: rgba(10, 19, 34, 0.82);
+  --app-surface-strong: rgba(8, 15, 28, 0.94);
+  --app-border: rgba(148, 163, 184, 0.12);
   --app-text: #f8fafc;
   --app-muted: #94a3b8;
-  --app-glow: rgba(99, 102, 241, 0.18);
+  --app-glow: rgba(14, 165, 233, 0.18);
   --app-selection: rgba(96, 165, 250, 0.28);
   --app-shell-background:
-    radial-gradient(circle at top left, rgba(56, 189, 248, 0.07), transparent 24%),
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.09), transparent 24%),
+    radial-gradient(circle at 88% 8%, rgba(16, 185, 129, 0.08), transparent 22%),
     radial-gradient(circle at top right, rgba(99, 102, 241, 0.12), transparent 30%);
   --app-ui-font-family: "Segoe UI", Inter, Arial, sans-serif;
   --app-tamil-font-family: "Noto Sans Tamil", sans-serif;
@@ -29,9 +30,10 @@ body {
   margin: 0;
   color: var(--app-text);
   background:
-    radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 28%),
-    radial-gradient(circle at top right, rgba(99, 102, 241, 0.2), transparent 32%),
-    linear-gradient(180deg, #08111d 0%, #050b14 100%);
+    radial-gradient(circle at 0% 0%, rgba(34, 211, 238, 0.16), transparent 26%),
+    radial-gradient(circle at 100% 0%, rgba(99, 102, 241, 0.18), transparent 24%),
+    radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.1), transparent 30%),
+    linear-gradient(180deg, #07101c 0%, #050913 52%, #03060d 100%);
   font-family: var(--app-tamil-font-family);
   overscroll-behavior: none;
   overflow-x: hidden;
@@ -81,19 +83,77 @@ html.lenis body {
 .app-shell {
   min-height: 100vh;
   background: var(--app-shell-background);
+  position: relative;
+}
+
+.app-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(56, 189, 248, 0.08), transparent 18%),
+    radial-gradient(circle at 88% 14%, rgba(99, 102, 241, 0.1), transparent 20%),
+    radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.08), transparent 28%);
+  opacity: 0.95;
+}
+
+.app-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+.app-page {
+  width: 100%;
+  padding-inline: clamp(1rem, 2vw, 1.75rem);
+}
+
+.app-page-inner {
+  width: 100%;
+  max-width: none;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.app-hero {
+  position: relative;
+  border-radius: 2.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 30px 80px rgba(2, 6, 23, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.app-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04), transparent 22%),
+    radial-gradient(circle at 84% 18%, rgba(125, 211, 252, 0.12), transparent 16%);
+  opacity: 0.8;
 }
 
 .app-surface {
-  background: var(--app-surface);
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.06), transparent 20%),
+    linear-gradient(180deg, rgba(14, 23, 40, 0.94), rgba(6, 11, 22, 0.98));
   border: 1px solid var(--app-border);
-  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.35);
-  backdrop-filter: blur(12px);
+  box-shadow:
+    0 24px 60px rgba(2, 6, 23, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px);
 }
 
 .app-surface-strong {
-  background: var(--app-surface-strong);
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.08), transparent 18%),
+    linear-gradient(180deg, rgba(10, 17, 31, 0.96), rgba(5, 9, 18, 0.98));
   border: 1px solid var(--app-border);
-  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.45);
+  box-shadow:
+    0 28px 70px rgba(2, 6, 23, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .app-outline {
@@ -186,8 +246,12 @@ html.lenis body {
 
 .home-shell .app-surface {
   border-radius: 2rem;
-  background: linear-gradient(180deg, rgba(16, 24, 40, 0.96), rgba(7, 12, 23, 0.98));
-  box-shadow: 0 22px 60px rgba(2, 6, 23, 0.28);
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 20%),
+    linear-gradient(180deg, rgba(15, 24, 40, 0.96), rgba(7, 12, 23, 0.99));
+  box-shadow:
+    0 22px 60px rgba(2, 6, 23, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .motion-bg {
@@ -662,5 +726,15 @@ html.lenis body {
 
   .motion-bg__layer {
     animation: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .app-page {
+    padding-inline: 0.9rem;
+  }
+
+  .app-hero {
+    border-radius: 1.8rem;
   }
 }
