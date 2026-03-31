@@ -1,10 +1,13 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { matchPath, useLocation } from "react-router-dom";
 
-import bible from "../utils/loadBible";
 import useAppSettings from "../hooks/useAppSettings";
 import { getUIText } from "../utils/uiText";
 import { toAbsoluteUrl } from "../utils/siteUrl";
+import {
+  getBookLabelFromMetadata,
+  loadBibleBook,
+} from "../utils/bibleData";
 
 function upsertMeta(selector, attributes) {
   let element = document.head.querySelector(selector);
@@ -53,8 +56,12 @@ export default function SeoManager() {
   const location = useLocation();
   const [settings] = useAppSettings();
   const t = getUIText(settings.language);
+  const [seo, setSeo] = useState(null);
 
-  const seo = useMemo(() => {
+  useEffect(() => {
+    let cancelled = false;
+
+    const buildSeo = async () => {
     const pathname = location.pathname;
     const defaultImage = toAbsoluteUrl("/icon-512.png");
     const breadcrumbItems = [
@@ -130,10 +137,10 @@ export default function SeoManager() {
       const bookEnglish = decodeURIComponent(readerMatch.params.book);
       const chapter = readerMatch.params.chapter;
       const verse = readerMatch.params.verse;
-      const bookData = bible[bookEnglish];
+      const bookData = await loadBibleBook(bookEnglish, "ta");
       const chapterData = bookData?.chapters.find((item) => item.chapter === chapter);
       const verseData = chapterData?.verses.find((item) => item.verse === verse);
-      const bookTamil = normalizeText(bookData?.book?.tamil || bookEnglish);
+      const bookTamil = normalizeText(bookData?.book?.tamil || getBookLabelFromMetadata(bookEnglish, "ta") || bookEnglish);
       const verseText = normalizeText(verseData?.text);
 
       title = `${bookTamil} ${chapter}:${verse} | Tamil Bible Premium`;
@@ -166,9 +173,9 @@ export default function SeoManager() {
     } else if (chapterMatch?.params) {
       const bookEnglish = decodeURIComponent(chapterMatch.params.book);
       const chapter = chapterMatch.params.chapter;
-      const bookData = bible[bookEnglish];
+      const bookData = await loadBibleBook(bookEnglish, "ta");
       const chapterData = bookData?.chapters.find((item) => item.chapter === chapter);
-      const bookTamil = normalizeText(bookData?.book?.tamil || bookEnglish);
+      const bookTamil = normalizeText(bookData?.book?.tamil || getBookLabelFromMetadata(bookEnglish, "ta") || bookEnglish);
       const verseCount = chapterData?.verses?.length || 0;
 
       title = `${bookTamil} ${chapter} | Tamil Bible Premium`;
@@ -192,8 +199,8 @@ export default function SeoManager() {
       );
     } else if (bookMatch?.params) {
       const bookEnglish = decodeURIComponent(bookMatch.params.book);
-      const bookData = bible[bookEnglish];
-      const bookTamil = normalizeText(bookData?.book?.tamil || bookEnglish);
+      const bookData = await loadBibleBook(bookEnglish, "ta");
+      const bookTamil = normalizeText(bookData?.book?.tamil || getBookLabelFromMetadata(bookEnglish, "ta") || bookEnglish);
       const chapterCount = bookData?.chapters?.length || 0;
 
       title = `${bookTamil} | Tamil Bible Premium`;
@@ -215,7 +222,7 @@ export default function SeoManager() {
       robots = "noindex, nofollow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
     }
 
-    return {
+      const nextSeo = {
       title,
       description,
       type,
@@ -225,9 +232,24 @@ export default function SeoManager() {
       defaultImage,
       breadcrumbItems,
     };
+
+      if (!cancelled) {
+        setSeo(nextSeo);
+      }
+    };
+
+    void buildSeo();
+
+    return () => {
+      cancelled = true;
+    };
   }, [location.pathname, settings.language, t]);
 
   useEffect(() => {
+    if (!seo) {
+      return;
+    }
+
     document.documentElement.lang = settings.language === "ta" ? "ta" : "en";
     document.title = seo.title;
 

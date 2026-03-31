@@ -22,6 +22,7 @@ import {
 } from "../utils/presentationRemotePresence";
 import { getUIText } from "../utils/uiText";
 import MotionBackground from "../components/MotionBackground";
+import { getPresentationFontFamily } from "../utils/appearance";
 
 const backgrounds = [
   "/bg/bg1.jpg",
@@ -280,6 +281,66 @@ function isLocalOnlyHost(hostname) {
   );
 }
 
+function splitIntoPresentationLines(text = "", lineCount = 2) {
+  const normalized = text.replace(/\s+/g, " ").trim();
+
+  if (!normalized) {
+    return [];
+  }
+
+  const words = normalized.split(" ");
+
+  if (words.length <= lineCount) {
+    return [normalized];
+  }
+
+  const targetLength = Math.ceil(normalized.length / lineCount);
+  const lines = [];
+  let currentLine = "";
+
+  words.forEach((word, index) => {
+    const nextLine = currentLine ? `${currentLine} ${word}` : word;
+    const wordsRemaining = words.length - index - 1;
+    const linesRemaining = lineCount - lines.length - 1;
+    const shouldBreak =
+      nextLine.length >= targetLength &&
+      linesRemaining > 0 &&
+      wordsRemaining >= linesRemaining;
+
+    if (shouldBreak) {
+      lines.push(nextLine);
+      currentLine = "";
+      return;
+    }
+
+    currentLine = nextLine;
+  });
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines.filter(Boolean);
+}
+
+function PresentationPreviewText({ text, style, twoLines = false }) {
+  const lines = twoLines ? splitIntoPresentationLines(text, 2) : [text];
+
+  return (
+    <>
+      {lines.map((line, index) => (
+        <p
+          key={`${line}-${index}`}
+          className={`font-bold ${index > 0 ? "mt-2" : ""}`}
+          style={{ ...style, margin: 0 }}
+        >
+          {line}
+        </p>
+      ))}
+    </>
+  );
+}
+
 export default function AdvancedPresentation() {
   const [settings, update] = useAppSettings();
   const libraryData = useLibraryData();
@@ -388,6 +449,7 @@ export default function AdvancedPresentation() {
   const previewReference = activeItem
     ? `${previewItem.bookTamil} ${previewItem.chapter}:${previewItem.verse}`
     : t.previewRef;
+  const presentationFont = getPresentationFontFamily(settings);
 
   const updateSettings = (patch) => update({ ...settings, ...patch });
 
@@ -810,13 +872,36 @@ export default function AdvancedPresentation() {
                   { value: "right", label: "Right" },
                 ]}
               />
+
+              <label className="block">
+                <p className="mb-2 text-sm text-slate-300">Letter Spacing</p>
+                <input
+                  type="number"
+                  min={0}
+                  max={12}
+                  value={settings.presentationLetterSpacing || 0}
+                  onChange={(e) =>
+                    updateSettings({
+                      presentationLetterSpacing: Number(e.target.value) || 0,
+                    })
+                  }
+                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-sky-400/40"
+                />
+              </label>
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
+              <CheckboxControl label={t.enableTransition} checked={settings.presentationTransition} onChange={(value) => updateSettings({ presentationTransition: value })} />
+              <CheckboxControl label={t.enableOutline} checked={settings.presentationOutline} onChange={(value) => updateSettings({ presentationOutline: value })} />
               <CheckboxControl label={t.enableShadow} checked={settings.presentationShadow} onChange={(value) => updateSettings({ presentationShadow: value })} />
               <CheckboxControl label={t.enableUppercase} checked={settings.presentationUppercase} onChange={(value) => updateSettings({ presentationUppercase: value })} />
               <CheckboxControl label={t.enableBorder} checked={settings.presentationBorder} onChange={(value) => updateSettings({ presentationBorder: value })} />
               <CheckboxControl label={t.enableBox} checked={settings.presentationBox} onChange={(value) => updateSettings({ presentationBox: value })} />
+              <CheckboxControl label={t.enableHeaderBox} checked={settings.presentationHeaderBox} onChange={(value) => updateSettings({ presentationHeaderBox: value })} />
+              <CheckboxControl label={t.enableLineWrap} checked={settings.presentationLineWrap} onChange={(value) => updateSettings({ presentationLineWrap: value })} />
+              <CheckboxControl label={t.showLyricsInTwoLines} checked={settings.presentationTwoLines} onChange={(value) => updateSettings({ presentationTwoLines: value })} />
+              <CheckboxControl label={t.showDateAndTime} checked={settings.presentationShowDateTime} onChange={(value) => updateSettings({ presentationShowDateTime: value })} />
+              <CheckboxControl label={t.showVerseviewLogo} checked={settings.presentationShowVerseLogo} onChange={(value) => updateSettings({ presentationShowVerseLogo: value })} />
               <CheckboxControl label={t.showCustomLogo} checked={settings.presentationShowCustomLogo} onChange={(value) => updateSettings({ presentationShowCustomLogo: value })} />
             </div>
           </div>
@@ -837,8 +922,11 @@ export default function AdvancedPresentation() {
 
               <div>
                 <p className="mb-2 text-sm text-slate-300">{t.stageScreenStyle}</p>
-                <div className="grid gap-3 md:grid-cols-3">
+                <div className="grid gap-3 md:grid-cols-2">
                   <CheckboxControl label={t.greenScreen} checked={settings.stageGreenScreen} onChange={(value) => updateSettings({ stageGreenScreen: value })} />
+                  <CheckboxControl label={t.windowView} checked={settings.stageWindowView} onChange={(value) => updateSettings({ stageWindowView: value })} />
+                  <CheckboxControl label={t.smallWindow} checked={settings.stageSmallWindow} onChange={(value) => updateSettings({ stageSmallWindow: value })} />
+                  <CheckboxControl label={t.showDateAndTime} checked={settings.stageShowDateTime} onChange={(value) => updateSettings({ stageShowDateTime: value })} />
                 </div>
               </div>
             </div>
@@ -876,27 +964,49 @@ export default function AdvancedPresentation() {
                       }}
                     >
                       {settings.showReference && (
-                        <p className="mb-2 text-xs font-bold uppercase tracking-[0.24em] text-white/90">
+                        <p
+                          className={`mb-2 text-xs font-bold uppercase tracking-[0.24em] text-white/90 ${
+                            settings.presentationHeaderBox
+                              ? "inline-flex rounded-full border border-white/10 bg-black/25 px-3 py-1.5"
+                              : ""
+                          }`}
+                        >
                           {previewReference}
                         </p>
                       )}
                       <div ref={previewContainerRef} style={{ width: "100%", height: "100%" }}>
-                        <p
-                          ref={previewTextRef}
-                          className="font-bold text-white"
-                          style={{
-                            fontSize: `${previewFontSize}px`,
-                            lineHeight: 1.2,
-                            textAlign: settings.presentationJustify,
-                            textTransform: settings.presentationUppercase ? "uppercase" : "none",
-                            textShadow: settings.presentationShadow ? "0 2px 10px rgba(0,0,0,0.75)" : "none",
-                            whiteSpace: "normal",
-                            overflowWrap: "anywhere",
-                            margin: 0,
-                          }}
-                        >
-                          {previewItem.text}
-                        </p>
+                        <div ref={previewTextRef}>
+                          <PresentationPreviewText
+                            text={previewItem.text}
+                            twoLines={settings.presentationTwoLines}
+                            style={{
+                              fontSize: `${previewFontSize}px`,
+                              lineHeight: settings.presentationTwoLines ? 1.08 : 1.2,
+                              textAlign: settings.presentationJustify,
+                              textTransform: settings.presentationUppercase ? "uppercase" : "none",
+                              textShadow: settings.presentationShadow ? "0 2px 10px rgba(0,0,0,0.75)" : "none",
+                              WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
+                              whiteSpace: settings.presentationLineWrap === false ? "nowrap" : "normal",
+                              overflowWrap: "anywhere",
+                              letterSpacing: `${settings.presentationLetterSpacing || 0}px`,
+                              color: "#ffffff",
+                              fontFamily: presentationFont,
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap justify-end gap-2">
+                        {settings.presentationShowDateTime ? (
+                          <div className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
+                            Date / Time
+                          </div>
+                        ) : null}
+                        {settings.presentationShowVerseLogo ? (
+                          <div className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
+                            Tamil Bible Premium
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -942,9 +1052,15 @@ export default function AdvancedPresentation() {
                           ? "transparent"
                           : `linear-gradient(180deg, ${settings.stageOverlayColor || "#000000"}55, ${settings.stageOverlayColor || "#000000"}cc)`,
                         gridTemplateColumns: settings.stagePreset === "horizontal" ? "1.2fr 0.8fr" : "1fr",
+                        maxWidth: settings.stageSmallWindow ? "36rem" : "100%",
+                        marginInline: settings.stageSmallWindow ? "auto" : undefined,
                       }}
                     >
-                      <div className="rounded-[1.25rem] border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
+                      <div
+                        className={`rounded-[1.25rem] border border-white/10 bg-black/25 p-4 backdrop-blur-sm ${
+                          settings.stageWindowView ? "flex flex-col justify-start" : ""
+                        }`}
+                      >
                         {displayMode === "title" ? (
                           <>
                             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-300">Title</p>
@@ -987,23 +1103,25 @@ export default function AdvancedPresentation() {
                               {previewReference}
                             </p>
                             <div ref={stagePreviewContainerRef} style={{ width: "100%", height: "100%" }}>
-                              <p
-                                ref={stagePreviewTextRef}
-                                className="mt-4 font-bold"
-                                style={{
-                                  fontSize: `${stagePreviewFontSize}px`,
-                                  lineHeight: 1.2,
-                                  textAlign: settings.presentationJustify || "center",
-                                  textTransform: settings.presentationUppercase ? "uppercase" : "none",
-                                  textShadow: settings.presentationShadow ? "0 4px 16px rgba(0,0,0,0.55)" : "none",
-                                  color: settings.stageTextColor1 || "#ffffff",
-                                  whiteSpace: "normal",
-                                  overflowWrap: "anywhere",
-                                  margin: 0,
-                                }}
-                              >
-                                {previewItem.text}
-                              </p>
+                              <div ref={stagePreviewTextRef} className="mt-4">
+                                <PresentationPreviewText
+                                  text={previewItem.text}
+                                  twoLines={settings.presentationTwoLines}
+                                  style={{
+                                    fontSize: `${stagePreviewFontSize}px`,
+                                    lineHeight: settings.presentationTwoLines ? 1.05 : 1.2,
+                                    textAlign: settings.presentationJustify || "center",
+                                    textTransform: settings.presentationUppercase ? "uppercase" : "none",
+                                    textShadow: settings.presentationShadow ? "0 4px 16px rgba(0,0,0,0.55)" : "none",
+                                    color: settings.stageTextColor1 || "#ffffff",
+                                    WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
+                                    whiteSpace: settings.presentationLineWrap === false ? "nowrap" : "normal",
+                                    overflowWrap: "anywhere",
+                                    letterSpacing: `${settings.presentationLetterSpacing || 0}px`,
+                                    fontFamily: presentationFont,
+                                  }}
+                                />
+                              </div>
                             </div>
                           </>
                         )}
@@ -1011,6 +1129,13 @@ export default function AdvancedPresentation() {
 
                       {settings.stagePreset === "horizontal" ? (
                         <div className="space-y-4">
+                          {settings.stageShowDateTime ? (
+                            <div className="rounded-[1.25rem] border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
+                              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-300">Date / Time</p>
+                              <p className="mt-3 text-sm text-white">Clock visible on stage screen</p>
+                            </div>
+                          ) : null}
+
                           {settings.stageMessageVisible && settings.stageMessage ? (
                             <div className="rounded-[1.25rem] border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
                               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-300">Message</p>

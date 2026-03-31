@@ -1,5 +1,7 @@
-import tamilBible from "./loadBible";
-import englishBible from "./loadEnglishBible";
+import {
+  getBookLabelFromMetadata,
+  loadBibleBook,
+} from "./bibleData";
 
 export function isBilingualLanguage(language = "ta") {
   return language === "ta-en";
@@ -10,7 +12,7 @@ export function isEnglishLanguage(language = "ta") {
 }
 
 export function getBibleByLanguage(language = "ta") {
-  return isEnglishLanguage(language) ? englishBible : tamilBible;
+  return {};
 }
 
 export function getBookName(bookData, language = "ta") {
@@ -33,29 +35,32 @@ export function getBookNameFromEntry(bookEntry, language = "ta") {
     : (bookEntry.book.tamil || bookEntry.book.english || "").trim();
 }
 
-export function getVerseData(bookEnglish, chapter, verse, language = "ta") {
-  const bible = getBibleByLanguage(language);
-  const bookData = bible[bookEnglish];
+export async function getVerseData(bookEnglish, chapter, verse, language = "ta") {
+  const bookData = await loadBibleBook(bookEnglish, language);
   const chapterData = bookData?.chapters.find((item) => String(item.chapter) === String(chapter));
   const verseData = chapterData?.verses.find((item) => String(item.verse) === String(verse));
 
   return { bookData, chapterData, verseData };
 }
 
-export function localizeChapterItem(item, language = "ta") {
+export async function localizeChapterItem(item, language = "ta") {
   if (!item?.bookEnglish) {
     return item;
   }
 
-  const bookData = getBibleByLanguage(language)[item.bookEnglish];
+  const bookData = await loadBibleBook(item.bookEnglish, language);
 
   return {
     ...item,
-    bookTamil: getBookName(bookData, language) || item.bookTamil || item.bookEnglish,
+    bookTamil:
+      getBookName(bookData, language) ||
+      getBookLabelFromMetadata(item.bookEnglish, language) ||
+      item.bookTamil ||
+      item.bookEnglish,
   };
 }
 
-export function localizeVerseItem(item, language = "ta") {
+export async function localizeVerseItem(item, language = "ta") {
   if (!item?.bookEnglish || !item?.verse) {
     return localizeChapterItem(item, language);
   }
@@ -73,12 +78,12 @@ export function getParallelVerseData(bookEnglish, chapter, verse) {
   const tamil = getVerseData(bookEnglish, chapter, verse, "ta");
   const english = getVerseData(bookEnglish, chapter, verse, "en");
 
-  return {
-    tamilBookData: tamil.bookData,
-    tamilChapterData: tamil.chapterData,
-    tamilVerseData: tamil.verseData,
-    englishBookData: english.bookData,
-    englishChapterData: english.chapterData,
-    englishVerseData: english.verseData,
-  };
+  return Promise.all([tamil, english]).then(([tamilData, englishData]) => ({
+    tamilBookData: tamilData.bookData,
+    tamilChapterData: tamilData.chapterData,
+    tamilVerseData: tamilData.verseData,
+    englishBookData: englishData.bookData,
+    englishChapterData: englishData.chapterData,
+    englishVerseData: englishData.verseData,
+  }));
 }

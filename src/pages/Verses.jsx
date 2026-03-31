@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import booksList from "../data/Books.json";
 import { matchBookQuery } from "../utils/bookSearch";
 import useAppSettings from "../hooks/useAppSettings";
+import useBibleBook from "../hooks/useBibleBook";
 import useLibraryData from "../hooks/useLibraryData";
 import {
   HIGHLIGHT_COLORS,
@@ -24,12 +25,12 @@ import {
 } from "../utils/libraryData";
 import { getUIText } from "../utils/uiText";
 import {
-  getBibleByLanguage,
   getBookName,
   getBookNameFromEntry,
   isBilingualLanguage,
 } from "../utils/bibleContent";
 import { openReader } from "../utils/openReader";
+import { getBookLabelFromMetadata } from "../utils/bibleData";
 
 function loadImage(src) {
   return new Promise((resolve, reject) => {
@@ -190,6 +191,7 @@ export default function Verses() {
   const libraryData = useLibraryData();
   const t = getUIText(settings.language);
   const isBilingual = isBilingualLanguage(settings.language);
+  const primaryLanguage = settings.language === "en" ? "en" : "ta";
   const [bookQuery, setBookQuery] = useState("");
   const [isDesktopBookListExpanded, setIsDesktopBookListExpanded] = useState(false);
   const readingPaneRef = useRef(null);
@@ -415,13 +417,14 @@ export default function Verses() {
     };
   };
 
-  const activeBible = getBibleByLanguage(settings.language);
-  const englishBible = getBibleByLanguage("en");
-  const bookData = activeBible[decodedBook];
-  const englishBookData = englishBible[decodedBook];
+  const { bookData } = useBibleBook(decodedBook, primaryLanguage);
+  const { bookData: englishBookData } = useBibleBook(decodedBook, "en");
   const chapterData = bookData?.chapters.find((ch) => ch.chapter === chapter);
   const englishChapterData = englishBookData?.chapters.find((ch) => ch.chapter === chapter);
-  const bookLabel = getBookName(bookData, settings.language) || decodedBook;
+  const bookLabel =
+    getBookName(bookData, settings.language) ||
+    getBookLabelFromMetadata(decodedBook, settings.language) ||
+    decodedBook;
   const englishBookLabel = getBookName(englishBookData, "en") || decodedBook;
   const chapterItem = {
     id: getChapterId(decodedBook, chapter),
@@ -447,8 +450,10 @@ export default function Verses() {
   useEffect(() => {
     if (!bookData || !chapterData) return;
 
-    getReadingPlans().forEach((plan) => {
-      updateReadingPlanProgress(plan.id, chapterItemId);
+    void getReadingPlans().then((plans) => {
+      plans.forEach((plan) => {
+        updateReadingPlanProgress(plan.id, chapterItemId);
+      });
     });
   }, [bookData, chapterData, chapter, chapterItemId, decodedBook]);
 
@@ -1108,33 +1113,6 @@ export default function Verses() {
 
           </div>
 
-          <div className="pointer-events-none fixed bottom-28 right-4 z-40 flex flex-col gap-3 md:bottom-6 md:right-6">
-            <button
-              onClick={() => toggleAutoScroll("up")}
-              className={`pointer-events-auto h-12 w-12 rounded-full border text-xs font-bold tracking-[0.2em] shadow-lg backdrop-blur-md transition ${
-                autoScrollDirection === "up"
-                  ? "border-sky-300 bg-sky-400 text-slate-950"
-                  : "border-white/10 bg-slate-900/80 text-white"
-              }`}
-              aria-label="Auto scroll up"
-              title="Auto scroll up"
-            >
-              UP
-            </button>
-            <button
-              onClick={() => toggleAutoScroll("down")}
-              className={`pointer-events-auto h-12 w-12 rounded-full border text-xs font-bold tracking-[0.2em] shadow-lg backdrop-blur-md transition ${
-                autoScrollDirection === "down"
-                  ? "border-sky-300 bg-sky-400 text-slate-950"
-                  : "border-white/10 bg-slate-900/80 text-white"
-              }`}
-              aria-label="Auto scroll down"
-              title="Auto scroll down"
-            >
-              DN
-            </button>
-          </div>
-
           {sermonSuccess ? (
             <div className="pointer-events-none fixed bottom-28 left-4 right-20 z-40 md:bottom-6 md:left-6 md:right-auto md:max-w-md">
               <div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/15 px-4 py-3 text-sm font-semibold text-emerald-50 shadow-lg backdrop-blur-md">
@@ -1143,6 +1121,33 @@ export default function Verses() {
             </div>
           ) : null}
         </main>
+
+        <div className="pointer-events-none fixed bottom-28 right-4 z-40 flex flex-col gap-3 md:bottom-6 md:right-6">
+          <button
+            onClick={() => toggleAutoScroll("up")}
+            className={`pointer-events-auto h-12 w-12 rounded-full border text-xs font-bold tracking-[0.2em] shadow-lg backdrop-blur-md transition ${
+              autoScrollDirection === "up"
+                ? "border-sky-300 bg-sky-400 text-slate-950"
+                : "border-white/10 bg-slate-900/80 text-white"
+            }`}
+            aria-label="Auto scroll up"
+            title="Auto scroll up"
+          >
+            UP
+          </button>
+          <button
+            onClick={() => toggleAutoScroll("down")}
+            className={`pointer-events-auto h-12 w-12 rounded-full border text-xs font-bold tracking-[0.2em] shadow-lg backdrop-blur-md transition ${
+              autoScrollDirection === "down"
+                ? "border-sky-300 bg-sky-400 text-slate-950"
+                : "border-white/10 bg-slate-900/80 text-white"
+            }`}
+            aria-label="Auto scroll down"
+            title="Auto scroll down"
+          >
+            DN
+          </button>
+        </div>
       </div>
 
       {selectedVerse ? (

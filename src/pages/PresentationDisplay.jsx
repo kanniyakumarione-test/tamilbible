@@ -60,12 +60,141 @@ function StageSideCard({ title, children }) {
   );
 }
 
+function splitIntoPresentationLines(text = "", lineCount = 2) {
+  const normalized = text.replace(/\s+/g, " ").trim();
+
+  if (!normalized) {
+    return [];
+  }
+
+  const words = normalized.split(" ");
+
+  if (words.length <= lineCount) {
+    return [normalized];
+  }
+
+  const targetLength = Math.ceil(normalized.length / lineCount);
+  const lines = [];
+  let currentLine = "";
+
+  words.forEach((word, index) => {
+    const nextLine = currentLine ? `${currentLine} ${word}` : word;
+    const wordsRemaining = words.length - index - 1;
+    const linesRemaining = lineCount - lines.length - 1;
+    const shouldBreak =
+      nextLine.length >= targetLength &&
+      linesRemaining > 0 &&
+      wordsRemaining >= linesRemaining;
+
+    if (shouldBreak) {
+      lines.push(nextLine);
+      currentLine = "";
+      return;
+    }
+
+    currentLine = nextLine;
+  });
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines.filter(Boolean);
+}
+
+function PresentationText({ text, style, className = "", twoLines = false }) {
+  const lines = twoLines ? splitIntoPresentationLines(text, 2) : [text];
+
+  return (
+    <div className={className}>
+      {lines.map((line, index) => (
+        <p
+          key={`${line}-${index}`}
+          className={index > 0 ? "mt-[0.22em]" : ""}
+          style={{ ...style, margin: 0 }}
+        >
+          {line}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function ClockBadge({ compact = false }) {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  return (
+    <div
+      className={`rounded-full border border-white/10 bg-black/30 text-white/90 backdrop-blur-md ${
+        compact ? "px-3 py-1.5 text-xs" : "px-4 py-2 text-sm"
+      }`}
+    >
+      {new Intl.DateTimeFormat(undefined, {
+        weekday: compact ? undefined : "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(now)}
+    </div>
+  );
+}
+
 function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
   const title = settings.presentationTitle || "Tamil Bible Premium";
   const subtitle = settings.presentationSubtitle || "Live Scripture Display";
   const announcementTitle = settings.presentationAnnouncementTitle || "Welcome";
   const announcementBody = settings.presentationAnnouncementBody || "Service will begin shortly.";
   const presentationFont = getPresentationFontFamily(settings);
+  const liveReference = activeItem
+    ? `${activeItem.bookTamil} ${activeItem.chapter}:${activeItem.verse}`
+    : null;
+  const mainTextStyle = {
+    fontSize: `${Math.max(Math.min(settings.presentationMaxFontSize || 90, 72), 28)}px`,
+    lineHeight: settings.presentationTwoLines ? 1.08 : 1.24,
+    textAlign: settings.presentationJustify || "center",
+    textTransform: settings.presentationUppercase ? "uppercase" : "none",
+    textShadow: settings.presentationShadow ? "0 4px 18px rgba(0,0,0,0.52)" : "none",
+    WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
+    whiteSpace: settings.presentationLineWrap === false ? "nowrap" : "normal",
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
+    maxWidth: "100%",
+    marginInline: "auto",
+    fontFamily: presentationFont,
+    letterSpacing: `${settings.presentationLetterSpacing || 0}px`,
+  };
+  const stageTextStyle = {
+    fontSize: `${Math.max(
+      Math.min(
+        (settings.presentationMaxFontSize || 90) * (settings.stageSmallWindow ? 0.82 : 1),
+        140
+      ),
+      34
+    )}px`,
+    lineHeight: settings.presentationTwoLines ? 1.05 : 1.2,
+    textAlign: settings.presentationJustify || "center",
+    textTransform: settings.presentationUppercase ? "uppercase" : "none",
+    textShadow: settings.presentationShadow ? "0 4px 16px rgba(0,0,0,0.55)" : "none",
+    color: settings.stageTextColor1 || "#ffffff",
+    WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
+    whiteSpace: settings.presentationLineWrap === false ? "nowrap" : "normal",
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
+    maxWidth: "100%",
+    fontFamily: presentationFont,
+    letterSpacing: `${settings.presentationLetterSpacing || 0}px`,
+  };
 
   if (displayMode === "black") {
     return (
@@ -123,25 +252,42 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
   }
 
   if (isStage) {
-    const textStyle = {
-      fontSize: `${Math.max(Math.min(settings.presentationMaxFontSize || 90, 140), 40)}px`,
-      lineHeight: 1.2,
-      textAlign: settings.presentationJustify || "center",
-              textTransform: settings.presentationUppercase ? "uppercase" : "none",
-              textShadow: settings.presentationShadow ? "0 4px 16px rgba(0,0,0,0.55)" : "none",
-              color: settings.stageTextColor1 || "#ffffff",
-              WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
-              whiteSpace: settings.presentationLineWrap === false ? "nowrap" : "normal",
-              overflowWrap: "anywhere",
-              wordBreak: "break-word",
-              maxWidth: "100%",
-              fontFamily: presentationFont,
-              letterSpacing: `${settings.presentationLetterSpacing || 0}px`,
-            };
-
     return (
-      <div className="relative z-10 grid min-h-screen gap-6 px-8 py-8 xl:grid-cols-[1.3fr,0.7fr]">
-        <div className="flex flex-col justify-center rounded-[2rem] border border-white/10 bg-black/25 px-10 py-12 backdrop-blur-md">
+      <div
+        className={`relative z-10 grid min-h-screen gap-6 px-6 py-6 ${
+          settings.stagePreset === "horizontal"
+            ? "xl:grid-cols-[1.3fr,0.7fr]"
+            : "xl:grid-cols-[1fr]"
+        }`}
+        style={{
+          maxWidth: settings.stageSmallWindow ? "1180px" : undefined,
+          marginInline: settings.stageSmallWindow ? "auto" : undefined,
+        }}
+      >
+        <div
+          className={`flex flex-col rounded-[2rem] border border-white/10 bg-black/25 px-8 py-10 backdrop-blur-md ${
+            settings.stageWindowView ? "justify-start" : "justify-center"
+          }`}
+          style={{
+            maxWidth:
+              settings.stagePreset === "primary" && settings.stageSmallWindow
+                ? "920px"
+                : undefined,
+            width:
+              settings.stagePreset === "primary" && settings.stageSmallWindow
+                ? "100%"
+                : undefined,
+            marginInline:
+              settings.stagePreset === "primary" && settings.stageSmallWindow
+                ? "auto"
+                : undefined,
+          }}
+        >
+          {settings.stageShowDateTime ? (
+            <div className="mb-6 flex justify-end">
+              <ClockBadge />
+            </div>
+          ) : null}
           {activeItem ? (
             <>
               <p
@@ -154,53 +300,71 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
                 className="mt-5 text-4xl font-bold"
                 style={{ color: settings.stageTextColor2 || "#f8fafc" }}
               >
-                {activeItem.bookTamil} {activeItem.chapter}:{activeItem.verse}
+                {liveReference}
               </p>
-              <p className="mt-10 font-bold" style={textStyle}>
-                {activeItem.text}
-              </p>
+              <PresentationText
+                text={activeItem.text}
+                className="mt-10 font-bold"
+                style={stageTextStyle}
+                twoLines={settings.presentationTwoLines}
+              />
             </>
           ) : (
             <p className="text-4xl font-bold text-white">
               Add a verse to the sermon queue to start the stage screen.
             </p>
           )}
-        </div>
 
-        <div className="space-y-5">
-          {settings.stageMessageVisible && settings.stageMessage ? (
-            <StageSideCard title="Message">
-              <p className="text-2xl font-semibold leading-10 text-white">
-                {settings.stageMessage}
-              </p>
-            </StageSideCard>
-          ) : null}
-
-          <StageSideCard title="Next Verse">
-            {nextItem ? (
-              <>
-                <p className="text-xl font-bold text-white">
-                  {nextItem.bookTamil} {nextItem.chapter}:{nextItem.verse}
-                </p>
-                <p className="mt-4 text-lg leading-9 text-slate-200">
-                  {nextItem.text}
-                </p>
-              </>
-            ) : (
-              <p className="text-lg text-slate-300">No next verse queued yet.</p>
-            )}
-          </StageSideCard>
-
-          {settings.presentationShowCustomLogo && settings.stageLogoImage ? (
-            <StageSideCard title="Logo">
-              <img
-                src={settings.stageLogoImage}
-                alt="Stage logo"
-                className="max-h-40 max-w-full object-contain"
-              />
-            </StageSideCard>
+          {settings.presentationShowVerseLogo ? (
+            <div className="mt-8 flex justify-end">
+              <div className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-white/85">
+                Tamil Bible Premium
+              </div>
+            </div>
           ) : null}
         </div>
+
+        {settings.stagePreset === "horizontal" ? (
+          <div
+            className="space-y-5"
+            style={{
+              maxWidth: settings.stageSmallWindow ? "320px" : undefined,
+            }}
+          >
+            {settings.stageMessageVisible && settings.stageMessage ? (
+              <StageSideCard title="Message">
+                <p className="text-2xl font-semibold leading-10 text-white">
+                  {settings.stageMessage}
+                </p>
+              </StageSideCard>
+            ) : null}
+
+            <StageSideCard title="Next Verse">
+              {nextItem ? (
+                <>
+                  <p className="text-xl font-bold text-white">
+                    {nextItem.bookTamil} {nextItem.chapter}:{nextItem.verse}
+                  </p>
+                  <p className="mt-4 text-lg leading-9 text-slate-200">
+                    {nextItem.text}
+                  </p>
+                </>
+              ) : (
+                <p className="text-lg text-slate-300">No next verse queued yet.</p>
+              )}
+            </StageSideCard>
+
+            {settings.presentationShowCustomLogo && settings.stageLogoImage ? (
+              <StageSideCard title="Logo">
+                <img
+                  src={settings.stageLogoImage}
+                  alt="Stage logo"
+                  className="max-h-40 max-w-full object-contain"
+                />
+              </StageSideCard>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -221,34 +385,44 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
       >
         {activeItem ? (
           <>
-            <p className="text-3xl font-bold text-white">
-              {activeItem.bookTamil} {activeItem.chapter}:{activeItem.verse}
-            </p>
-            {(() => {
-              const mainTextStyle = {
-                fontSize: `${Math.max(Math.min(settings.presentationMaxFontSize || 90, 72), 28)}px`,
-                lineHeight: 1.24,
-                textAlign: settings.presentationJustify || "center",
-                textTransform: settings.presentationUppercase ? "uppercase" : "none",
-                textShadow: settings.presentationShadow ? "0 4px 18px rgba(0,0,0,0.52)" : "none",
-                WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
-                whiteSpace: settings.presentationLineWrap === false ? "nowrap" : "normal",
-                overflowWrap: "anywhere",
-                wordBreak: "break-word",
-                maxWidth: "100%",
-                marginInline: "auto",
-                fontFamily: presentationFont,
-                letterSpacing: `${settings.presentationLetterSpacing || 0}px`,
-              };
-
-              return (
-                <div>
-                  <p className="mt-6 font-bold text-white" style={mainTextStyle}>
-                    {activeItem.text}
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <div
+                  className={`inline-flex max-w-full items-center rounded-full px-4 py-2 ${
+                    settings.presentationHeaderBox ? "border border-white/10 bg-black/25" : ""
+                  }`}
+                >
+                  <p className="truncate text-3xl font-bold text-white">
+                    {liveReference}
                   </p>
                 </div>
-              );
-            })()}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                {settings.presentationShowDateTime ? <ClockBadge compact /> : null}
+                {settings.presentationShowVerseLogo ? (
+                  <div className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-white/85">
+                    Tamil Bible Premium
+                  </div>
+                ) : null}
+                {settings.presentationShowCustomLogo && settings.stageLogoImage ? (
+                  <div className="flex h-14 w-20 items-center justify-center rounded-2xl border border-white/10 bg-black/25 p-2">
+                    <img
+                      src={settings.stageLogoImage}
+                      alt="Presentation logo"
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <PresentationText
+              text={activeItem.text}
+              className="mt-6 font-bold text-white"
+              style={mainTextStyle}
+              twoLines={settings.presentationTwoLines}
+            />
           </>
         ) : (
           <div className="py-16 text-center">
@@ -292,6 +466,21 @@ export default function PresentationDisplay() {
   });
   const [isFading, setIsFading] = useState(false);
   const transitionTimerRef = useRef(null);
+  const fadeFrameRef = useRef(null);
+  const visibleState =
+    settings.presentationTransition === false
+      ? {
+          activeItem,
+          nextItem,
+          displayMode,
+        }
+      : {
+          activeItem: renderState.activeItem,
+          nextItem: renderState.nextItem,
+          displayMode: renderState.displayMode,
+        };
+  const effectiveIsFading =
+    settings.presentationTransition === false ? false : isFading;
 
   useEffect(() => {
     const displayElement = displayRef.current;
@@ -316,7 +505,14 @@ export default function PresentationDisplay() {
       return undefined;
     }
 
-    setIsFading(true);
+    if (settings.presentationTransition === false) {
+      return undefined;
+    }
+
+    fadeFrameRef.current = window.requestAnimationFrame(() => {
+      setIsFading(true);
+      fadeFrameRef.current = null;
+    });
 
     if (transitionTimerRef.current) {
       window.clearTimeout(transitionTimerRef.current);
@@ -334,12 +530,23 @@ export default function PresentationDisplay() {
     }, 220);
 
     return () => {
+      if (fadeFrameRef.current) {
+        window.cancelAnimationFrame(fadeFrameRef.current);
+        fadeFrameRef.current = null;
+      }
       if (transitionTimerRef.current) {
         window.clearTimeout(transitionTimerRef.current);
         transitionTimerRef.current = null;
       }
     };
-  }, [activeItem, nextItem, displayMode, transitionKey, renderState.transitionKey]);
+  }, [
+    activeItem,
+    nextItem,
+    displayMode,
+    transitionKey,
+    renderState.transitionKey,
+    settings.presentationTransition,
+  ]);
 
   useEffect(() => {
     const handleKey = (event) => {
@@ -365,6 +572,9 @@ export default function PresentationDisplay() {
 
   useEffect(() => {
     return () => {
+      if (fadeFrameRef.current) {
+        window.cancelAnimationFrame(fadeFrameRef.current);
+      }
       if (transitionTimerRef.current) {
         window.clearTimeout(transitionTimerRef.current);
       }
@@ -376,21 +586,26 @@ export default function PresentationDisplay() {
       ref={displayRef}
       className="relative min-h-screen overflow-hidden text-white"
       style={{
-        background: renderState.displayMode === "black" ? "#000000" : background,
+        background: visibleState.displayMode === "black" ? "#000000" : background,
         backgroundSize: "cover",
         backgroundPosition: "center",
-        transition: "background 220ms ease-in-out",
+        transition:
+          settings.presentationTransition === false
+            ? "none"
+            : "background 220ms ease-in-out",
       }}
     >
-      {renderState.displayMode !== "black" && !isStage && settings.bgType === "motion" ? (
+      {visibleState.displayMode !== "black" && !isStage && settings.bgType === "motion" ? (
         <MotionBackground variant={settings.motionBackground} />
       ) : null}
-      {renderState.displayMode !== "black" ? (
+      {visibleState.displayMode !== "black" ? (
         <div
           className={`absolute inset-0 transition-opacity duration-200 ease-in-out ${
-            isFading ? "opacity-0" : "opacity-100"
+            effectiveIsFading ? "opacity-0" : "opacity-100"
           }`}
           style={{
+            transitionDuration:
+              settings.presentationTransition === false ? "0ms" : undefined,
             background: isStage
               ? `linear-gradient(180deg, ${overlayColor}${Math.round((overlayOpacity * 0.45) * 255).toString(16).padStart(2, "0")}, ${overlayColor}${Math.round(overlayOpacity * 255).toString(16).padStart(2, "0")})`
               : `linear-gradient(180deg, rgba(7,17,31,${Math.max(overlayOpacity - 0.38, 0.12)}), rgba(7,17,31,${overlayOpacity}))`,
@@ -401,15 +616,19 @@ export default function PresentationDisplay() {
       {isEnabled ? (
         <div
           className={`transition-opacity duration-200 ease-in-out ${
-            isFading ? "opacity-0" : "opacity-100"
+            effectiveIsFading ? "opacity-0" : "opacity-100"
           }`}
+          style={{
+            transitionDuration:
+              settings.presentationTransition === false ? "0ms" : undefined,
+          }}
         >
           <DisplayBody
             isStage={isStage}
             settings={settings}
-            activeItem={renderState.activeItem}
-            nextItem={renderState.nextItem}
-            displayMode={renderState.displayMode}
+            activeItem={visibleState.activeItem}
+            nextItem={visibleState.nextItem}
+            displayMode={visibleState.displayMode}
           />
         </div>
       ) : (

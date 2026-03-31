@@ -10,8 +10,14 @@ import {
 } from "../utils/bookSearch";
 import useAppSettings from "../hooks/useAppSettings";
 import { getUIText } from "../utils/uiText";
-import { getBibleByLanguage, getBookName, isEnglishLanguage } from "../utils/bibleContent";
+import { getBookName, isEnglishLanguage } from "../utils/bibleContent";
 import { openReader } from "../utils/openReader";
+import {
+  getAllBookMetadata,
+  getBookLabelFromMetadata,
+  loadBibleBooks,
+  NEW_TESTAMENT_START_INDEX,
+} from "../utils/bibleData";
 
 const TAMIL_KEYBOARD_ROWS = [
   ["அ", "ஆ", "இ", "ஈ", "உ", "ஊ", "எ", "ஏ", "ஐ", "ஒ", "ஓ", "ஔ"],
@@ -25,8 +31,6 @@ const TAMIL_SYMBOL_ROWS = [
 ];
 
 const searchVerseIndexCache = new Map();
-const NEW_TESTAMENT_START_INDEX = 39;
-
 function normalizeRomanWords(text = "") {
   return text
     .toLowerCase()
@@ -43,7 +47,7 @@ function normalizeTamilWords(text = "") {
     .filter(Boolean);
 }
 
-function getSearchVerseIndex(activeBible, language) {
+function getSearchVerseIndex(books, language) {
   const cacheKey = language;
 
   if (searchVerseIndexCache.has(cacheKey)) {
@@ -54,7 +58,7 @@ function getSearchVerseIndex(activeBible, language) {
     booksList.map((entry, index) => [entry.book.english.trim(), index >= NEW_TESTAMENT_START_INDEX ? "new" : "old"])
   );
 
-  const index = Object.values(activeBible).flatMap((bookData) =>
+  const index = books.flatMap((bookData) =>
     bookData.chapters.flatMap((ch) =>
       ch.verses.map((v) => ({
         englishBook: bookData.book.english,
@@ -254,7 +258,6 @@ export default function Search() {
     hide: settings.language === "en" ? "Hide" : "மறை",
   };
   const showTamilKeyboard = !isEnglishLanguage(settings.language);
-  const activeBible = useMemo(() => getBibleByLanguage(settings.language), [settings.language]);
   const searchInputRef = useRef(null);
   const keyboardRef = useRef(null);
   const [query, setQuery] = useState("");
@@ -275,20 +278,17 @@ export default function Search() {
           label: settings.language === "en" ? "All Books" : "அனைத்து புத்தகங்கள்",
           testament: "all",
         },
-        ...booksList
-        .filter((entry) => activeBible[entry.book.english.trim()])
-        .map((entry, index) => ({
+        ...getAllBookMetadata().map((entry, index) => ({
           value: entry.book.english.trim(),
-          label: settings.language === "en" ? entry.book.english.trim() : (entry.book.tamil || entry.book.english).trim(),
+          label: getBookLabelFromMetadata(entry.book.english.trim(), settings.language),
           testament: index >= NEW_TESTAMENT_START_INDEX ? "new" : "old",
         })),
       ],
-    [activeBible, settings.language]
+    [settings.language]
   );
-
-  useEffect(() => {
+  const effectiveBookFilter = useMemo(() => {
     if (bookFilter === "all") {
-      return;
+      return "all";
     }
 
     const isVisible = bookOptions.some(
@@ -297,14 +297,8 @@ export default function Search() {
         (testamentFilter === "all" || option.testament === testamentFilter)
     );
 
-    if (!isVisible) {
-      setBookFilter("all");
-    }
+    return isVisible ? bookFilter : "all";
   }, [bookFilter, bookOptions, testamentFilter]);
-
-  useEffect(() => {
-    setVersePage(1);
-  }, [submittedQuery, testamentFilter, bookFilter, exactWordOnly]);
 
   useEffect(() => {
     if (!isKeyboardOpen) {
@@ -331,81 +325,114 @@ export default function Search() {
 
   useEffect(() => {
     const value = submittedQuery.trim();
+    let cancelled = false;
+    let frameId = null;
 
     if (!value) {
-      setVerseResults([]);
-      setIsSearching(false);
       return undefined;
     }
 
-    setIsSearching(true);
+    frameId = window.requestAnimationFrame(() => {
+      if (!cancelled) {
+        setIsSearching(true);
+      }
+    });
 
     const searchTimer = window.setTimeout(() => {
-      const verseIndex = getSearchVerseIndex(activeBible, settings.language);
-      const normalizedQuery = normalizeRoman(value);
-      const isTanglishQuery = normalizedQuery && /^[a-z0-9\s._-]+$/i.test(value);
-      const queryWords = normalizeRomanWords(value);
-      const queryTamilWords = normalizeTamilWords(value);
-      const matches = verseIndex.filter((verse) => {
-        if (testamentFilter !== "all" && verse.testament !== testamentFilter) {
-          return false;
-        }
-
-        if (bookFilter !== "all" && verse.englishBook !== bookFilter) {
-          return false;
-        }
-
-        if (isTanglishQuery) {
-          if (!queryWords.length) {
-            return false;
+      void loadBibleBooks(settings.language === "en" ? "en" : "ta")
+        .then((books) => {
+          if (cancelled) {
+            return;
           }
 
-          if (exactWordOnly) {
-            if (queryWords.length === 1) {
-              return verse.tanglishWords.includes(queryWords[0]);
+          const verseIndex = getSearchVerseIndex(books, settings.language);
+          const normalizedQuery = normalizeRoman(value);
+          const isTanglishQuery = normalizedQuery && /^[a-z0-9\s._-]+$/i.test(value);
+          const queryWords = normalizeRomanWords(value);
+          const queryTamilWords = normalizeTamilWords(value);
+          const matches = verseIndex.filter((verse) => {
+            if (testamentFilter !== "all" && verse.testament !== testamentFilter) {
+              return false;
             }
 
-            return verse.tanglishWords.join(" ").includes(queryWords.join(" "));
+            if (effectiveBookFilter !== "all" && verse.englishBook !== effectiveBookFilter) {
+              return false;
+            }
+
+            if (isTanglishQuery) {
+              if (!queryWords.length) {
+                return false;
+              }
+
+              if (exactWordOnly) {
+                if (queryWords.length === 1) {
+                  return verse.tanglishWords.includes(queryWords[0]);
+                }
+
+                return verse.tanglishWords.join(" ").includes(queryWords.join(" "));
+              }
+
+              if (queryWords.length === 1) {
+                return verse.tanglishWords.includes(queryWords[0]);
+              }
+
+              const joinedVerseWords = verse.tanglishWords.join(" ");
+              const joinedQueryWords = queryWords.join(" ");
+              return joinedVerseWords.includes(joinedQueryWords);
+            }
+
+            if (exactWordOnly && queryTamilWords.length) {
+              if (queryTamilWords.length === 1) {
+                return verse.tamilWords.includes(queryTamilWords[0]);
+              }
+
+              return verse.text.includes(queryTamilWords.join(" "));
+            }
+
+            return matchTamilTextQuery(verse.text, value);
+          });
+
+          if (cancelled) {
+            return;
           }
 
-          if (queryWords.length === 1) {
-            return verse.tanglishWords.includes(queryWords[0]);
+          setVerseResults(matches);
+          setIsSearching(false);
+        })
+        .catch(() => {
+          if (cancelled) {
+            return;
           }
 
-          const joinedVerseWords = verse.tanglishWords.join(" ");
-          const joinedQueryWords = queryWords.join(" ");
-          return joinedVerseWords.includes(joinedQueryWords);
-        }
-
-        if (exactWordOnly && queryTamilWords.length) {
-          if (queryTamilWords.length === 1) {
-            return verse.tamilWords.includes(queryTamilWords[0]);
-          }
-
-          return verse.text.includes(queryTamilWords.join(" "));
-        }
-
-        return matchTamilTextQuery(verse.text, value);
-      });
-
-      setVerseResults(matches);
-      setIsSearching(false);
+          setVerseResults([]);
+          setIsSearching(false);
+        });
     }, 0);
 
     return () => {
+      cancelled = true;
+      if (frameId) {
+        window.cancelAnimationFrame(frameId);
+      }
       window.clearTimeout(searchTimer);
     };
-  }, [submittedQuery, activeBible, settings.language, testamentFilter, bookFilter, exactWordOnly]);
+  }, [submittedQuery, settings.language, testamentFilter, effectiveBookFilter, exactWordOnly]);
 
-  const totalVersePages = Math.max(1, Math.ceil(verseResults.length / RESULTS_PER_PAGE));
+  const hasSubmittedQuery = Boolean(submittedQuery.trim());
+  const visibleVerseResults = useMemo(
+    () => (hasSubmittedQuery ? verseResults : []),
+    [hasSubmittedQuery, verseResults]
+  );
+  const visibleIsSearching = hasSubmittedQuery ? isSearching : false;
+  const totalVersePages = Math.max(1, Math.ceil(visibleVerseResults.length / RESULTS_PER_PAGE));
   const currentVersePage = Math.min(versePage, totalVersePages);
   const paginatedVerseResults = useMemo(() => {
     const start = (currentVersePage - 1) * RESULTS_PER_PAGE;
-    return verseResults.slice(start, start + RESULTS_PER_PAGE);
-  }, [currentVersePage, verseResults]);
-  const visibleStart = verseResults.length ? (currentVersePage - 1) * RESULTS_PER_PAGE + 1 : 0;
-  const visibleEnd = verseResults.length
-    ? Math.min(currentVersePage * RESULTS_PER_PAGE, verseResults.length)
+    return visibleVerseResults.slice(start, start + RESULTS_PER_PAGE);
+  }, [currentVersePage, visibleVerseResults]);
+  const visibleStart = visibleVerseResults.length ? (currentVersePage - 1) * RESULTS_PER_PAGE + 1 : 0;
+  const visibleEnd = visibleVerseResults.length
+    ? Math.min(currentVersePage * RESULTS_PER_PAGE, visibleVerseResults.length)
     : 0;
 
   const handleSearchFocus = () => {
@@ -418,6 +445,7 @@ export default function Search() {
 
   const handleSearchSubmit = (event) => {
     event?.preventDefault?.();
+    setVersePage(1);
     setSubmittedQuery(query.trim());
     setIsKeyboardOpen(false);
   };
@@ -535,7 +563,10 @@ export default function Search() {
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => setTestamentFilter(option.value)}
+                    onClick={() => {
+                      setVersePage(1);
+                      setTestamentFilter(option.value);
+                    }}
                     className={`rounded-full px-3 py-2 text-xs font-semibold transition ${
                       testamentFilter === option.value
                         ? "bg-[linear-gradient(135deg,#38bdf8,#22c55e)] text-slate-950"
@@ -547,7 +578,10 @@ export default function Search() {
                 ))}
                 <button
                   type="button"
-                  onClick={() => setExactWordOnly((current) => !current)}
+                  onClick={() => {
+                    setVersePage(1);
+                    setExactWordOnly((current) => !current);
+                  }}
                   className={`rounded-full px-3 py-2 text-xs font-semibold transition ${
                     exactWordOnly
                       ? "bg-[linear-gradient(135deg,#f59e0b,#f97316)] text-slate-950"
@@ -561,8 +595,11 @@ export default function Search() {
               <div className="mt-3">
                 <PopupFilterSelect
                   label="Book Only"
-                  value={bookFilter}
-                  onChange={setBookFilter}
+                  value={effectiveBookFilter}
+                  onChange={(value) => {
+                    setVersePage(1);
+                    setBookFilter(value);
+                  }}
                   options={bookOptions.filter(
                     (option) => option.value === "all" || testamentFilter === "all" || option.testament === testamentFilter
                   )}
@@ -675,15 +712,15 @@ export default function Search() {
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-white">{t.verses}</h2>
             <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300">
-              {verseResults.length}
+              {visibleVerseResults.length}
             </span>
           </div>
 
-          {!!submittedQuery && !!verseResults.length && (
+          {hasSubmittedQuery && !!visibleVerseResults.length && (
             <SearchPagination
               visibleStart={visibleStart}
               visibleEnd={visibleEnd}
-              total={verseResults.length}
+              total={visibleVerseResults.length}
               currentPage={currentVersePage}
               totalPages={totalVersePages}
               onPrev={() => setVersePage((page) => Math.max(1, page - 1))}
@@ -694,9 +731,9 @@ export default function Search() {
           )}
 
           <div className="space-y-3">
-            {isSearching && (
+            {visibleIsSearching && (
               <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] px-5 py-10 text-center text-sm text-slate-300">
-                <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-sky-300/20 border-t-sky-300" />
+                <div className="mx-auto mb-4 h-8 w-8 rounded-full border-2 border-sky-300/20 border-t-sky-300" />
                 Searching verses...
               </div>
             )}
@@ -716,24 +753,24 @@ export default function Search() {
               </button>
             ))}
 
-            {!submittedQuery && (
+            {!hasSubmittedQuery && (
               <div className="rounded-[1.5rem] border border-dashed border-white/10 bg-white/[0.03] px-5 py-10 text-center text-sm text-slate-400">
                 {t.typeToSearch}
               </div>
             )}
 
-            {!!submittedQuery && !isSearching && !verseResults.length && (
+            {hasSubmittedQuery && !visibleIsSearching && !visibleVerseResults.length && (
               <div className="rounded-[1.5rem] border border-dashed border-white/10 bg-white/[0.03] px-5 py-10 text-center text-sm text-slate-400">
                 No matching verses found.
               </div>
             )}
           </div>
 
-          {!!submittedQuery && !!verseResults.length && (
+          {hasSubmittedQuery && !!visibleVerseResults.length && (
             <SearchPagination
               visibleStart={visibleStart}
               visibleEnd={visibleEnd}
-              total={verseResults.length}
+              total={visibleVerseResults.length}
               currentPage={currentVersePage}
               totalPages={totalVersePages}
               onPrev={() => setVersePage((page) => Math.max(1, page - 1))}

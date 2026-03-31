@@ -161,7 +161,6 @@ html.lenis body {
 }
 
 .app-page-transition {
-  animation: app-page-enter 280ms cubic-bezier(0.22, 1, 0.36, 1);
   transform-origin: center top;
 }
 
@@ -266,7 +265,8 @@ html.lenis body {
 .motion-bg__layer {
   position: absolute;
   inset: -15%;
-  will-change: transform, opacity;
+  animation: none !important;
+  will-change: auto;
   transform: translateZ(0);
 }
 

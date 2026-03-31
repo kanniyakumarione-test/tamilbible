@@ -30,7 +30,7 @@ function RouteLoadingScreen() {
       <div className="app-page-inner">
         <div className="app-surface rounded-[2rem] p-6 md:p-8">
           <div className="flex items-center gap-3 text-slate-300">
-            <span className="h-3 w-3 animate-pulse rounded-full bg-sky-300" />
+            <span className="h-3 w-3 rounded-full bg-sky-300" />
             <span className="text-sm font-medium">Loading...</span>
           </div>
         </div>

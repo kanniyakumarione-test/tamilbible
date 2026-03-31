@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import useAppSettings from "../hooks/useAppSettings";
@@ -38,47 +38,94 @@ export default function Home() {
   const [installPopupOpen, setInstallPopupOpen] = useState(false);
   const [verseOfDayPopupOpen, setVerseOfDayPopupOpen] = useState(false);
   const [shareFeedback, setShareFeedback] = useState("");
+  const [verseOfTheDay, setVerseOfTheDay] = useState(null);
+  const [localizedSummary, setLocalizedSummary] = useState({
+    continueReading: null,
+    recentHistory: [],
+    readingPlans: [],
+    groupedHighlights: [],
+    recentPrayers: [],
+  });
   const t = getUIText(settings.language);
 
-  const verseOfTheDay = useMemo(() => getVerseOfTheDay(settings.language), [settings.language]);
   const {
-    continueReading,
-    recentHistory,
-    readingPlans,
-    groupedHighlights,
-    recentPrayers,
     bookmarkCount,
     favoriteCount,
     highlightCount,
     noteCount,
     prayerCount,
   } = useMemo(() => {
-    const continueReadingRaw = getContinueReading(libraryData.history);
-
     return {
-      continueReading: continueReadingRaw
-        ? continueReadingRaw.verse
-          ? localizeVerseItem(continueReadingRaw, settings.language)
-          : localizeChapterItem(continueReadingRaw, settings.language)
-        : null,
-      recentHistory: libraryData.history.slice(0, 4).map((item) =>
-        item.verse ? localizeVerseItem(item, settings.language) : localizeChapterItem(item, settings.language)
-      ),
-      readingPlans: getReadingPlanSummary(libraryData),
-      groupedHighlights: getGroupedHighlights(libraryData).map((folder) => ({
-        ...folder,
-        items: folder.items.map((item) => localizeVerseItem(item, settings.language)),
-      })),
-      recentPrayers: getRecentPrayers(libraryData, 4).map((item) =>
-        localizeChapterItem(item, settings.language)
-      ),
       bookmarkCount: libraryData.bookmarks.length,
       favoriteCount: libraryData.favorites.length,
       highlightCount: Object.keys(libraryData.highlights).length,
       noteCount: Object.keys(libraryData.notes).length,
       prayerCount: Object.keys(libraryData.prayers).length,
     };
+  }, [libraryData]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadDashboard = async () => {
+    const continueReadingRaw = getContinueReading(libraryData.history);
+      const [verseOfDayItem, continueReading, recentHistory, readingPlans, groupedHighlights, recentPrayers] =
+        await Promise.all([
+          getVerseOfTheDay(settings.language),
+          continueReadingRaw
+            ? continueReadingRaw.verse
+              ? localizeVerseItem(continueReadingRaw, settings.language)
+              : localizeChapterItem(continueReadingRaw, settings.language)
+            : Promise.resolve(null),
+          Promise.all(
+            libraryData.history.slice(0, 4).map((item) =>
+              item.verse ? localizeVerseItem(item, settings.language) : localizeChapterItem(item, settings.language)
+            )
+          ),
+          getReadingPlanSummary(libraryData),
+          Promise.all(
+            getGroupedHighlights(libraryData).map(async (folder) => ({
+              ...folder,
+              items: await Promise.all(
+                folder.items.map((item) => localizeVerseItem(item, settings.language))
+              ),
+            }))
+          ),
+          Promise.all(
+            getRecentPrayers(libraryData, 4).map((item) =>
+              localizeChapterItem(item, settings.language)
+            )
+          ),
+        ]);
+
+      if (cancelled) {
+        return;
+      }
+
+      setVerseOfTheDay(verseOfDayItem);
+      setLocalizedSummary({
+        continueReading,
+        recentHistory,
+        readingPlans,
+        groupedHighlights,
+        recentPrayers,
+      });
+    };
+
+    void loadDashboard();
+
+    return () => {
+      cancelled = true;
+    };
   }, [libraryData, settings.language]);
+
+  const {
+    continueReading,
+    recentHistory,
+    readingPlans,
+    groupedHighlights,
+    recentPrayers,
+  } = localizedSummary;
 
   const goToItem = (item) => {
     if (!item) return;
@@ -111,6 +158,8 @@ export default function Home() {
   };
 
   const handleOpenVerseOfDay = () => {
+    if (!verseOfTheDay) return;
+
     if (typeof window !== "undefined" && window.innerWidth < 768) {
       setVerseOfDayPopupOpen(true);
       setShareFeedback("");
@@ -124,6 +173,8 @@ export default function Home() {
   };
 
   const shareVerseOfDay = async () => {
+    if (!verseOfTheDay) return;
+
     const shareText = `${verseOfTheDay.bookTamil} ${verseOfTheDay.chapter}:${verseOfTheDay.verse}\n\n${verseOfTheDay.text}`;
 
     if (navigator.share) {
@@ -260,14 +311,23 @@ export default function Home() {
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
               {t.verseOfDay}
             </p>
-            <p className="mt-3 text-sm font-medium text-slate-400">
-              {verseOfTheDay.bookTamil} {verseOfTheDay.chapter}:{verseOfTheDay.verse}
-            </p>
-            <p className="mt-4 text-lg font-semibold leading-8 text-white md:text-2xl md:leading-10">
-              {verseOfTheDay.text}
-            </p>
+            {verseOfTheDay ? (
+              <>
+                <p className="mt-3 text-sm font-medium text-slate-400">
+                  {verseOfTheDay.bookTamil} {verseOfTheDay.chapter}:{verseOfTheDay.verse}
+                </p>
+                <p className="mt-4 text-lg font-semibold leading-8 text-white md:text-2xl md:leading-10">
+                  {verseOfTheDay.text}
+                </p>
+              </>
+            ) : (
+              <p className="mt-4 text-sm leading-7 text-slate-300">
+                Loading verse...
+              </p>
+            )}
             <button
               onClick={handleOpenVerseOfDay}
+              disabled={!verseOfTheDay}
               className="mt-5 rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-lg"
               style={{
                 background: "linear-gradient(135deg, #2563eb, #38bdf8)",
@@ -370,7 +430,7 @@ export default function Home() {
                         }
                         className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200"
                       >
-                        {localizeChapterItem(chapter, settings.language).bookTamil} {chapter.chapter}
+                        {chapter.bookTamil} {chapter.chapter}
                       </button>
                     ))}
                   </div>
@@ -607,17 +667,24 @@ export default function Home() {
               <p className="text-center text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
                 {t.verseOfDay}
               </p>
+              {verseOfTheDay ? (
+                <>
               <p className="mt-3 text-center text-sm font-semibold text-white">
                 {verseOfTheDay.bookTamil} {verseOfTheDay.chapter}:{verseOfTheDay.verse}
               </p>
               <p className="mt-5 text-center text-lg font-semibold leading-9 text-white">
                 {verseOfTheDay.text}
               </p>
+                </>
+              ) : (
+                <p className="mt-5 text-center text-sm text-slate-300">Loading verse...</p>
+              )}
 
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <button
                   type="button"
                   onClick={shareVerseOfDay}
+                  disabled={!verseOfTheDay}
                   className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
                 >
                   {t.share}

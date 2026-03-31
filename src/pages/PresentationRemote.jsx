@@ -1,7 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import bible from "../utils/loadBible";
-import oldBible from "../utils/loadOldTestament";
-import newBible from "../utils/loadNewTestament";
 import useLibraryData from "../hooks/useLibraryData";
 import useAppSettings from "../hooks/useAppSettings";
 import {
@@ -19,6 +16,12 @@ import {
   upsertRemoteDevice,
 } from "../utils/presentationRemotePresence";
 import { getBookNameFromEntry } from "../utils/bibleContent";
+import {
+  getBookMetadata,
+  getBookLabelFromMetadata,
+  getBooksForTestament,
+  loadBibleBook,
+} from "../utils/bibleData";
 
 function RemoteButton({ active, children, onClick }) {
   return (
@@ -87,16 +90,18 @@ export default function PresentationRemote() {
   const queue = libraryData.sermon.queue || [];
   const activeItem = libraryData.sermon.activeItem || queue[0] || null;
   const displayMode = libraryData.sermon.displayMode || "live";
-  const initialBook = activeItem?.bookEnglish || oldBible[0]?.book.english?.trim() || "Genesis";
+  const oldBooks = getBooksForTestament("old");
+  const newBooks = getBooksForTestament("new");
+  const initialBook = activeItem?.bookEnglish || oldBooks[0]?.book.english?.trim() || "Genesis";
   const [selectedBook, setSelectedBook] = useState(initialBook);
   const initialTestament = useMemo(
-    () => (newBible.some((bookData) => bookData.book.english.trim() === initialBook) ? "new" : "old"),
+    () => (getBookMetadata(initialBook)?.testament === "new" ? "new" : "old"),
     [initialBook]
   );
   const [selectedTestament, setSelectedTestament] = useState(initialTestament);
   const [pickerModal, setPickerModal] = useState(null);
-  const selectedBookData = bible[selectedBook] || Object.values(bible)[0];
-  const visibleBooks = selectedTestament === "new" ? newBible : oldBible;
+  const [selectedBookData, setSelectedBookData] = useState(null);
+  const visibleBooks = selectedTestament === "new" ? newBooks : oldBooks;
   const chapterOptions = useMemo(
     () =>
       (selectedBookData?.chapters || []).map((chapterData) => ({
@@ -125,7 +130,7 @@ export default function PresentationRemote() {
   const selectedVerses = selectedChapterData?.verses || [];
   const selectedBookLabel = selectedBookData
     ? getBookNameFromEntry(selectedBookData, settings.language)
-    : selectedBook;
+    : getBookLabelFromMetadata(selectedBook, settings.language) || selectedBook;
 
   const buildVerseItem = (verse) => ({
     id: `${selectedBook}::${selectedChapterData.chapter}::${verse.verse}`,
@@ -154,6 +159,22 @@ export default function PresentationRemote() {
     setSelectedChapter(chapterValue);
     setPickerModal("verse");
   };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void loadBibleBook(selectedBook, "ta").then((bookData) => {
+      if (cancelled) {
+        return;
+      }
+
+      setSelectedBookData(bookData);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedBook]);
 
   useEffect(() => {
     startRemotePresenceStream();
@@ -383,8 +404,8 @@ export default function PresentationRemote() {
             type="button"
             onClick={() => {
               setSelectedTestament("old");
-              if (!oldBible.some((bookData) => bookData.book.english.trim() === selectedBook)) {
-                const firstBook = oldBible[0];
+              if (!oldBooks.some((bookData) => bookData.book.english.trim() === selectedBook)) {
+                const firstBook = oldBooks[0];
                 if (firstBook) {
                   setSelectedBook(firstBook.book.english.trim());
                   setSelectedChapter(String(firstBook.chapters?.[0]?.chapter || 1));
@@ -403,8 +424,8 @@ export default function PresentationRemote() {
             type="button"
             onClick={() => {
               setSelectedTestament("new");
-              if (!newBible.some((bookData) => bookData.book.english.trim() === selectedBook)) {
-                const firstBook = newBible[0];
+              if (!newBooks.some((bookData) => bookData.book.english.trim() === selectedBook)) {
+                const firstBook = newBooks[0];
                 if (firstBook) {
                   setSelectedBook(firstBook.book.english.trim());
                   setSelectedChapter(String(firstBook.chapters?.[0]?.chapter || 1));

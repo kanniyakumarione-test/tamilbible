@@ -1,5 +1,4 @@
-import bible from "./loadBible";
-import englishBible from "./loadEnglishBible";
+import { loadBibleBooks } from "./bibleData";
 import {
   getCachedRemoteSermon,
   pushPresentationSermonState,
@@ -29,42 +28,8 @@ export const READING_PLAN_PRESETS = [
   { id: "1-year", label: "Bible in 1 Year", days: 365 },
 ];
 
-const books = Object.values(bible);
-const chapterIndex = books.flatMap((bookData) =>
-  bookData.chapters.map((chapter) => ({
-    id: `${bookData.book.english.trim()}::${chapter.chapter}`,
-    bookEnglish: bookData.book.english.trim(),
-    bookTamil: bookData.book.tamil,
-    chapter: chapter.chapter,
-    verses: chapter.verses.length,
-  }))
-);
-
-const verseIndex = books.flatMap((bookData) =>
-  bookData.chapters.flatMap((chapter) =>
-    chapter.verses.map((verse) => ({
-      id: `${bookData.book.english.trim()}::${chapter.chapter}::${verse.verse}`,
-      bookEnglish: bookData.book.english.trim(),
-      bookTamil: bookData.book.tamil,
-      chapter: chapter.chapter,
-      verse: verse.verse,
-      text: verse.text,
-    }))
-  )
-);
-
-const englishVerseIndex = Object.values(englishBible).flatMap((bookData) =>
-  bookData.chapters.flatMap((chapter) =>
-    chapter.verses.map((verse) => ({
-      id: `${bookData.book.english.trim()}::${chapter.chapter}::${verse.verse}`,
-      bookEnglish: bookData.book.english.trim(),
-      bookTamil: bookData.book.english.trim(),
-      chapter: chapter.chapter,
-      verse: verse.verse,
-      text: verse.text,
-    }))
-  )
-);
+let chapterIndexPromise = null;
+const verseIndexPromises = new Map();
 
 export const defaultLibraryData = {
   bookmarks: [],
@@ -81,6 +46,51 @@ export const defaultLibraryData = {
     updatedAt: null,
   },
 };
+
+async function getChapterIndex() {
+  if (!chapterIndexPromise) {
+    chapterIndexPromise = loadBibleBooks("ta").then((books) =>
+      books.flatMap((bookData) =>
+        bookData.chapters.map((chapter) => ({
+          id: `${bookData.book.english.trim()}::${chapter.chapter}`,
+          bookEnglish: bookData.book.english.trim(),
+          bookTamil: bookData.book.tamil,
+          chapter: chapter.chapter,
+          verses: chapter.verses.length,
+        }))
+      )
+    );
+  }
+
+  return chapterIndexPromise;
+}
+
+async function getVerseIndex(language = "ta") {
+  if (verseIndexPromises.has(language)) {
+    return verseIndexPromises.get(language);
+  }
+
+  const promise = loadBibleBooks(language).then((books) =>
+    books.flatMap((bookData) =>
+      bookData.chapters.flatMap((chapter) =>
+        chapter.verses.map((verse) => ({
+          id: `${bookData.book.english.trim()}::${chapter.chapter}::${verse.verse}`,
+          bookEnglish: bookData.book.english.trim(),
+          bookTamil:
+            language === "en"
+              ? bookData.book.english.trim()
+              : bookData.book.tamil,
+          chapter: chapter.chapter,
+          verse: verse.verse,
+          text: verse.text,
+        }))
+      )
+    )
+  );
+
+  verseIndexPromises.set(language, promise);
+  return promise;
+}
 
 function emitChange(data) {
   window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: data }));
@@ -315,7 +325,9 @@ function getDayKey(date = new Date()) {
   return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
 }
 
-export function getReadingPlans() {
+export async function getReadingPlans() {
+  const chapterIndex = await getChapterIndex();
+
   return READING_PLAN_PRESETS.map((plan) => {
     const chaptersPerDay = Math.ceil(chapterIndex.length / plan.days);
     return {
@@ -360,8 +372,11 @@ export function updateReadingPlanProgress(planId, chapterId) {
   return next;
 }
 
-export function getReadingPlanSummary(data = getLibraryData()) {
-  return getReadingPlans().map((plan) => {
+export async function getReadingPlanSummary(data = getLibraryData()) {
+  const plans = await getReadingPlans();
+  const chapterIndex = await getChapterIndex();
+
+  return plans.map((plan) => {
     const progress = data.readingPlans[plan.id] || {
       completedChapterIds: [],
       completedDays: {},
@@ -493,8 +508,8 @@ export function getRecentPrayers(data = getLibraryData(), limit = 4) {
     .slice(0, limit);
 }
 
-export function getVerseOfTheDay(language = "ta") {
-  const activeVerseIndex = language === "en" ? englishVerseIndex : verseIndex;
+export async function getVerseOfTheDay(language = "ta") {
+  const activeVerseIndex = await getVerseIndex(language);
   const today = new Date();
   const key = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
   let hash = 0;

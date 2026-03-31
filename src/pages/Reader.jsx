@@ -2,6 +2,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useRef, useState, useMemo } from "react";
 
 import useAppSettings from "../hooks/useAppSettings";
+import useBibleBook from "../hooks/useBibleBook";
 import useLibraryData from "../hooks/useLibraryData";
 import {
   getVerseId,
@@ -9,7 +10,6 @@ import {
 } from "../utils/libraryData";
 import { getUIText } from "../utils/uiText";
 import {
-  getBibleByLanguage,
   getBookName,
   getParallelVerseData,
   isBilingualLanguage,
@@ -18,6 +18,7 @@ import {
   getReaderFontFamily,
 } from "../utils/appearance";
 import MotionBackground from "../components/MotionBackground";
+import { getBookLabelFromMetadata } from "../utils/bibleData";
 
 export default function Reader() {
   const { book, chapter, verse } = useParams();
@@ -29,10 +30,12 @@ export default function Reader() {
   const libraryData = useLibraryData();
   const t = getUIText(settings.language);
   const isBilingual = isBilingualLanguage(settings.language);
+  const language = settings.language === "en" ? "en" : "ta";
   const [fade, setFade] = useState(true);
   const [isFullscreenActive, setIsFullscreenActive] = useState(
     () => Boolean(document.fullscreenElement)
   );
+  const [parallelVerseData, setParallelVerseData] = useState(null);
   const readerFrameRef = useRef(null);
   const navigatedRef = useRef(false);
   const hadFullscreenRef = useRef(false);
@@ -64,8 +67,7 @@ export default function Reader() {
   const englishFontFamily = getReaderFontFamily(settings, "en");
   const primaryFontFamily = settings.language === "en" ? englishFontFamily : tamilFontFamily;
 
-  const activeBible = getBibleByLanguage(settings.language);
-  const bookData = activeBible[decodedBook];
+  const { bookData } = useBibleBook(decodedBook, language);
   const chapterData = bookData?.chapters.find(
     (ch) => String(ch.chapter) === String(chapter)
   );
@@ -74,9 +76,6 @@ export default function Reader() {
     (v) => String(v.verse) === String(verse)
   );
   const verseData = verses[currentVerseIndex];
-  const parallelVerseData = isBilingual
-    ? getParallelVerseData(decodedBook, chapter, verse)
-    : null;
   const tamilVerseText = isBilingual
     ? parallelVerseData?.tamilVerseData?.text || ""
     : "";
@@ -89,7 +88,10 @@ export default function Reader() {
   const englishBookLabel = isBilingual
     ? getBookName(parallelVerseData?.englishBookData, "en") || decodedBook
     : "";
-  const primaryBookLabel = getBookName(bookData, settings.language) || decodedBook;
+  const primaryBookLabel =
+    getBookName(bookData, settings.language) ||
+    getBookLabelFromMetadata(decodedBook, settings.language) ||
+    decodedBook;
   const verseItem = useMemo(() => {
     if (!verseData) return null;
 
@@ -103,6 +105,25 @@ export default function Reader() {
       text: verseData.text,
     };
   }, [decodedBook, chapter, verseData?.verse, verseData?.text, bookData?.book.tamil]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isBilingual) {
+      setParallelVerseData(null);
+      return undefined;
+    }
+
+    void getParallelVerseData(decodedBook, chapter, verse).then((data) => {
+      if (!cancelled) {
+        setParallelVerseData(data);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [chapter, decodedBook, isBilingual, verse]);
 
   useEffect(() => {
     if (!isDesktopRef.current) {
@@ -425,6 +446,8 @@ export default function Reader() {
                     lineHeight: Math.max((settings.lineHeight || 1.8) - 0.1, 1.55),
                     textShadow: "0 2px 14px rgba(0, 0, 0, 0.5)",
                     fontFamily: englishFontFamily,
+                    letterSpacing: "0",
+                    wordSpacing: "-0.08em",
                     color: "#f8fafc",
                   }}
                   className="font-semibold"

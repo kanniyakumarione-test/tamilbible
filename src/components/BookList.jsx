@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import oldBible from "../utils/loadOldTestament";
-import newBible from "../utils/loadNewTestament";
 import useAppSettings from "../hooks/useAppSettings";
 import { getUIText } from "../utils/uiText";
+import { getBooksForTestament } from "../utils/bibleData";
 import { getBookNameFromEntry } from "../utils/bibleContent";
 
 export default function BookList() {
@@ -11,7 +10,7 @@ export default function BookList() {
   const [settings] = useAppSettings();
   const t = getUIText(settings.language);
 
-  const books = tab === "old" ? oldBible : tab === "new" ? newBible : [];
+  const books = tab ? getBooksForTestament(tab) : [];
 
   return (
     <div className="pb-24">

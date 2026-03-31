@@ -1,15 +1,18 @@
 import { useParams, Link } from "react-router-dom";
 import useAppSettings from "../hooks/useAppSettings";
+import useBibleBook from "../hooks/useBibleBook";
 import { getUIText } from "../utils/uiText";
-import { getBibleByLanguage, getBookName } from "../utils/bibleContent";
+import { getBookName } from "../utils/bibleContent";
+import { getBookLabelFromMetadata } from "../utils/bibleData";
 
 export default function Chapters() {
   const { book } = useParams();
   const decodedBook = decodeURIComponent(book);
   const [settings] = useAppSettings();
   const t = getUIText(settings.language);
-
-  const bookData = getBibleByLanguage(settings.language)[decodedBook];
+  const language = settings.language === "en" ? "en" : "ta";
+  const { bookData } = useBibleBook(decodedBook, language);
+  const bookLabel = getBookName(bookData, settings.language) || getBookLabelFromMetadata(decodedBook, settings.language);
 
   return (
     <div className="app-shell app-page pb-24 pt-4 md:pt-6">
@@ -19,7 +22,7 @@ export default function Chapters() {
             {t.chapters}
           </p>
           <h1 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-5xl">
-            {getBookName(bookData, settings.language)}
+            {bookLabel}
           </h1>
           <p className="mt-3 text-sm leading-7 text-slate-300 md:max-w-2xl">
             {t.selectChapter}
