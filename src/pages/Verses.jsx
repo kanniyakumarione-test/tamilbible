@@ -417,10 +417,12 @@ export default function Verses() {
     };
   };
 
-  const { bookData } = useBibleBook(decodedBook, primaryLanguage);
+  const { bookData, loading: bookLoading } = useBibleBook(decodedBook, primaryLanguage);
   const { bookData: englishBookData } = useBibleBook(decodedBook, "en");
-  const chapterData = bookData?.chapters.find((ch) => ch.chapter === chapter);
-  const englishChapterData = englishBookData?.chapters.find((ch) => ch.chapter === chapter);
+  const chapterData = bookData?.chapters.find((ch) => String(ch.chapter) === String(chapter));
+  const englishChapterData = englishBookData?.chapters.find(
+    (ch) => String(ch.chapter) === String(chapter)
+  );
   const bookLabel =
     getBookName(bookData, settings.language) ||
     getBookLabelFromMetadata(decodedBook, settings.language) ||
@@ -851,6 +853,29 @@ export default function Verses() {
   const prevLabel = formatChapterTargetLabel(prevChapter, "Start");
   const nextLabel = formatChapterTargetLabel(nextChapter, "End");
 
+  if (bookLoading && !chapterData) {
+    return (
+      <div className="min-h-screen bg-[#07111f] px-4 py-6 text-white">
+        <div className="mx-auto max-w-5xl rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(8,17,32,0.96))] p-6 shadow-2xl shadow-black/30">
+          <p className="text-sm font-medium text-slate-300">Loading chapter...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!bookLoading && bookData && !chapterData) {
+    return (
+      <div className="min-h-screen bg-[#07111f] px-4 py-6 text-white">
+        <div className="mx-auto max-w-5xl rounded-[2rem] border border-amber-300/20 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(8,17,32,0.96))] p-6 shadow-2xl shadow-black/30">
+          <h1 className="text-xl font-bold text-white">{bookLabel}</h1>
+          <p className="mt-2 text-sm text-slate-300">
+            Chapter {chapter} could not be loaded.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#07111f] text-white md:h-screen md:overflow-hidden">
       <div className="md:flex md:h-screen">
@@ -910,7 +935,7 @@ export default function Verses() {
                     key={ch.chapter}
                     onClick={() => navigate(`/${decodedBook}/${ch.chapter}`)}
                     className={`rounded-xl py-2 text-sm font-medium transition ${
-                      ch.chapter === chapter
+                      String(ch.chapter) === String(chapter)
                         ? "bg-gradient-to-br from-indigo-500 to-sky-500 text-white"
                         : "border border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.07]"
                     }`}
@@ -1661,7 +1686,7 @@ export default function Verses() {
                     navigate(`/${decodedBook}/${ch.chapter}`);
                   }}
                   className={`rounded-2xl py-3 text-sm font-semibold transition ${
-                    ch.chapter === chapter
+                      String(ch.chapter) === String(chapter)
                       ? "bg-gradient-to-br from-indigo-500 to-sky-500 text-white"
                       : "border border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.07]"
                   }`}

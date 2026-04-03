@@ -138,8 +138,8 @@ export default function SeoManager() {
       const chapter = readerMatch.params.chapter;
       const verse = readerMatch.params.verse;
       const bookData = await loadBibleBook(bookEnglish, "ta");
-      const chapterData = bookData?.chapters.find((item) => item.chapter === chapter);
-      const verseData = chapterData?.verses.find((item) => item.verse === verse);
+      const chapterData = bookData?.chapters.find((item) => String(item.chapter) === String(chapter));
+      const verseData = chapterData?.verses.find((item) => String(item.verse) === String(verse));
       const bookTamil = normalizeText(bookData?.book?.tamil || getBookLabelFromMetadata(bookEnglish, "ta") || bookEnglish);
       const verseText = normalizeText(verseData?.text);
 
@@ -174,7 +174,7 @@ export default function SeoManager() {
       const bookEnglish = decodeURIComponent(chapterMatch.params.book);
       const chapter = chapterMatch.params.chapter;
       const bookData = await loadBibleBook(bookEnglish, "ta");
-      const chapterData = bookData?.chapters.find((item) => item.chapter === chapter);
+      const chapterData = bookData?.chapters.find((item) => String(item.chapter) === String(chapter));
       const bookTamil = normalizeText(bookData?.book?.tamil || getBookLabelFromMetadata(bookEnglish, "ta") || bookEnglish);
       const verseCount = chapterData?.verses?.length || 0;
 

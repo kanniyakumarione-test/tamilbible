@@ -205,7 +205,10 @@ function serveStatic(req, res) {
   const filePath = existsSync(directFile) ? directFile : path.join(distDir, "index.html");
 
   if (!existsSync(filePath)) {
-    sendJson(res, 404, { error: "Frontend build not found. Run npm run build first." });
+    res.writeHead(404, { "Content-Type": "text/html; charset=utf-8" });
+    res.end(
+      '<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>404 Not Found</title></head><body style="font-family: sans-serif; padding: 2rem; text-align: center;"><h2>Frontend build not found</h2><p>Please run <code>npm run build</code> first before using the backend server.</p></body></html>'
+    );
     return;
   }
 

@@ -16,6 +16,17 @@ export default defineConfig({
     host: "0.0.0.0",
   },
   plugins: [
+    {
+      name: "qr-scanner-fallback",
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (req.url && req.url.startsWith("/presentation-remote")) {
+            req.url = "/index.html";
+          }
+          next();
+        });
+      },
+    },
     react(),
     VitePWA({
       registerType: "autoUpdate",

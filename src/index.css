@@ -265,7 +265,6 @@ html.lenis body {
 .motion-bg__layer {
   position: absolute;
   inset: -15%;
-  animation: none !important;
   will-change: auto;
   transform: translateZ(0);
 }
