@@ -55,6 +55,11 @@ for (const directory of [oldTestamentDir, newTestamentDir]) {
     for (const chapterData of bookData.chapters) {
       const chapter = chapterData.chapter;
       routes.add(`/${encodedBook}/${chapter}`);
+
+      for (const verseData of chapterData.verses || []) {
+        const verse = verseData.verse;
+        routes.add(`/reader/${encodedBook}/${chapter}/${verse}`);
+      }
     }
   }
 }
@@ -73,7 +78,9 @@ ${[...routes]
         ? "1.0"
         : route === "/books"
         ? "0.9"
-        : "0.8"
+        : !route.startsWith("/reader/")
+        ? "0.8"
+        : "0.5"
     }</priority>
   </url>`
   )
@@ -82,6 +89,10 @@ ${[...routes]
 `;
 
 const robots = `User-agent: *
+Disallow: /sermon-control
+Disallow: /presentation-remote
+Disallow: /presentation/
+Disallow: /api/
 Allow: /
 
 Sitemap: ${toAbsoluteUrl("/sitemap.xml")}

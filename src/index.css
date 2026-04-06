@@ -105,22 +105,22 @@ html.lenis body {
 
 .app-page {
   width: 100%;
-  padding-inline: clamp(1rem, 2vw, 1.75rem);
+  padding-inline: clamp(0.75rem, 1.5vw, 1.5rem);
 }
 
 .app-page-inner {
   width: 100%;
   max-width: none;
   display: grid;
-  gap: 1.25rem;
+  gap: 0.85rem;
 }
 
 .app-hero {
   position: relative;
-  border-radius: 2.35rem;
+  border-radius: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow:
-    0 30px 80px rgba(2, 6, 23, 0.34),
+    0 20px 60px rgba(2, 6, 23, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
@@ -141,9 +141,10 @@ html.lenis body {
     linear-gradient(180deg, rgba(14, 23, 40, 0.94), rgba(6, 11, 22, 0.98));
   border: 1px solid var(--app-border);
   box-shadow:
-    0 24px 60px rgba(2, 6, 23, 0.28),
+    0 18px 45px rgba(2, 6, 23, 0.24),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(8px);
+  will-change: transform, opacity;
 }
 
 .app-surface-strong {
@@ -167,67 +168,67 @@ html.lenis body {
 .home-shell > div > section:first-child {
   position: relative;
   overflow: hidden;
-  border-radius: 2.35rem;
+  border-radius: 1.5rem;
   border-color: rgba(255, 255, 255, 0.08);
   background:
     radial-gradient(circle at top left, rgba(34, 197, 94, 0.18), transparent 24%),
     radial-gradient(circle at 85% 20%, rgba(56, 189, 248, 0.22), transparent 22%),
     radial-gradient(circle at bottom left, rgba(14, 165, 233, 0.16), transparent 26%),
     linear-gradient(135deg, rgba(8, 15, 29, 0.98), rgba(5, 10, 20, 0.99));
-  box-shadow: 0 28px 90px rgba(2, 6, 23, 0.42);
+  box-shadow: 0 24px 70px rgba(2, 6, 23, 0.38);
 }
 
 .home-shell > div > section:first-child::before {
   content: "";
   position: absolute;
-  right: -3rem;
-  top: 2.5rem;
-  width: 10rem;
-  height: 10rem;
+  right: -2rem;
+  top: 1.5rem;
+  width: 8rem;
+  height: 8rem;
   border-radius: 999px;
   background: rgba(56, 189, 248, 0.1);
-  filter: blur(50px);
+  filter: blur(40px);
 }
 
 .home-shell > div > section:first-child::after {
   content: "";
   position: absolute;
-  left: -2.5rem;
+  left: -2rem;
   bottom: -1rem;
-  width: 9rem;
-  height: 9rem;
+  width: 7rem;
+  height: 7rem;
   border-radius: 999px;
   background: rgba(34, 197, 94, 0.1);
-  filter: blur(44px);
+  filter: blur(36px);
 }
 
 .home-shell > div > section:first-child > p:first-child {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.55rem 1rem;
+  gap: 0.45rem;
+  padding: 0.45rem 0.85rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
   color: rgba(224, 242, 254, 0.82);
-  font-size: 11px;
-  letter-spacing: 0.28em;
+  font-size: 10px;
+  letter-spacing: 0.26em;
 }
 
 .home-shell > div > section:first-child > p:first-child::before {
   content: "";
-  width: 0.5rem;
-  height: 0.5rem;
+  width: 0.44rem;
+  height: 0.44rem;
   border-radius: 999px;
   background: #86efac;
-  box-shadow: 0 0 12px rgba(110, 231, 183, 0.8);
+  box-shadow: 0 0 10px rgba(110, 231, 183, 0.8);
 }
 
 .home-shell > div > section:first-child > h1 {
-  margin-top: 1.25rem;
-  font-size: clamp(2.5rem, 5vw, 4.75rem);
-  line-height: 1.04;
-  letter-spacing: -0.03em;
+  margin-top: 1rem;
+  font-size: clamp(2rem, 4vw, 3.75rem);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
 }
 
 .home-shell > div > section:first-child > p:nth-of-type(2) {
@@ -244,12 +245,12 @@ html.lenis body {
 }
 
 .home-shell .app-surface {
-  border-radius: 2rem;
+  border-radius: 1.25rem;
   background:
     radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 20%),
     linear-gradient(180deg, rgba(15, 24, 40, 0.96), rgba(7, 12, 23, 0.99));
   box-shadow:
-    0 22px 60px rgba(2, 6, 23, 0.22),
+    0 16px 40px rgba(2, 6, 23, 0.22),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
@@ -265,7 +266,7 @@ html.lenis body {
 .motion-bg__layer {
   position: absolute;
   inset: -15%;
-  will-change: auto;
+  will-change: transform;
   transform: translateZ(0);
 }
 

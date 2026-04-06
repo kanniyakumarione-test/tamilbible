@@ -1,4 +1,8 @@
 User-agent: *
+Disallow: /sermon-control
+Disallow: /presentation-remote
+Disallow: /presentation/
+Disallow: /api/
 Allow: /
 
 Sitemap: https://tamilbible.kanniyakumarione.com/sitemap.xml

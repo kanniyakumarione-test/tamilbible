@@ -18,8 +18,8 @@ import { openReader } from "../utils/openReader";
 
 function StatCard({ label, value, sublabel }) {
   return (
-    <div className="overflow-hidden rounded-[1.85rem] border border-white/10 bg-[linear-gradient(180deg,rgba(18,26,45,0.92),rgba(8,14,27,0.98))] p-5 shadow-[0_20px_50px_rgba(2,6,23,0.28)]">
-      <div className="mb-4 h-px w-16 bg-gradient-to-r from-sky-300/70 to-transparent" />
+    <div className="overflow-hidden rounded-[1.25rem] border border-white/10 bg-[linear-gradient(180deg,rgba(18,26,45,0.92),rgba(8,14,27,0.98))] p-4 shadow-[0_16px_40px_rgba(2,6,23,0.22)]">
+      <div className="mb-3 h-px w-12 bg-gradient-to-r from-sky-300/70 to-transparent" />
       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">
         {label}
       </p>
@@ -68,7 +68,7 @@ export default function Home() {
     let cancelled = false;
 
     const loadDashboard = async () => {
-    const continueReadingRaw = getContinueReading(libraryData.history);
+      const continueReadingRaw = getContinueReading(libraryData.history);
       const [verseOfDayItem, continueReading, recentHistory, readingPlans, groupedHighlights, recentPrayers] =
         await Promise.all([
           getVerseOfTheDay(settings.language),
@@ -198,39 +198,39 @@ export default function Home() {
   };
 
   return (
-    <div className="home-shell app-shell app-page pb-24 pt-4 md:pt-6">
+    <div className="home-shell app-shell app-page pb-20 pt-3 md:pt-4">
       <div className="app-page-inner">
-        <section className="app-hero relative mb-6 overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.18),_transparent_24%),radial-gradient(circle_at_85%_20%,_rgba(56,189,248,0.22),_transparent_22%),radial-gradient(circle_at_bottom_left,_rgba(14,165,233,0.16),_transparent_26%),linear-gradient(135deg,_rgba(8,15,29,0.98),_rgba(5,10,20,0.99))] px-5 py-8 md:px-8 md:py-10">
+        <section className="app-hero relative mb-4 overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.18),_transparent_24%),radial-gradient(circle_at_85%_20%,_rgba(56,189,248,0.22),_transparent_22%),radial-gradient(circle_at_bottom_left,_rgba(14,165,233,0.16),_transparent_26%),linear-gradient(135deg,_rgba(8,15,29,0.98),_rgba(5,10,20,0.99))] px-4 py-6 md:px-6 md:py-8">
           <p className="text-xs font-semibold uppercase tracking-[0.34em] text-slate-400">
             {t.tamilBible}
           </p>
-          <h1 className="mt-3 max-w-3xl text-3xl font-bold leading-tight text-white md:text-5xl">
+          <h1 className="mt-2.5 max-w-2xl text-2xl font-bold leading-tight text-white md:text-4xl">
             {t.richReader}
           </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
+          <p className="mt-3.5 max-w-xl text-xs leading-6 text-slate-300 md:text-sm">
             {t.homeIntro}
           </p>
 
-          <div className="mt-6 flex flex-wrap gap-3 text-xs text-slate-300 md:text-sm">
-            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
+          <div className="mt-5 flex flex-wrap gap-2.5 text-[10px] text-slate-300 md:text-xs">
+            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
               {settings.language === "en" ? "Reading plans" : "வாசிப்பு திட்டங்கள்"}
             </div>
-            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
+            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
               {settings.language === "en" ? "Prayer journal" : "ஜெப குறிப்பேடு"}
             </div>
-            <div className="hidden rounded-full border border-white/10 bg-white/5 px-4 py-2 md:block">
+            <div className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1.5 md:block">
               {settings.language === "en" ? "Sermon mode" : "பிரசங்க முறை"}
             </div>
-            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
+            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
               {settings.language === "en" ? "Verse designer" : "வசன வடிவமைப்பான்"}
             </div>
           </div>
           {!isInstalled ? (
-            <div className="mt-6 md:hidden">
+            <div className="mt-5 md:hidden">
               <button
                 type="button"
                 onClick={handleOpenInstallPopup}
-                className="rounded-2xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-5 py-3 text-sm font-semibold text-white shadow-lg"
+                className="rounded-xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-4 py-2.5 text-xs font-semibold text-white shadow-lg"
               >
                 {t.installNow}
               </button>
@@ -238,8 +238,8 @@ export default function Home() {
           ) : null}
         </section>
 
-        <section className="mb-6 grid gap-4 lg:grid-cols-[1.1fr,0.9fr]">
-          <div className="app-surface rounded-[2rem] p-5">
+        <section className="mb-4 grid gap-3.5 lg:grid-cols-[1.1fr,0.9fr]">
+          <div className="app-surface rounded-[1.25rem] p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
               {settings.language === "en" ? "Continue Reading" : "தொடர் வாசிப்பு"}
             </p>
@@ -253,18 +253,18 @@ export default function Home() {
                 ? "Open any book or verse once and it will appear here for quick return."
                 : "எந்த புத்தகம் அல்லது வசனத்தை ஒரு முறை திறந்தாலும், இங்கு விரைவாக மீண்டும் திறக்க காணப்படும்."}
             </p>
-            <div className="mt-5 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-wrap gap-2.5">
               {continueReading ? (
                 <button
                   onClick={() => goToItem(continueReading)}
-                  className="rounded-2xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-5 py-3 text-sm font-semibold text-white shadow-lg"
+                  className="rounded-xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-4 py-2.5 text-xs font-semibold text-white shadow-lg"
                 >
                   {settings.language === "en" ? "Resume Now" : "இப்போது தொடரு"}
                 </button>
               ) : null}
               <button
                 onClick={() => navigate("/books")}
-                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-semibold text-white"
               >
                 {settings.language === "en" ? "Browse Books" : "புத்தகங்களை பார்"}
               </button>
@@ -272,16 +272,16 @@ export default function Home() {
           </div>
 
           {!isInstalled ? (
-            <div className="hidden app-surface rounded-[2rem] p-5 md:block">
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="hidden app-surface rounded-[1.25rem] p-4 md:block">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400">
                     {t.installApp}
                   </p>
-                  <h2 className="mt-2 text-xl font-bold text-white md:text-2xl">
+                  <h2 className="mt-1.5 text-lg font-bold text-white md:text-xl">
                     {settings.language === "en" ? "Offline-First App" : "ஆஃப்லைன் ஆப்"}
                   </h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-300">
+                  <p className="mt-1.5 max-w-xl text-xs leading-6 text-slate-300">
                     {settings.language === "en"
                       ? "Install the app for quicker startup, better offline behavior, and a more native reading experience."
                       : "விரைவான தொடக்கம், சிறந்த offline பயன்பாடு, மற்றும் native போன்ற வாசிப்பு அனுபவத்திற்காக ஆப்பை நிறுவுங்கள்."}
@@ -290,7 +290,7 @@ export default function Home() {
 
                 <button
                   onClick={handleInstallClick}
-                  className={`rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-lg ${
+                  className={`rounded-xl px-4 py-2.5 text-xs font-semibold text-white shadow-lg ${
                     canInstall
                       ? "bg-gradient-to-br from-indigo-500 to-sky-500 shadow-indigo-950/30"
                       : "bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)] shadow-sky-950/20"
@@ -299,24 +299,24 @@ export default function Home() {
                   {t.installNow}
                 </button>
               </div>
-              <p className="mt-4 text-sm leading-7 text-slate-400">
+              <p className="mt-3.5 text-xs leading-6 text-slate-400">
                 {installMessage || installInstructions || t.installHelp}
               </p>
             </div>
           ) : null}
         </section>
 
-        <section className="mb-6 grid gap-4 lg:grid-cols-[1.35fr,0.95fr]">
-          <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.14),_transparent_34%),linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(8,17,32,0.98))] p-5 shadow-2xl shadow-black/20">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+        <section className="mb-4 grid gap-3.5 lg:grid-cols-[1.35fr,0.95fr]">
+          <div className="overflow-hidden rounded-[1.25rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.14),_transparent_34%),linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(8,17,32,0.98))] p-4 shadow-xl shadow-black/20">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400">
               {t.verseOfDay}
             </p>
             {verseOfTheDay ? (
               <>
-                <p className="mt-3 text-sm font-medium text-slate-400">
+                <p className="mt-2.5 text-xs font-medium text-slate-400">
                   {verseOfTheDay.bookTamil} {verseOfTheDay.chapter}:{verseOfTheDay.verse}
                 </p>
-                <p className="mt-4 text-lg font-semibold leading-8 text-white md:text-2xl md:leading-10">
+                <p className="mt-3.5 text-base font-semibold leading-7 text-white md:text-xl md:leading-9">
                   {verseOfTheDay.text}
                 </p>
               </>
@@ -328,7 +328,7 @@ export default function Home() {
             <button
               onClick={handleOpenVerseOfDay}
               disabled={!verseOfTheDay}
-              className="mt-5 rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-lg"
+              className="mt-4 rounded-xl px-4 py-2.5 text-xs font-semibold text-white shadow-lg"
               style={{
                 background: "linear-gradient(135deg, #2563eb, #38bdf8)",
               }}
@@ -337,7 +337,7 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+          <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-1">
             <StatCard label={t.bookmarksTitle} value={bookmarkCount} />
             <StatCard label={t.favoritesTitle} value={favoriteCount} />
             <StatCard
@@ -353,30 +353,30 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mb-6 app-surface rounded-[2rem] p-5">
+        <section className="mb-4 app-surface rounded-[1.25rem] p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
                 {settings.language === "en" ? "Daily Plans" : "தினசரி திட்டங்கள்"}
               </p>
-              <h2 className="mt-2 text-xl font-bold text-white">
+              <h2 className="mt-1.5 text-lg font-bold text-white">
                 {settings.language === "en" ? "Reading Plans" : "வாசிப்பு திட்டங்கள்"}
               </h2>
             </div>
             <button
               type="button"
               onClick={() => continueReading && goToItem(continueReading)}
-              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white"
+              className="rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-xs font-semibold text-white"
             >
               {settings.language === "en" ? "Track From Current Chapter" : "தற்போது அதிகாரத்திலிருந்து தொடர்"}
             </button>
           </div>
 
-          <div className="mt-5 grid gap-4 lg:grid-cols-3">
+          <div className="mt-4 grid gap-3.5 lg:grid-cols-3">
             {readingPlans.map((plan) => (
               <div
                 key={plan.id}
-                className="rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-4"
+                className="rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-3.5"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -400,13 +400,13 @@ export default function Home() {
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-300">
-                  <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
+                  <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-3">
                     <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
                       {settings.language === "en" ? "Done" : "முடிந்தது"}
                     </p>
                     <p className="mt-2 font-semibold text-white">{plan.completedCount}</p>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
+                  <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-3">
                     <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
                       {settings.language === "en" ? "Today" : "இன்று"}
                     </p>
@@ -440,8 +440,8 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mb-6 grid gap-4 lg:grid-cols-2">
-          <div className="app-surface rounded-[2rem] p-5">
+        <section className="mb-4 grid gap-3.5 lg:grid-cols-2">
+          <div className="app-surface rounded-[1.25rem] p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
@@ -453,13 +453,13 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-3.5 space-y-2.5">
               {recentHistory.length ? (
                 recentHistory.map((item) => (
                   <button
                     key={`${item.type}-${item.id}`}
                     onClick={() => goToItem(item)}
-                    className="flex w-full items-center justify-between rounded-[1.4rem] border border-white/10 bg-white/[0.03] px-4 py-3 text-left transition hover:bg-white/[0.06]"
+                    className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-left transition hover:bg-white/[0.06]"
                   >
                     <div>
                       <p className="text-sm font-semibold text-white">{item.bookTamil}</p>
@@ -474,14 +474,14 @@ export default function Home() {
                   </button>
                 ))
               ) : (
-                <p className="rounded-[1.4rem] border border-dashed border-white/10 px-4 py-5 text-sm text-slate-400">
+                <p className="rounded-xl border border-dashed border-white/10 px-4 py-5 text-sm text-slate-400">
                   {t.noItemsYet}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="hidden app-surface rounded-[2rem] p-5 md:block">
+          <div className="hidden app-surface rounded-[1.25rem] p-4 md:block">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
@@ -496,12 +496,12 @@ export default function Home() {
               </span>
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-3.5 space-y-2.5">
               {recentPrayers.length ? (
                 recentPrayers.map((item) => (
                   <div
                     key={item.id}
-                    className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4"
+                    className="rounded-xl border border-white/10 bg-white/[0.03] p-3.5"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <button type="button" onClick={() => goToItem(item)} className="text-left">
@@ -515,7 +515,7 @@ export default function Home() {
                       <button
                         type="button"
                         onClick={() => togglePrayerAnswered(item.id)}
-                        className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                        className={`rounded-full px-2.5 py-1.5 text-[10px] font-semibold ${
                           item.answered
                             ? "bg-emerald-400 text-slate-950"
                             : "border border-white/10 bg-white/5 text-slate-200"
@@ -533,7 +533,7 @@ export default function Home() {
                   </div>
                 ))
               ) : (
-                <p className="rounded-[1.4rem] border border-dashed border-white/10 px-4 py-5 text-sm text-slate-400">
+                <p className="rounded-xl border border-dashed border-white/10 px-4 py-5 text-sm text-slate-400">
                   {settings.language === "en"
                     ? "Add prayers to verses from the chapter screen and revisit them here."
                     : "அதிகார திரையிலிருந்து வசனங்களுக்கு ஜெபங்களை சேர்த்து, இங்கு மீண்டும் பார்க்கலாம்."}
@@ -543,8 +543,8 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mb-6 grid gap-4 lg:grid-cols-[1.1fr,0.9fr]">
-          <div className="app-surface rounded-[2rem] p-5">
+        <section className="mb-4 grid gap-3.5 lg:grid-cols-[1.1fr,0.9fr]">
+          <div className="app-surface rounded-[1.25rem] p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
@@ -556,11 +556,11 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="mt-3.5 grid gap-3 sm:grid-cols-2">
               {groupedHighlights.map((folder) => (
                 <div
                   key={folder.value}
-                  className={`rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4 ${
+                  className={`rounded-xl border border-white/10 bg-white/[0.03] p-3.5 ${
                     folder.value === "sermon" || folder.value === "prayer" ? "hidden md:block" : ""
                   }`}
                 >
@@ -599,7 +599,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="app-surface rounded-[2rem] p-5">
+          <div className="app-surface rounded-[1.25rem] p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
               {settings.language === "en" ? "Sharing + Presentation" : "பகிரல் + பிரசென்டேஷன்"}
             </p>
@@ -613,40 +613,40 @@ export default function Home() {
                   : "வடிவமைப்பு மற்றும் பிரசங்க கருவிகள்"}
               </span>
             </h2>
-            <div className="mt-4 space-y-3">
-              <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="mt-3.5 space-y-2.5">
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3.5">
                 <p className="text-sm font-semibold text-white">
                   {settings.language === "en" ? "Verse image designer" : "வசன பட வடிவமைப்பான்"}
                 </p>
-                <p className="mt-2 text-sm leading-7 text-slate-300">
+                <p className="mt-1.5 text-xs leading-6 text-slate-300">
                   {settings.language === "en"
                     ? "Share verse cards with templates, font size, watermark, and direct export for WhatsApp or Telegram from the reader popup."
                     : "Reader popup-இலிருந்து template, font size, watermark, WhatsApp அல்லது Telegram export உடன் வசன கார்டுகளை பகிரலாம்."}
                 </p>
               </div>
-              <div className="hidden rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4 md:block">
+              <div className="hidden rounded-xl border border-white/10 bg-white/[0.03] p-3.5 md:block">
                 <p className="text-sm font-semibold text-white">
                   {settings.language === "en" ? "Sermon mode" : "பிரசங்க முறை"}
                 </p>
-                <p className="mt-2 text-sm leading-7 text-slate-300">
+                <p className="mt-1.5 text-xs leading-6 text-slate-300">
                   {settings.language === "en"
                     ? "Queue verses during preparation, open the sermon display on another screen, and control the active verse remotely from a second tab."
                     : "தயாரிப்பில் வசனங்களை queue செய்து, மற்றொரு screen-இல் sermon display-ஐ திறந்து, இரண்டாம் tab-இலிருந்து active verse-ஐ control செய்யலாம்."}
                 </p>
               </div>
             </div>
-            <div className="mt-5 hidden flex-wrap gap-3 md:flex">
+            <div className="mt-4 hidden flex-wrap gap-2.5 md:flex">
               <button
                 type="button"
                 onClick={() => navigate("/sermon-control")}
-                className="rounded-2xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-5 py-3 text-sm font-semibold text-white shadow-lg"
+                className="rounded-xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-4 py-2.5 text-xs font-semibold text-white shadow-lg"
               >
                 {settings.language === "en" ? "Open Sermon Control" : "பிரசங்க கட்டுப்பாட்டை திற"}
               </button>
               <button
                 type="button"
                 onClick={() => window.open("/sermon-mode", "_blank", "noopener,noreferrer")}
-                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-semibold text-white"
               >
                 {settings.language === "en" ? "Launch Sermon Screen" : "பிரசங்க திரையை தொடங்கு"}
               </button>
@@ -669,12 +669,12 @@ export default function Home() {
               </p>
               {verseOfTheDay ? (
                 <>
-              <p className="mt-3 text-center text-sm font-semibold text-white">
-                {verseOfTheDay.bookTamil} {verseOfTheDay.chapter}:{verseOfTheDay.verse}
-              </p>
-              <p className="mt-5 text-center text-lg font-semibold leading-9 text-white">
-                {verseOfTheDay.text}
-              </p>
+                  <p className="mt-3 text-center text-sm font-semibold text-white">
+                    {verseOfTheDay.bookTamil} {verseOfTheDay.chapter}:{verseOfTheDay.verse}
+                  </p>
+                  <p className="mt-5 text-center text-lg font-semibold leading-9 text-white">
+                    {verseOfTheDay.text}
+                  </p>
                 </>
               ) : (
                 <p className="mt-5 text-center text-sm text-slate-300">Loading verse...</p>

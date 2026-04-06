@@ -124,11 +124,19 @@ export default function SeoManager() {
       title = `${t.advancedPresentation} | Tamil Bible Premium`;
       description =
         "Configure advanced Tamil Bible presentation settings for church display, stage view, and screen layouts.";
-      robots = "noindex, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
       breadcrumbItems.push({
         "@type": "ListItem",
         position: 2,
         name: t.advancedPresentation,
+        item: canonicalUrl,
+      });
+    } else if (pathname === "/sermon-mode") {
+      title = `Sermon Mode | Tamil Bible Premium`;
+      description = "Dedicated sermon reading mode for the Tamil Bible.";
+      breadcrumbItems.push({
+        "@type": "ListItem",
+        position: 2,
+        name: "Sermon Mode",
         item: canonicalUrl,
       });
     }
@@ -216,8 +224,8 @@ export default function SeoManager() {
     } else if (
       pathname.startsWith("/presentation/") ||
       pathname === "/presentation-remote" ||
-      pathname === "/sermon-mode" ||
-      pathname === "/sermon-control"
+      pathname === "/sermon-control" ||
+      pathname === "/advanced-presentation"
     ) {
       robots = "noindex, nofollow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
     }

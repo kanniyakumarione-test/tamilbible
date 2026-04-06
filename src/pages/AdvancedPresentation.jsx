@@ -4,6 +4,7 @@ import { QRCode } from "react-qr-code";
 
 import useAppSettings from "../hooks/useAppSettings";
 import useLibraryData from "../hooks/useLibraryData";
+import SmoothBackground from "../components/SmoothBackground";
 import {
   removeSermonQueueItem,
   setActiveSermonItem,
@@ -24,6 +25,7 @@ import { getUIText } from "../utils/uiText";
 import MotionBackground from "../components/MotionBackground";
 import { getPresentationFontFamily } from "../utils/appearance";
 import { getSiteUrl } from "../utils/siteUrl";
+import { optimizeImage } from "../utils/imageOptimization";
 
 const backgrounds = [
   "/bg/bg1.jpg",
@@ -105,13 +107,26 @@ const ColorChip = memo(function ColorChip({ label, value, onChange }) {
 const BackgroundTile = memo(function BackgroundTile({ active, onClick, children }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className={`overflow-hidden rounded-2xl border-2 transition ${
-        active ? "border-sky-400 shadow-lg shadow-sky-950/25" : "border-white/10 hover:border-white/20"
+        active ? "border-cyan-300 shadow-lg shadow-cyan-950/30" : "border-white/10 hover:border-white/20"
       }`}
     >
       {children}
     </button>
+  );
+});
+
+const ControlPanel = memo(function ControlPanel({ title, subtitle, children, className = "" }) {
+  return (
+    <div className={`rounded-[2.2rem] border border-white/10 bg-black/20 p-6 backdrop-blur-xl ${className}`}>
+      <div className="mb-6">
+        <h3 className="text-lg font-bold text-white">{title}</h3>
+        <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
+      </div>
+      {children}
+    </div>
   );
 });
 
@@ -246,32 +261,6 @@ async function openPresentationWindow(path, targetScreenValue, windowName) {
   window.open(path, windowName, features.join(","));
 }
 
-async function resizeImage(file) {
-  const fileUrl = URL.createObjectURL(file);
-
-  try {
-    const image = await new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = reject;
-      img.src = fileUrl;
-    });
-
-    const canvas = document.createElement("canvas");
-    const maxSize = 1600;
-    const ratio = Math.min(maxSize / image.width, maxSize / image.height, 1);
-
-    canvas.width = Math.round(image.width * ratio);
-    canvas.height = Math.round(image.height * ratio);
-
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-    return canvas.toDataURL("image/jpeg", 0.82);
-  } finally {
-    URL.revokeObjectURL(fileUrl);
-  }
-}
 
 function isLocalOnlyHost(hostname) {
   return (
@@ -341,6 +330,22 @@ function PresentationPreviewText({ text, style, twoLines = false }) {
     </>
   );
 }
+
+const StatusCard = memo(function StatusCard({ label, value, icon, colorClass }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+      <div className="flex items-center gap-3">
+        <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-${colorClass}/20 text-${colorClass}`}>
+          {icon}
+        </div>
+        <div>
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{label}</p>
+          <p className="mt-0.5 text-sm font-bold text-white">{value}</p>
+        </div>
+      </div>
+    </div>
+  );
+});
 
 export default function AdvancedPresentation() {
   const [settings, update] = useAppSettings();
@@ -443,30 +448,32 @@ export default function AdvancedPresentation() {
     };
   }, []);
 
-  const previewBackground =
-    settings.bgType === "motion"
-      ? "#07111f"
-      : settings.bgType === "custom" && settings.customBackground
-      ? `url(${settings.customBackground})`
-      : settings.bgType === "gradient"
-      ? gradients[settings.bgIndex]
-      : `url(${backgrounds[settings.bgIndex]})`;
-
-  const stageBackground = settings.stageGreenScreen
-    ? "#00b140"
-    : `url(${backgrounds[settings.stageStillBackground || 0]})`;
-
-  const previewItem = activeItem || {
-    bookTamil: t.previewRef,
-    chapter: "",
-    verse: "",
-    text: t.previewVerse,
-  };
-
+  const previewItem = activeItem || { text: t.previewVerse, reference: t.previewRef };
   const previewReference = activeItem
-    ? `${previewItem.bookTamil} ${previewItem.chapter}:${previewItem.verse}`
+    ? `${activeItem.bookTamil} ${activeItem.chapter}:${activeItem.verse}`
     : t.previewRef;
   const presentationFont = getPresentationFontFamily(settings);
+
+  const previewBackground = useMemo(() => {
+    if (settings.bgType === "motion" || !settings.bgType) {
+      return null;
+    }
+
+    if (settings.bgType === "custom" && settings.customBackground) {
+      return `url(${settings.customBackground})`;
+    }
+
+    return settings.bgType === "gradient"
+      ? gradients[settings.bgIndex]
+      : `url(${backgrounds[settings.bgIndex]})`;
+  }, [settings.bgIndex, settings.bgType, settings.customBackground]);
+
+  const stageBackground = useMemo(() => {
+    if (settings.stageGreenScreen) {
+      return "#10b981"; // Modern emerald-green for chroma key
+    }
+    return `url(${backgrounds[settings.stageStillBackground || 0]})`;
+  }, [settings.stageStillBackground, settings.stageGreenScreen]);
 
   const updateSettings = (patch) => update({ ...settings, ...patch });
 
@@ -483,8 +490,14 @@ export default function AdvancedPresentation() {
   const handleLogoUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const resized = await resizeImage(file);
-    updateSettings({ stageLogoImage: resized, presentationShowCustomLogo: true });
+    
+    try {
+      const optimized = await optimizeImage(file);
+      updateSettings({ stageLogoImage: optimized, presentationShowCustomLogo: true });
+    } catch (error) {
+      console.error("[AdvancedPresentation] Logo Optimization failed:", error);
+    }
+    
     event.target.value = "";
   };
 
@@ -530,7 +543,7 @@ export default function AdvancedPresentation() {
       mounted = false;
       if (rafId) window.cancelAnimationFrame(rafId);
     };
-  }, [previewItem.text, settings.presentationMaxFontSize, settings.presentationJustify]);
+  }, [activeItem?.text, settings.presentationMaxFontSize, settings.presentationJustify]);
 
   useEffect(() => {
     let mounted = true;
@@ -571,7 +584,7 @@ export default function AdvancedPresentation() {
       mounted = false;
       if (rafId) window.cancelAnimationFrame(rafId);
     };
-  }, [previewItem.text, settings.presentationMaxFontSize, settings.presentationJustify]);
+  }, [activeItem?.text, settings.presentationMaxFontSize, settings.presentationJustify]);
 
   return (
     <div className="hidden px-4 pb-24 pt-4 md:block md:px-6 md:pt-6">
@@ -999,11 +1012,13 @@ export default function AdvancedPresentation() {
               <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-1">
                 <div>
                   <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Main Preview</p>
-                  <div
-                    className="relative flex h-52 items-center justify-center overflow-hidden rounded-[1.5rem] border border-white/10 bg-black p-4 shadow-inner shadow-black/40"
-                    style={{ background: previewBackground, backgroundImage: settings.bgType === "motion" ? undefined : previewBackground, backgroundSize: "cover", backgroundPosition: "center" }}
-                  >
-                    {settings.bgType === "motion" ? <MotionBackground variant={settings.motionBackground} /> : null}
+                  <div className="relative flex h-52 items-center justify-center overflow-hidden rounded-[1.5rem] border border-white/10 bg-black p-4 shadow-inner shadow-black/40">
+                    <SmoothBackground
+                      background={settings.background}
+                      bgType={settings.bgType}
+                      customBackground={settings.customBackground}
+                      motionVariant={settings.motionBackground}
+                    />
                     <div
                       className="relative z-10 w-full rounded-2xl px-5 py-4 text-center backdrop-blur-sm"
                       style={{
