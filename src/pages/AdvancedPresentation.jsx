@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { QRCode } from "react-qr-code";
 
@@ -23,6 +23,7 @@ import {
 import { getUIText } from "../utils/uiText";
 import MotionBackground from "../components/MotionBackground";
 import { getPresentationFontFamily } from "../utils/appearance";
+import { getSiteUrl } from "../utils/siteUrl";
 
 const backgrounds = [
   "/bg/bg1.jpg",
@@ -369,11 +370,27 @@ export default function AdvancedPresentation() {
       : queue[1] || null;
   const displayMode = libraryData.sermon.displayMode || "live";
   const [serverInfo, setServerInfo] = useState(() => getCachedPresentationServerInfo());
+  const [selectedOriginIndex, setSelectedOriginIndex] = useState(0);
+
+  const candidateOrigins = useMemo(() => {
+    const list = [...(serverInfo?.candidateOrigins || [])];
+    const publicUrl = getSiteUrl();
+
+    if (publicUrl && !publicUrl.includes("localhost") && !list.includes(publicUrl)) {
+      list.push(publicUrl);
+    }
+
+    return list;
+  }, [serverInfo]);
+
   const remoteOrigin = isLocalOnlyHost(window.location.hostname)
-    ? serverInfo?.candidateOrigins?.[0] || null
+    ? candidateOrigins[selectedOriginIndex] || null
     : window.location.origin;
-  const remoteUrl = remoteOrigin ? `${remoteOrigin}/presentation-remote` : `${window.location.origin}/presentation-remote`;
-  const remoteNeedsPublicHost = !remoteOrigin;
+
+  const remoteUrl = remoteOrigin
+    ? `${remoteOrigin}/presentation-remote`
+    : `${window.location.origin}/presentation-remote`;
+  const remoteNeedsPublicHost = !remoteOrigin || isLocalOnlyHost(new URL(remoteUrl).hostname);
   const [copiedRemoteUrl, setCopiedRemoteUrl] = useState(false);
 
   useEffect(() => {
@@ -766,14 +783,28 @@ export default function AdvancedPresentation() {
 
             <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center">
               <p className="text-sm font-semibold text-white">Phone Remote QR</p>
+
+              {candidateOrigins.length > 1 && isLocalOnlyHost(window.location.hostname) ? (
+                <div className="mt-3">
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                    Switch Network Address
+                  </p>
+                  <select
+                    value={selectedOriginIndex}
+                    onChange={(e) => setSelectedOriginIndex(Number(e.target.value))}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 outline-none"
+                  >
+                    {candidateOrigins.map((origin, idx) => (
+                      <option key={origin} value={idx}>
+                        {new URL(origin).hostname} ({idx === 0 ? "Default" : "Mirror"})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+
               <div className="mx-auto mt-4 flex h-40 w-40 items-center justify-center rounded-2xl bg-white p-3">
-                <QRCode
-                  value={remoteUrl}
-                  size={136}
-                  bgColor="#ffffff"
-                  fgColor="#0f172a"
-                  level="M"
-                />
+                <QRCode value={remoteUrl} size={136} bgColor="#ffffff" fgColor="#0f172a" level="M" />
               </div>
               <p className="mt-3 break-all text-xs leading-6 text-slate-400">{remoteUrl}</p>
               <button
@@ -784,13 +815,14 @@ export default function AdvancedPresentation() {
                 {copiedRemoteUrl ? "Copied" : "Copy Link"}
               </button>
               {remoteNeedsPublicHost ? (
-                <p className="mt-3 rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-6 text-amber-100">
-                  The app is currently open on {window.location.hostname}, which phones usually cannot reach.
-                  Start both the frontend and backend on your LAN, then this QR will point to your network address.
-                </p>
+                <div className="mt-3 space-y-2">
+                  <p className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-6 text-amber-100">
+                    Your phone usually cannot reach "localhost". {candidateOrigins.length > 1 ? "Try selecting a different address above." : "Make sure the backend is running on your LAN."}
+                  </p>
+                </div>
               ) : (
                 <p className="mt-3 text-xs leading-6 text-slate-500">
-                  Make sure your phone can reach this same address on the network before using the remote.
+                  Make sure your phone is on the same Wi-Fi network to use this address.
                 </p>
               )}
 

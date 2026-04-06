@@ -92,7 +92,7 @@ function sendJson(res, statusCode, data) {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Cache-Control",
     "Cache-Control": "no-store",
   });
   res.end(JSON.stringify(data));
@@ -102,7 +102,7 @@ function sendNoContent(res) {
   res.writeHead(204, {
     "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Cache-Control",
   });
   res.end();
 }
@@ -143,17 +143,29 @@ function getLanIps() {
     }
   }
 
-  return Array.from(new Set(ips));
+  const uniqueIps = Array.from(new Set(ips));
+
+  // Sort IPs to prioritize common LAN ranges (192.168.x.x, 10.x.x.x)
+  return uniqueIps.sort((a, b) => {
+    const isCommon = (ip) => ip.startsWith("192.168.") || ip.startsWith("10.");
+    if (isCommon(a) && !isCommon(b)) return -1;
+    if (!isCommon(a) && isCommon(b)) return 1;
+    return a.localeCompare(b);
+  });
 }
 
 function getServerInfo(frontendPort) {
   const candidatePort = frontendPort || process.env.FRONTEND_PORT || port;
   const lanIps = getLanIps();
+  const publicOrigin = process.env.PUBLIC_ORIGIN || null;
 
   return {
     backendOrigin: `http://localhost:${port}`,
     lanIps,
-    candidateOrigins: lanIps.map((ip) => `http://${ip}:${candidatePort}`),
+    candidateOrigins: [
+      ...(publicOrigin ? [publicOrigin] : []),
+      ...lanIps.map((ip) => `http://${ip}:${candidatePort}`),
+    ],
   };
 }
 
