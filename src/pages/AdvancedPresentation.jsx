@@ -782,7 +782,24 @@ export default function AdvancedPresentation() {
             </label>
 
             <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center">
-              <p className="text-sm font-semibold text-white">Phone Remote QR</p>
+              <div className="flex items-center justify-center gap-2">
+                <p className="text-sm font-semibold text-white">Phone Remote QR</p>
+                {!serverInfo ? (
+                  <span className="inline-flex items-center rounded-full bg-red-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-400 ring-1 ring-inset ring-red-400/20">
+                    Backend Offline
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 ring-1 ring-inset ring-emerald-400/20">
+                    Live
+                  </span>
+                )}
+              </div>
+
+              {!serverInfo ? (
+                <p className="mt-2 text-[10px] text-slate-400">
+                  Run <code>npm run backend</code> to enable network discovery.
+                </p>
+              ) : null}
 
               {candidateOrigins.length > 1 && isLocalOnlyHost(window.location.hostname) ? (
                 <div className="mt-3">
