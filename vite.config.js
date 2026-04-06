@@ -33,7 +33,12 @@ export default defineConfig({
       includeAssets: ["favicon.svg", "apple-touch-icon.png", "icon-192.png", "icon-512.png"],
       workbox: {
         maximumFileSizeToCacheInBytes: 24 * 1024 * 1024,
+        navigateFallbackDenylist: [/^\/api/],
         runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith("/api/"),
+            handler: "NetworkOnly",
+          },
           {
             urlPattern: ({ request }) => request.destination === "image",
             handler: "StaleWhileRevalidate",
