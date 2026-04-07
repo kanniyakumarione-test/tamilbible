@@ -1,5 +1,4 @@
 import { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-
 import { defaultSettings } from "../utils/settings";
 import useAppSettings from "../hooks/useAppSettings";
 import useInstallPrompt from "../hooks/useInstallPrompt";
@@ -10,6 +9,9 @@ import {
   TAMIL_FONT_OPTIONS,
 } from "../utils/appearance";
 import { optimizeImage, tryOptimizeExternalImage } from "../utils/imageOptimization";
+import { getPresentationScreens } from "../utils/screens";
+import { getSiteUrl } from "../utils/siteUrl";
+import { QRCode } from "react-qr-code";
 
 const backgrounds = [
   "/bg/bg1.jpg",
@@ -30,7 +32,6 @@ const gradients = [
 const tabs = [
   { id: "reader", label: "Reader" },
   { id: "visual", label: "Visual" },
-  { id: "app", label: "App" },
 ];
 
 const motionBackgroundOptions = [
@@ -46,17 +47,17 @@ const motionBackgroundOptions = [
 const Panel = memo(function Panel({ title, subtitle, children, className = "", isTamil = false }) {
   return (
     <section
-      className={`w-full min-w-0 rounded-[1.25rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(11,18,32,0.96),_rgba(7,12,23,0.98))] p-4 shadow-xl shadow-black/20 ${className}`}
+      className={`app-surface w-full min-w-0 rounded-[1.25rem] p-4 ${className}`}
     >
       <div className="mb-4">
         <p
-          className={`font-semibold text-cyan-300/70 border-b border-white/5 pb-2 mb-3 ${
+          className={`font-semibold text-sky-400/80 border-b border-white/5 pb-2 mb-3 ${
             isTamil ? "text-sm tracking-normal" : "text-[10px] uppercase tracking-[0.28em]"
           }`}
         >
           {title}
         </p>
-        <p className={`max-w-2xl text-slate-400 ${isTamil ? "text-sm leading-7" : "text-xs leading-6"}`}>
+        <p className={`max-w-2xl text-slate-300 ${isTamil ? "text-sm leading-7" : "text-xs leading-6"}`}>
           {subtitle}
         </p>
       </div>
@@ -85,7 +86,7 @@ const TabButton = memo(function TabButton({ active, children, onClick, isTamil =
 
 const MetricPill = memo(function MetricPill({ label, value, isTamil = false }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5">
+    <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5">
       <p
         className={`text-slate-500 ${
           isTamil ? "text-xs font-medium tracking-normal" : "text-[9px] uppercase tracking-[0.2em]"
@@ -181,7 +182,7 @@ const PopupSelectRow = memo(function PopupSelectRow({ label, options, value, onC
   }, [open]);
 
   return (
-    <div ref={wrapperRef} className="relative w-full min-w-0 rounded-xl border border-white/10 bg-black/20 p-3">
+    <div ref={wrapperRef} className={`relative w-full min-w-0 rounded-xl border border-white/10 bg-black/20 p-3 transition-all ${open ? "z-40" : "z-10"}`}>
       <p className="break-words text-xs font-medium text-slate-300">{label}</p>
 
       <button
@@ -260,7 +261,7 @@ export default function Settings() {
   );
   const [settings, update] = useAppSettings();
   const { canInstall, isInstalled, installInstructions, promptInstall } = useInstallPrompt();
-  const [draft, setDraft] = useState(settings);
+  const [draft, setDraft] = useState(() => ({ ...defaultSettings, ...settings }));
   const [backgroundUrl, setBackgroundUrl] = useState(() =>
     typeof settings.customBackground === "string" && /^https?:\/\//i.test(settings.customBackground)
       ? settings.customBackground
@@ -270,8 +271,13 @@ export default function Settings() {
   const [installFeedback, setInstallFeedback] = useState("");
   const previewCardRef = useRef(null);
   const previewTextRef = useRef(null);
+  const [screenOptions, setScreenOptions] = useState([
+    {
+      value: "current-screen",
+      label: `Screen 1 \u2192 ${window?.screen?.availWidth || 1920}x${window?.screen?.availHeight || 1080}`,
+    },
+  ]);
   const previewDraft = useDeferredValue(draft);
-  const [, setPreviewFontSize] = useState(draft.fontSize);
   const t = getUIText(draft.language);
   const isTamil = draft.language !== "en";
   const isBilingual = draft.language === "ta-en";
@@ -281,7 +287,7 @@ export default function Settings() {
       tabs: {
         reader: isTamil ? "வாசிப்பு" : "Reader",
         visual: isTamil ? "தோற்றம்" : "Visual",
-        app: isTamil ? "செயலி" : "App",
+        presentation: t.presentation || "Presentation",
       },
       panels: {
         readerControls: {
@@ -303,10 +309,34 @@ export default function Settings() {
             : "Switch backgrounds or upload a custom image for a personal reading atmosphere.",
         },
         presentationDefaults: {
-          title: isTamil ? "வெளியீட்டு முன்னிருப்புகள்" : "Presentation Defaults",
+          title: t.mainDisplay || "Main Display",
           subtitle: isTamil
-            ? "சபை திரை மற்றும் பிரசங்க காட்சிக்கான விரைவு செயலி அமைப்புகள்."
-            : "Controls for sermon screens and projector-ready output.",
+            ? "முக்கிய காட்சி மற்றும் புரொஜெக்டர் திரையின் எழுத்துகள் மற்றும் தோற்றத்தை மாற்றவும்."
+            : "Adjust font size, styles, and layout for the main projector display.",
+        },
+        stageView: {
+          title: t.stageDisplay || "Stage Display",
+          subtitle: isTamil
+            ? "சபை திரையின் ஸ்டைல் மற்றும் க்ரீன் ஸ்கிரீன் அமைப்புகள்."
+            : "Controls for stage monitor screens and green screen chroma key.",
+        },
+        installApp: {
+          title: t.installApp || "Install App",
+          subtitle: isTamil
+            ? "இந்த வேதாகமத்தை ஒரு தனி செயலி போல உங்கள் மொபைலில் நிறுவலாம்."
+            : "Install this Bible as a standalone app on your home screen.",
+        },
+        remoteControl: {
+          title: t.remoteControl || "Remote Control",
+          subtitle: isTamil
+            ? "இந்த போனை ரிமோட் போல பயன்படுத்தி டிஸ்பிளேவை கட்டுப்படுத்தலாம்."
+            : "Use your phone as a remote to control the live display.",
+        },
+        aboutApp: {
+          title: t.aboutApp || "About App",
+          subtitle: isTamil
+            ? "செயலியின் பதிப்பு மற்றும் தயாரிப்பு விவரங்கள்."
+            : "Version info and developer details.",
         },
         livePreview: {
           title: t.livePreview,
@@ -320,7 +350,7 @@ export default function Settings() {
         hidden: isTamil ? "மறை" : "Hidden",
       },
     }),
-    [isTamil, t.livePreview]
+    [isTamil, t]
   );
 
   useEffect(() => {
@@ -338,33 +368,6 @@ export default function Settings() {
     return () => window.clearTimeout(timeout);
   }, [draft, settings, update]);
 
-  useEffect(() => {
-    let rafId = null;
-    const fitPreviewText = () => {
-      const container = previewCardRef.current;
-      const textEl = previewTextRef.current;
-      if (!container || !textEl) return;
-      
-      const max = Math.max(previewDraft.fontSize || 24, 18);
-      let lo = 14, hi = max, best = 14;
-      while (lo <= hi) {
-        const mid = Math.floor((lo + hi) / 2);
-        textEl.style.fontSize = `${mid}px`;
-        if (textEl.scrollHeight <= container.clientHeight && textEl.scrollWidth <= container.clientWidth) {
-          best = mid; lo = mid + 1;
-        } else hi = mid - 1;
-      }
-      textEl.style.fontSize = `${best}px`;
-      setPreviewFontSize(best);
-    };
-    const timeoutId = window.setTimeout(() => {
-      rafId = window.requestAnimationFrame(fitPreviewText);
-    }, 100);
-    return () => {
-      window.clearTimeout(timeoutId);
-      if (rafId) window.cancelAnimationFrame(rafId);
-    };
-  }, [previewDraft.fontSize, previewDraft.lineHeight, previewDraft.textAlign, previewDraft.language, previewDraft.readerWidth]);
 
   const updateDraft = (patch) => setDraft((current) => ({ ...current, ...patch }));
   const resetSettings = () => setDraft(defaultSettings);
@@ -372,6 +375,10 @@ export default function Settings() {
   useEffect(() => {
     const handleResize = () => setIsMobileViewport(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
+    
+    // Load screens for presentation setup
+    void getPresentationScreens().then(setScreenOptions);
+    
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
@@ -426,157 +433,179 @@ export default function Settings() {
             <h1 className="mt-2 text-2xl font-bold tracking-tight text-white md:text-3xl">
               {t.settingsTitle}
             </h1>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="mt-4 grid grid-cols-3 gap-2">
               <MetricPill label={t.fontSize} value={`${draft.fontSize}px`} isTamil={isTamil} />
               <MetricPill
                 label={t.language}
-                value={draft.language === "en" ? t.english : isBilingual ? t.tamilEnglish : t.tamil}
+                value={draft.language === "en" ? "EN" : isBilingual ? "TA+EN" : "TA"}
                 isTamil={isTamil}
               />
-              <MetricPill label={t.readerWidth} value={`${draft.readerWidth}px`} isTamil={isTamil} />
+              <MetricPill label={isTamil ? "அகலம்" : "Width"} value={`${draft.readerWidth}px`} isTamil={isTamil} />
             </div>
           </div>
         </header>
 
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1">
-          <div className="flex flex-wrap gap-2">
+        <div className="mb-4 scrollbar-none -mx-1 flex items-center gap-2 overflow-x-auto px-1">
+          <div className="flex shrink-0 gap-2">
             {tabs.map((item) => (
               <TabButton key={item.id} active={tab === item.id} onClick={() => setTab(item.id)} isTamil={isTamil}>
                 {settingsPageText.tabs[item.id]}
               </TabButton>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={resetSettings}
-            className="rounded-full border border-white/10 bg-white/[0.05] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-white/[0.1]"
-          >
-            {t.resetSettings}
-          </button>
         </div>
 
         <div className="grid gap-4 xl:grid-cols-[1.1fr,0.9fr]">
-          <div className="min-w-0 space-y-4">
-            {tab === "reader" && (
-              <>
-                <Panel title={settingsPageText.panels.readerControls.title} subtitle={settingsPageText.panels.readerControls.subtitle} isTamil={isTamil}>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <StepControl label={t.fontSize} value={draft.fontSize} valueLabel={`${draft.fontSize}px`} min={18} max={42} step={1} onChange={(fontSize) => updateDraft({ fontSize })} />
-                    <StepControl label={t.lineSpacing} value={draft.lineHeight} valueLabel={`${draft.lineHeight.toFixed(1)}x`} min={1.3} max={2.4} step={0.1} onChange={(lineHeight) => updateDraft({ lineHeight })} />
-                    <StepControl label={t.readerWidth} value={draft.readerWidth} valueLabel={`${draft.readerWidth}px`} min={640} max={1200} step={20} onChange={(readerWidth) => updateDraft({ readerWidth })} />
-                    <StepControl label={t.cardOpacity} value={draft.cardOpacity} valueLabel={`${Math.round(draft.cardOpacity * 100)}%`} min={0.2} max={0.9} step={0.05} onChange={(cardOpacity) => updateDraft({ cardOpacity })} />
-                  </div>
-                  <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <ChoiceRow label={t.textAlign} value={draft.textAlign} onChange={(textAlign) => updateDraft({ textAlign })} isTamil={isTamil} options={[{ value: "left", label: t.left }, { value: "center", label: t.center }, { value: "justify", label: t.justify }]} />
-                    <ChoiceRow label={t.language} value={draft.language} onChange={(language) => updateDraft({ language })} isTamil={isTamil} options={[{ value: "ta", label: t.tamil }, { value: "en", label: t.english }, { value: "ta-en", label: t.tamilEnglish }]} />
-                    <PopupSelectRow label="Font Family" value={draft.fontFamily} onChange={(fontFamily) => updateDraft({ fontFamily })} options={FONT_FAMILY_OPTIONS} />
-                    <PopupSelectRow label="Tamil Font" value={draft.tamilFontFamily} onChange={(tamilFontFamily) => updateDraft({ tamilFontFamily })} options={TAMIL_FONT_OPTIONS} />
-                  </div>
-                  <div className="mt-3">
-                    <ChoiceRow
-                      label={settingsPageText.labels.referencePosition}
-                      value={draft.referencePosition || (draft.showReference === false ? "hidden" : "top")}
-                      onChange={(pos) => updateDraft({ referencePosition: pos, showReference: pos !== "hidden" })}
-                      isTamil={isTamil}
-                      options={[{ value: "top", label: settingsPageText.labels.top }, { value: "bottom", label: settingsPageText.labels.bottom }, { value: "hidden", label: settingsPageText.labels.hidden }]}
-                    />
-                  </div>
-                </Panel>
-                <Panel title={settingsPageText.panels.quickModes.title} subtitle={settingsPageText.panels.quickModes.subtitle} isTamil={isTamil}>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <SwitchRow label={t.readerBox} description={t.readerBoxDesc} checked={draft.showReaderCard !== false} onChange={(val) => updateDraft({ showReaderCard: val })} />
-                    <SwitchRow label={t.keepAwake} description={t.keepAwakeDesc} checked={draft.keepScreenAwake} onChange={(val) => updateDraft({ keepScreenAwake: val })} />
-                    <SwitchRow label={t.tamilKeyboard} description={t.tamilKeyboardDesc} checked={draft.openTamilKeyboard} onChange={(val) => updateDraft({ openTamilKeyboard: val })} />
-                  </div>
-                </Panel>
-              </>
-            )}
+            <div className="min-w-0 space-y-4">
+              {tab === "reader" && (
+                <>
+                  <Panel title={settingsPageText.panels.readerControls.title} subtitle={settingsPageText.panels.readerControls.subtitle} isTamil={isTamil} className="relative z-20">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <StepControl label={t.fontSize} value={draft.fontSize} valueLabel={`${draft.fontSize}px`} min={18} max={42} step={1} onChange={(fontSize) => updateDraft({ fontSize })} />
+                      <StepControl label={t.lineSpacing} value={draft.lineHeight} valueLabel={`${draft.lineHeight.toFixed(1)}x`} min={1.3} max={2.4} step={0.1} onChange={(lineHeight) => updateDraft({ lineHeight })} />
+                      <StepControl label={t.readerWidth} value={draft.readerWidth} valueLabel={`${draft.readerWidth}px`} min={640} max={1200} step={20} onChange={(readerWidth) => updateDraft({ readerWidth })} />
+                      <StepControl label={t.cardOpacity} value={draft.cardOpacity} valueLabel={`${Math.round(draft.cardOpacity * 100)}%`} min={0.2} max={0.9} step={0.05} onChange={(cardOpacity) => updateDraft({ cardOpacity })} />
+                    </div>
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                      <ChoiceRow label={t.textAlign} value={draft.textAlign} onChange={(textAlign) => updateDraft({ textAlign })} isTamil={isTamil} options={[{ value: "left", label: t.left }, { value: "center", label: t.center }, { value: "justify", label: t.justify }]} />
+                      <ChoiceRow label={t.language} value={draft.language} onChange={(language) => updateDraft({ language })} isTamil={isTamil} options={[{ value: "ta", label: t.tamil }, { value: "en", label: t.english }, { value: "ta-en", label: t.tamilEnglish }]} />
+                      <PopupSelectRow label="English Font" value={draft.fontFamily} onChange={(fontFamily) => updateDraft({ fontFamily })} options={FONT_FAMILY_OPTIONS} />
+                      <PopupSelectRow label="Tamil Font" value={draft.tamilFontFamily} onChange={(tamilFontFamily) => updateDraft({ tamilFontFamily })} options={TAMIL_FONT_OPTIONS} />
+                    </div>
+                    <div className="mt-3">
+                      <ChoiceRow
+                        label={settingsPageText.labels.referencePosition}
+                        value={draft.referencePosition || (draft.showReference === false ? "hidden" : "top")}
+                        onChange={(pos) => updateDraft({ referencePosition: pos, showReference: pos !== "hidden" })}
+                        isTamil={isTamil}
+                        options={[{ value: "top", label: settingsPageText.labels.top }, { value: "bottom", label: settingsPageText.labels.bottom }, { value: "hidden", label: settingsPageText.labels.hidden }]}
+                      />
+                    </div>
+                  </Panel>
+                  <Panel title={settingsPageText.panels.quickModes.title} subtitle={settingsPageText.panels.quickModes.subtitle} isTamil={isTamil} className="relative z-10">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <SwitchRow label={t.readerBox} description={t.readerBoxDesc} checked={draft.showReaderBox !== false} onChange={(val) => updateDraft({ showReaderBox: val })} />
+                      <SwitchRow label={t.keepAwake} description={t.keepAwakeDesc} checked={draft.keepScreenAwake} onChange={(val) => updateDraft({ keepScreenAwake: val })} />
+                      <SwitchRow label={t.tamilKeyboard} description={t.tamilKeyboardDesc} checked={draft.tamilKeyboardAutoOpen} onChange={(val) => updateDraft({ tamilKeyboardAutoOpen: val })} />
+                    </div>
+                  </Panel>
+                </>
+              )}
 
-            {tab === "visual" && (
-              <Panel title={settingsPageText.panels.backgroundStudio.title} subtitle={settingsPageText.panels.backgroundStudio.subtitle} isTamil={isTamil}>
-                <div className="grid gap-3">
-                  <ChoiceRow label={t.backgroundType} value={draft.bgType || "image"} onChange={(bgType) => updateDraft({ bgType })} isTamil={isTamil} options={[{ value: "image", label: t.image }, { value: "motion", label: "Motion" }, { value: "gradient", label: t.gradient }, { value: "custom", label: t.custom }]} />
-                  
-                  {draft.bgType === "custom" ? (
-                    <div className="space-y-3">
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <button type="button" onClick={() => document.getElementById("bg-upload").click()} className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-white/20 bg-white/5 p-4 hover:bg-white/10">
-                          <input id="bg-upload" type="file" accept="image/*" className="hidden" onChange={handleBackgroundUpload} />
-                          <span className="text-xs font-medium text-white">{t.uploadImage}</span>
-                        </button>
-                        <div className="flex gap-2">
-                          <input type="text" value={backgroundUrl} onChange={(e) => setBackgroundUrl(e.target.value)} placeholder="Image URL..." className="flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-white outline-none" />
-                          <button onClick={handleBackgroundUrlApply} className="rounded-lg bg-sky-500 px-3 py-2 text-xs font-bold text-white">Apply</button>
+              {tab === "visual" && (
+                <Panel title={settingsPageText.panels.backgroundStudio.title} subtitle={settingsPageText.panels.backgroundStudio.subtitle} isTamil={isTamil}>
+                  <div className="grid gap-3">
+                    <ChoiceRow label={t.backgroundType} value={draft.bgType || "image"} onChange={(bgType) => updateDraft({ bgType })} isTamil={isTamil} options={[{ value: "image", label: t.image }, ...(!isMobileViewport ? [{ value: "motion", label: "Motion" }] : []), { value: "gradient", label: t.gradient }, { value: "custom", label: t.custom }]} />
+                    
+                    {draft.bgType === "custom" ? (
+                      <div className="space-y-3">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <button type="button" onClick={() => document.getElementById("bg-upload").click()} className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-white/20 bg-white/5 p-4 hover:bg-white/10">
+                            <input id="bg-upload" type="file" accept="image/*" className="hidden" onChange={handleBackgroundUpload} />
+                            <span className="text-xs font-medium text-white">{t.uploadImage}</span>
+                          </button>
+                          <div className="flex gap-2">
+                            <input type="text" value={backgroundUrl} onChange={(e) => setBackgroundUrl(e.target.value)} placeholder="Image URL..." className="flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-white outline-none" />
+                            <button onClick={handleBackgroundUrlApply} className="rounded-lg bg-sky-500 px-3 py-2 text-xs font-bold text-white">Apply</button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-4 gap-2 md:grid-cols-5">
-                      {(draft.bgType === "gradient" ? gradients : draft.bgType === "motion" ? motionBackgroundOptions : backgrounds).map((val, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => updateDraft(draft.bgType === "motion" ? { motionBackground: val.value } : { bgIndex: idx })}
-                          className={`aspect-video rounded-lg border-2 transition ${
-                            (draft.bgType === "motion" ? draft.motionBackground === val.value : draft.bgIndex === idx)
-                              ? "border-sky-400 shadow-md"
-                              : "border-white/5 hover:border-white/20"
-                          } overflow-hidden`}
-                          style={draft.bgType === "gradient" ? { background: val } : {}}
-                        >
-                          {draft.bgType === "image" && <img src={val} alt="" className="h-full w-full object-cover" />}
-                          {draft.bgType === "motion" && <div className="flex h-full w-full items-center justify-center text-[8px] uppercase text-slate-400">{val.key}</div>}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </Panel>
-            )}
-
-            {tab === "app" && (
-              <Panel title={settingsPageText.panels.installApp.title} subtitle={settingsPageText.panels.installApp.subtitle} isTamil={isTamil}>
-                <div className="rounded-xl bg-white/5 p-4 text-center">
-                  {!isInstalled ? (
-                    <>
-                      <button onClick={handleInstall} className="rounded-full bg-sky-500 px-6 py-2.5 text-sm font-bold text-white shadow-lg">
-                        {t.installNow}
-                      </button>
-                      {installFeedback && <p className="mt-3 text-xs text-slate-400">{installFeedback}</p>}
-                    </>
-                  ) : (
-                    <p className="text-sm font-medium text-emerald-400 font-bold uppercase tracking-wider">✓ App is Installed</p>
-                  )}
-                </div>
-              </Panel>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-4">
-            <Panel title={settingsPageText.panels.livePreview.title} subtitle={settingsPageText.panels.livePreview.subtitle} isTamil={isTamil}>
-              <div ref={previewCardRef} className="relative aspect-[3/4] w-full overflow-hidden rounded-xl border border-white/10 p-5 shadow-2xl md:aspect-[4/3]">
-                <SmoothBackground
-                  background={getBackgroundValue(previewDraft.bgType, previewDraft.bgIndex, previewDraft.customBackground)}
-                  bgType={previewDraft.bgType}
-                  customBackground={previewDraft.customBackground}
-                  motionVariant={previewDraft.motionBackground}
-                  isFullPage={false}
-                />
-                <div 
-                  className="relative z-10 flex h-full flex-col justify-center rounded-lg px-4 py-6 transition-all duration-300"
-                  style={{
-                    backgroundColor: `rgba(15, 23, 42, ${previewDraft.cardOpacity})`,
-                    backdropFilter: "blur(8px)",
-                  }}
-                >
-                  <div ref={previewTextRef} className="w-full text-white" style={{ textAlign: previewDraft.textAlign, lineHeight: previewDraft.lineHeight }}>
-                    <p className="font-bold">{t.previewVerse}</p>
-                    <p className="mt-3 text-xs text-slate-400 font-semibold">{t.previewRef}</p>
+                    ) : (
+                      <div className="grid grid-cols-4 gap-2 md:grid-cols-5">
+                        {(draft.bgType === "gradient" ? gradients : draft.bgType === "motion" ? motionBackgroundOptions : backgrounds).map((val, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => updateDraft(draft.bgType === "motion" ? { motionBackground: val.value } : { bgIndex: idx })}
+                            className={`aspect-video rounded-lg border-2 transition ${
+                              (draft.bgType === "motion" ? draft.motionBackground === val.value : draft.bgIndex === idx)
+                                ? "border-sky-400 shadow-md"
+                                : "border-white/5 hover:border-white/20"
+                            } overflow-hidden`}
+                            style={draft.bgType === "gradient" ? { background: val } : {}}
+                          >
+                            {draft.bgType === "image" && <img src={val} alt="" className="h-full w-full object-cover" />}
+                            {draft.bgType === "motion" && <div className="flex h-full w-full items-center justify-center text-[8px] uppercase text-slate-400">{val.key}</div>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
+                </Panel>
+              )}
+
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <div className="xl:sticky xl:top-4">
+                <Panel title={settingsPageText.panels.livePreview.title} subtitle={settingsPageText.panels.livePreview.subtitle} isTamil={isTamil}>
+                  <div
+                    ref={previewCardRef}
+                    className="relative aspect-[3/4] w-full overflow-hidden rounded-xl border border-white/10 shadow-2xl md:aspect-[4/3]"
+                    style={{
+                      background:
+                        previewDraft.bgType === "gradient"
+                          ? gradients[previewDraft.bgIndex]
+                          : undefined,
+                    }}
+                  >
+                    {previewDraft.bgType !== "gradient" && (
+                      <SmoothBackground
+                        background={getBackgroundValue(previewDraft.bgType, previewDraft.bgIndex, previewDraft.customBackground)}
+                        bgType={previewDraft.bgType}
+                        customBackground={previewDraft.customBackground}
+                        motionVariant={previewDraft.motionBackground}
+                        isFullPage={false}
+                      />
+                    )}
+                    <div
+                      className="relative z-10 flex h-full flex-col items-center justify-center p-5 transition-all duration-300"
+                      style={{
+                        backgroundColor:
+                          previewDraft.showReaderBox !== false
+                            ? `rgba(0,0,0,${previewDraft.cardOpacity ?? 0.5})`
+                            : "transparent",
+                        backdropFilter:
+                          previewDraft.showReaderBox !== false ? "blur(8px)" : "none",
+                        borderRadius:
+                          previewDraft.showReaderBox !== false ? "0.75rem" : "0",
+                      }}
+                    >
+                      <div
+                        ref={previewTextRef}
+                        className="w-full text-white"
+                        style={{
+                          textAlign: previewDraft.textAlign || "center",
+                          lineHeight: previewDraft.lineHeight || 1.8,
+                          fontSize: `${Math.min(previewDraft.fontSize || 24, 28)}px`,
+                        }}
+                      >
+                        <p className="font-bold" style={{ textShadow: "0 2px 14px rgba(0,0,0,0.6)" }}>
+                          {t.previewVerse}
+                        </p>
+                        <p className="mt-3 text-xs font-semibold text-slate-300" style={{ textShadow: "0 1px 6px rgba(0,0,0,0.8)" }}>
+                          {t.previewRef}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex gap-2">
+                    <button
+                      onClick={resetSettings}
+                      className="flex-1 rounded-xl border border-white/10 bg-white/5 py-3 text-xs font-bold text-white hover:bg-white/10"
+                    >
+                      {t.resetSettings}
+                    </button>
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="flex-1 rounded-xl bg-sky-500 py-3 text-xs font-bold text-white shadow-lg active:scale-95"
+                    >
+                      Save & Refresh
+                    </button>
+                  </div>
+                </Panel>
               </div>
-            </Panel>
+            </div>
           </div>
-        </div>
       </div>
     </div>
   );

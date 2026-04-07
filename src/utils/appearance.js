@@ -1,48 +1,23 @@
 export const FONT_FAMILY_OPTIONS = [
-  {
-    value: "system-sans",
-    label: "System Sans",
-    css: '"Segoe UI", Inter, Arial, sans-serif',
-  },
-  {
-    value: "classic-serif",
-    label: "Classic Serif",
-    css: '"Georgia", "Times New Roman", serif',
-  },
-  {
-    value: "modern-serif",
-    label: "Modern Serif",
-    css: '"Merriweather", "Georgia", serif',
-  },
-  {
-    value: "clean-ui",
-    label: "Clean UI",
-    css: '"Trebuchet MS", "Segoe UI", sans-serif',
-  },
+  { value: "system-sans", label: "System Sans", css: '"Segoe UI", Inter, Arial, sans-serif' },
+  { value: "classic-serif", label: "Classic Serif", css: '"Georgia", "Times New Roman", serif' },
+  { value: "modern-serif", label: "Modern Serif", css: '"Merriweather", "Georgia", serif' },
+  { value: "clean-ui", label: "Clean UI", css: '"Trebuchet MS", "Segoe UI", sans-serif' },
+  { value: "inter", label: "Inter", css: '"Inter", "Segoe UI", sans-serif' },
+  { value: "outfit", label: "Outfit", css: '"Outfit", "Segoe UI", sans-serif' },
+  { value: "roboto", label: "Roboto", css: '"Roboto", "Segoe UI", sans-serif' },
 ];
 
 export const TAMIL_FONT_OPTIONS = [
-  {
-    value: "noto-sans-tamil",
-    label: "Noto Sans Tamil",
-    css: '"Noto Sans Tamil", sans-serif',
-  },
-  {
-    value: "noto-serif-tamil",
-    label: "Noto Serif Tamil",
-    css: '"Noto Serif Tamil", serif',
-  },
-  {
-    value: "latha",
-    label: "Latha",
-    css: '"Latha", "Noto Sans Tamil", sans-serif',
-  },
-  {
-    value: "vijaya",
-    label: "Vijaya",
-    css: '"Vijaya", "Noto Serif Tamil", serif',
-  },
+  { value: "noto-sans-tamil", label: "Noto Sans Tamil", css: '"Noto Sans Tamil", sans-serif' },
+  { value: "noto-serif-tamil", label: "Noto Serif Tamil", css: '"Noto Serif Tamil", serif' },
+  { value: "latha", label: "Latha", css: '"Latha", "Noto Sans Tamil", sans-serif' },
+  { value: "vijaya", label: "Vijaya", css: '"Vijaya", "Noto Serif Tamil", serif' },
+  { value: "mukt-malar", label: "Mukt Malar", css: '"Mukt Malar", "Noto Sans Tamil", sans-serif' },
+  { value: "hind-madurai", label: "Hind Madurai", css: '"Hind Madurai", "Noto Sans Tamil", sans-serif' },
+  { value: "arima-madurai", label: "Arima Madurai", css: '"Arima Madurai", "Noto Serif Tamil", serif' },
 ];
+
 
 export const THEME_PRESETS = [
   {
