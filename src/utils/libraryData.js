@@ -524,3 +524,36 @@ export async function getVerseOfTheDay(language = "ta") {
 export function getLibraryEventName() {
   return EVENT_NAME;
 }
+
+/**
+ * Exports the entire library data as a JSON file download.
+ */
+export function exportLibraryData() {
+  const data = getLibraryData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const date = new Date().toISOString().split("T")[0];
+  link.href = url;
+  link.download = `tamil-bible-backup-${date}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Imports library data from a JSON string.
+ */
+export function importLibraryData(jsonString) {
+  try {
+    const parsed = JSON.parse(jsonString);
+    // Basic validation
+    if (typeof parsed !== "object" || parsed === null) throw new Error("Invalid data format");
+    
+    const normalized = normalizeLibraryData(parsed);
+    saveLibraryData(normalized);
+    return { success: true };
+  } catch (error) {
+    console.error("Import failed:", error);
+    return { success: false, error: error.message };
+  }
+}

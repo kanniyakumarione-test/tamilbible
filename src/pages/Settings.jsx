@@ -12,6 +12,7 @@ import { optimizeImage, tryOptimizeExternalImage } from "../utils/imageOptimizat
 import { getPresentationScreens } from "../utils/screens";
 import { getSiteUrl } from "../utils/siteUrl";
 import { QRCode } from "react-qr-code";
+import { exportLibraryData, importLibraryData } from "../utils/libraryData";
 
 const backgrounds = [
   "/bg/bg1.jpg",
@@ -487,6 +488,48 @@ export default function Settings() {
                       <SwitchRow label={t.readerBox} description={t.readerBoxDesc} checked={draft.showReaderBox !== false} onChange={(val) => updateDraft({ showReaderBox: val })} />
                       <SwitchRow label={t.keepAwake} description={t.keepAwakeDesc} checked={draft.keepScreenAwake} onChange={(val) => updateDraft({ keepScreenAwake: val })} />
                       <SwitchRow label={t.tamilKeyboard} description={t.tamilKeyboardDesc} checked={draft.tamilKeyboardAutoOpen} onChange={(val) => updateDraft({ tamilKeyboardAutoOpen: val })} />
+                    </div>
+                  </Panel>
+
+                  <Panel title={t.dataManagement} subtitle={isTamil ? "உங்கள் புக்மார்க்குகள் மற்றும் குறிப்புகளை காப்புப்பிரதி எடுத்துக்கொள்ளுங்கள்." : "Backup or restore your bookmarks, highlights, and notes."} isTamil={isTamil}>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={exportLibraryData}
+                        className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-3.5 text-xs font-semibold text-white transition hover:bg-white/10 active:scale-95"
+                      >
+                        <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        {t.exportData}
+                      </button>
+
+                      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-3.5 text-xs font-semibold text-white transition hover:bg-white/10 active:scale-95">
+                        <svg className="h-4 w-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        {t.importData}
+                        <input
+                          type="file"
+                          accept=".json"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              const result = importLibraryData(event.target.result);
+                              if (result.success) {
+                                alert(t.importSuccess);
+                                window.location.reload();
+                              } else {
+                                alert(t.importError);
+                              }
+                            };
+                            reader.readAsText(file);
+                          }}
+                        />
+                      </label>
                     </div>
                   </Panel>
                 </>

@@ -23,6 +23,10 @@ const SermonMode = lazy(() => import("./pages/SermonMode"));
 const SermonControl = lazy(() => import("./pages/SermonControl"));
 const PresentationDisplay = lazy(() => import("./pages/PresentationDisplay"));
 const PresentationRemote = lazy(() => import("./pages/PresentationRemote"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+import Footer from "./components/Footer";
 
 function RouteLoadingScreen() {
   return (
@@ -80,11 +84,14 @@ function Layout() {
               <Route path="/:book" element={<Chapters />} />
               <Route path="/:book/:chapter" element={<Verses />} />
               <Route path="/reader/:book/:chapter/:verse" element={<Reader />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
         </Suspense>
       </div>
 
+      {!isReader && <Footer />}
       {!isReader && <BottomNav />}
     </>
   );

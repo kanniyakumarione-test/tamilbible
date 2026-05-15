@@ -3,6 +3,7 @@ const uiText = {
     home: "முகப்பு",
     search: "தேடல்",
     settings: "அமைப்புகள்",
+    keywords: "தமிழ் வேதாகமம், வேதாகமம் தமிழ், தமிழ் கிறிஸ்தவ ஆப், வேதாகம வசனங்கள், Tanglish Bible search, Tamil scripture, Tamil Bible online, Tamil Bible reading, Bible study Tamil, Tamil Bible study tools, Tamil Bible Premium, Tamil Bible Presentation, Church Bible Display Tamil",
     tamilBible: "தமிழ் வேதாகமம்",
     richReader: "ஆழமான இருண்ட வாசிப்பு அனுபவம்",
     homeIntro:
@@ -195,11 +196,17 @@ const uiText = {
     image: "படம்",
     gradient: "நிறச்சரிவு",
     custom: "தனிப்பயன்",
+    dataManagement: "தரவு மேலாண்மை",
+    exportData: "காப்புப்பிரதி எடு",
+    importData: "காப்புப்பிரதி ஏற்று",
+    importSuccess: "தரவு வெற்றிகரமாக ஏற்றப்பட்டது!",
+    importError: "தரவை ஏற்றுவதில் தோல்வி. கோப்பை சரிபார்க்கவும்.",
   },
   en: {
     home: "Home",
     search: "Search",
     settings: "Settings",
+    keywords: "Tamil Bible, Bible in Tamil, Tamil Christian app, Bible verses, Tanglish Bible search, Tamil scripture, Tamil Bible online, Tamil Bible reading, Bible study Tamil, Tamil Bible study tools, Tamil Bible Premium, Tamil Bible Presentation, Church Bible Display Tamil",
     tamilBible: "Tamil Bible",
     richReader: "A rich dark reading experience",
     homeIntro:
@@ -392,6 +399,11 @@ const uiText = {
     image: "Image",
     gradient: "Gradient",
     custom: "Custom",
+    dataManagement: "Data Management",
+    exportData: "Export Backup",
+    importData: "Import Backup",
+    importSuccess: "Data imported successfully!",
+    importError: "Failed to import data. Please check the file.",
   },
 };
 

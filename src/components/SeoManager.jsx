@@ -63,7 +63,7 @@ export default function SeoManager() {
 
     const buildSeo = async () => {
     const pathname = location.pathname;
-    const defaultImage = toAbsoluteUrl("/icon-512.png");
+    const defaultImage = toAbsoluteUrl("/og-image.png");
     const breadcrumbItems = [
       {
         "@type": "ListItem",
@@ -139,6 +139,18 @@ export default function SeoManager() {
         name: "Sermon Mode",
         item: canonicalUrl,
       });
+    } else if (pathname === "/privacy") {
+      title = `Privacy Policy | Tamil Bible Premium`;
+      description = "Learn how we protect your data and privacy in the Tamil Bible application.";
+      breadcrumbItems.push({
+        "@type": "ListItem",
+        position: 2,
+        name: "Privacy Policy",
+        item: canonicalUrl,
+      });
+    } else if (!bookMatch && !chapterMatch && !readerMatch && pathname !== "/") {
+      title = "Page Not Found | Tamil Bible Premium";
+      robots = "noindex, follow";
     }
 
     if (readerMatch?.params) {
@@ -233,6 +245,7 @@ export default function SeoManager() {
       const nextSeo = {
       title,
       description,
+      keywords: t.keywords || "",
       type,
       absoluteUrl: toAbsoluteUrl(pathname),
       canonicalUrl,
@@ -264,6 +277,10 @@ export default function SeoManager() {
     upsertMeta('meta[name="description"]', {
       name: "description",
       content: seo.description,
+    });
+    upsertMeta('meta[name="keywords"]', {
+      name: "keywords",
+      content: seo.keywords,
     });
     upsertMeta('meta[name="robots"]', {
       name: "robots",
@@ -332,6 +349,25 @@ export default function SeoManager() {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: seo.breadcrumbItems,
+    });
+
+    upsertJsonLd("seo-software-schema", {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: "Tamil Bible Premium",
+      operatingSystem: "Any",
+      applicationCategory: "ReferenceApplication",
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "INR",
+      },
+      description: seo.description,
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: "5",
+        ratingCount: "1",
+      },
     });
   }, [seo, settings.language]);
 

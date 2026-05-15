@@ -28,6 +28,9 @@ const newTestamentDir = path.join(dataDir, "newTestament");
 const routes = new Set([
   "/",
   "/books",
+  "/privacy",
+  "/about",
+  "/terms",
 ]);
 
 for (const book of books) {
@@ -55,11 +58,6 @@ for (const directory of [oldTestamentDir, newTestamentDir]) {
     for (const chapterData of bookData.chapters) {
       const chapter = chapterData.chapter;
       routes.add(`/${encodedBook}/${chapter}`);
-
-      for (const verseData of chapterData.verses || []) {
-        const verse = verseData.verse;
-        routes.add(`/reader/${encodedBook}/${chapter}/${verse}`);
-      }
     }
   }
 }

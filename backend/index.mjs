@@ -17,6 +17,11 @@ const host = process.env.HOST || "0.0.0.0";
 const allowedOrigin = process.env.ALLOWED_ORIGIN || "*";
 const presenceStaleAfterMs = 15000;
 
+function log(message, level = "INFO") {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] [${level}] ${message}`);
+}
+
 const defaultState = {
   sermon: {
     queue: [],
@@ -234,6 +239,7 @@ function serveStatic(req, res) {
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+  log(`${req.method} ${url.pathname}`);
 
   if (req.method === "OPTIONS") {
     sendNoContent(res);
