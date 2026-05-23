@@ -16,15 +16,28 @@ import { getUIText } from "../utils/uiText";
 import { localizeChapterItem, localizeVerseItem } from "../utils/bibleContent";
 import { openReader } from "../utils/openReader";
 
-function StatCard({ label, value, sublabel }) {
+function StatCard({ label, value, sublabel, icon }) {
   return (
-    <div className="overflow-hidden rounded-[1.25rem] border border-white/10 bg-[linear-gradient(180deg,rgba(18,26,45,0.92),rgba(8,14,27,0.98))] p-4 shadow-[0_16px_40px_rgba(2,6,23,0.22)]">
-      <div className="mb-3 h-px w-12 bg-gradient-to-r from-sky-300/70 to-transparent" />
-      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">
-        {label}
-      </p>
-      <p className="mt-4 text-3xl font-bold tracking-tight text-white">{value}</p>
-      {sublabel ? <p className="mt-2 text-sm leading-6 text-slate-400">{sublabel}</p> : null}
+    <div className="group relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.02] p-5 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:-translate-y-1 hover:bg-white/[0.04] hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] hover:border-zinc-700/30">
+      <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-[#0a0a0a]/10 blur-2xl transition-all duration-500 group-hover:bg-zinc-700/20 group-hover:blur-3xl" />
+      <div className="relative z-10 flex items-start justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-stone-400 transition-colors group-hover:text-zinc-300">
+            {label}
+          </p>
+          <p className="mt-3 bg-gradient-to-br from-white to-slate-400 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent transition-all group-hover:from-white group-hover:to-zinc-500">
+            {value}
+          </p>
+        </div>
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-xl shadow-inner ring-1 ring-white/10 transition-all group-hover:bg-[#0a0a0a]/20 group-hover:text-zinc-300 group-hover:ring-zinc-600/30">
+          {icon}
+        </div>
+      </div>
+      {sublabel ? (
+        <p className="relative z-10 mt-3 text-xs font-medium text-stone-500 transition-colors group-hover:text-stone-300">
+          {sublabel}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -69,366 +82,246 @@ export default function Home() {
 
     const loadDashboard = async () => {
       const continueReadingRaw = getContinueReading(libraryData.history);
-      const [verseOfDayItem, continueReading, recentHistory, readingPlans, groupedHighlights, recentPrayers] =
-        await Promise.all([
-          getVerseOfTheDay(settings.language),
-          continueReadingRaw
-            ? continueReadingRaw.verse
-              ? localizeVerseItem(continueReadingRaw, settings.language)
-              : localizeChapterItem(continueReadingRaw, settings.language)
-            : Promise.resolve(null),
-          Promise.all(
-            libraryData.history.slice(0, 4).map((item) =>
-              item.verse ? localizeVerseItem(item, settings.language) : localizeChapterItem(item, settings.language)
-            )
-          ),
-          getReadingPlanSummary(libraryData),
-          Promise.all(
-            getGroupedHighlights(libraryData).map(async (folder) => ({
-              ...folder,
-              items: await Promise.all(
-                folder.items.map((item) => localizeVerseItem(item, settings.language))
-              ),
-            }))
-          ),
-          Promise.all(
-            getRecentPrayers(libraryData, 4).map((item) =>
-              localizeChapterItem(item, settings.language)
-            )
-          ),
-        ]);
+      try {
+        const [verseOfDayItem, continueReading, recentHistory, readingPlans, groupedHighlights, recentPrayers] =
+          await Promise.all([
+            getVerseOfTheDay(settings.language),
+            continueReadingRaw
+              ? continueReadingRaw.verse
+                ? localizeVerseItem(continueReadingRaw, settings.language)
+                : localizeChapterItem(continueReadingRaw, settings.language)
+              : Promise.resolve(null),
+            Promise.all(
+              libraryData.history.slice(0, 4).map((item) =>
+                item.verse ? localizeVerseItem(item, settings.language) : localizeChapterItem(item, settings.language)
+              )
+            ),
+            getReadingPlanSummary(libraryData),
+            Promise.all(
+              getGroupedHighlights(libraryData).map(async (folder) => ({
+                ...folder,
+                items: await Promise.all(
+                  folder.items.map((item) => localizeVerseItem(item, settings.language))
+                ),
+              }))
+            ),
+            Promise.all(
+              getRecentPrayers(libraryData, 4).map((item) =>
+                localizeChapterItem(item, settings.language)
+              )
+            ),
+          ]);
 
-      if (cancelled) {
-        return;
+        if (cancelled) return;
+
+        setVerseOfTheDay(verseOfDayItem);
+        setLocalizedSummary({
+          continueReading,
+          recentHistory,
+          readingPlans,
+          groupedHighlights,
+          recentPrayers,
+        });
+      } catch (err) {
+        console.error("Dashboard failed to load:", err);
+        alert("ERROR: " + err.message + "\nStack: " + err.stack.substring(0, 200));
+        if (cancelled) return;
+        setVerseOfTheDay({ bookEnglish: "Genesis", bookTamil: "ஆதியாகமம்", chapter: 1, verse: 1, text: "ஆதியிலே தேவன் வானத்தையும் பூமியையும் சிருஷ்டித்தார்." });
       }
-
-      setVerseOfTheDay(verseOfDayItem);
-      setLocalizedSummary({
-        continueReading,
-        recentHistory,
-        readingPlans,
-        groupedHighlights,
-        recentPrayers,
-      });
     };
 
     void loadDashboard();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [libraryData, settings.language]);
 
-  const {
-    continueReading,
-    recentHistory,
-    readingPlans,
-    groupedHighlights,
-    recentPrayers,
-  } = localizedSummary;
+  const { continueReading, recentHistory, readingPlans, groupedHighlights, recentPrayers } = localizedSummary;
 
   const goToItem = (item) => {
     if (!item) return;
-
     if (item.type === "verse" || item.verse) {
-      openReader(
-        `/reader/${encodeURIComponent(item.bookEnglish)}/${item.chapter}/${item.verse || 1}`,
-        navigate
-      );
+      openReader(`/reader/${encodeURIComponent(item.bookEnglish)}/${item.chapter}/${item.verse || 1}`, navigate);
       return;
     }
-
     navigate(`/${encodeURIComponent(item.bookEnglish)}/${item.chapter}`);
   };
 
   const handleInstallClick = async () => {
     const didPrompt = await promptInstall();
-
     if (!didPrompt) {
       setInstallMessage(installInstructions || t.installHelp);
       return;
     }
-
     setInstallMessage("");
-  };
-
-  const handleOpenInstallPopup = () => {
-    setInstallMessage("");
-    setInstallPopupOpen(true);
-  };
-
-  const handleOpenVerseOfDay = () => {
-    if (!verseOfTheDay) return;
-
-    if (typeof window !== "undefined" && window.innerWidth < 768) {
-      setVerseOfDayPopupOpen(true);
-      setShareFeedback("");
-      return;
-    }
-
-    openReader(
-      `/reader/${encodeURIComponent(verseOfTheDay.bookEnglish)}/${verseOfTheDay.chapter}/${verseOfTheDay.verse}`,
-      navigate
-    );
   };
 
   const shareVerseOfDay = async () => {
     if (!verseOfTheDay) return;
-
     const shareText = `${verseOfTheDay.bookTamil} ${verseOfTheDay.chapter}:${verseOfTheDay.verse}\n\n${verseOfTheDay.text}`;
-
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: `${verseOfTheDay.bookTamil} ${verseOfTheDay.chapter}:${verseOfTheDay.verse}`,
-          text: shareText,
-        });
+        await navigator.share({ title: `${verseOfTheDay.bookTamil} ${verseOfTheDay.chapter}:${verseOfTheDay.verse}`, text: shareText });
         return;
-      } catch {
-        return;
-      }
+      } catch { return; }
     }
-
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(shareText);
-      setShareFeedback(
-        settings.language === "en" ? "Verse copied for sharing." : "பகிர்வதற்காக வசனம் நகலெடுக்கப்பட்டது."
-      );
+      setShareFeedback(["en", "ta-en"].includes(settings.language) ? "Verse copied for sharing." : "பகிர்வதற்காக வசனம் நகலெடுக்கப்பட்டது.");
     }
   };
 
   return (
-    <div className="home-shell app-shell app-page pb-20 pt-3 md:pt-4">
-      <div className="app-page-inner">
-        <section className="app-hero relative mb-4 overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.18),_transparent_24%),radial-gradient(circle_at_85%_20%,_rgba(56,189,248,0.22),_transparent_22%),radial-gradient(circle_at_bottom_left,_rgba(14,165,233,0.16),_transparent_26%),linear-gradient(135deg,_rgba(8,15,29,0.98),_rgba(5,10,20,0.99))] px-4 py-6 md:px-6 md:py-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.34em] text-slate-400">
-            {t.tamilBible}
-          </p>
-          <h1 className="mt-2.5 max-w-2xl text-2xl font-bold leading-tight text-white md:text-4xl">
-            {t.richReader}
-          </h1>
-          <p className="mt-3.5 max-w-xl text-xs leading-6 text-slate-300 md:text-sm">
-            {t.homeIntro}
-          </p>
+    <div className="home-shell pt-2 md:pt-4">
+      <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 md:px-8 lg:px-12">
+        
+        {/* Hero Section */}
+        <section className="group relative overflow-hidden rounded-[2.5rem] border border-white/5 bg-[#000000] p-8 shadow-2xl backdrop-blur-2xl md:p-12 lg:p-16">
+          <div className="pointer-events-none absolute inset-0 -z-10 rounded-[2.5rem]  opacity-80 transition-opacity duration-700 group-hover:opacity-100" />
+          <div className="absolute right-0 top-0 -z-10 h-64 w-64 translate-x-1/3 -translate-y-1/3 rounded-full bg-[#0a0a0a]/20 blur-[80px]" />
+          
+          <div className="relative z-10">
+            <span className="inline-block rounded-full border border-zinc-600/20 bg-zinc-700/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] text-zinc-200 shadow-[0_0_20px_rgba(255, 255, 255,0.1)]">
+              {t.tamilBible}
+            </span>
+            <h1 className="mt-6 max-w-3xl bg-gradient-to-br from-white via-white to-zinc-500 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent md:text-6xl lg:text-7xl lg:leading-[1.1]">
+              {t.richReader}
+            </h1>
+            <p className="mt-6 max-w-2xl text-base leading-relaxed text-stone-300 md:text-lg">
+              {t.homeIntro}
+            </p>
 
-          <div className="mt-5 flex flex-wrap gap-2.5 text-[10px] text-slate-300 md:text-xs">
-            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
-              {settings.language === "en" ? "Reading plans" : "வாசிப்பு திட்டங்கள்"}
-            </div>
-            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
-              {settings.language === "en" ? "Prayer journal" : "ஜெப குறிப்பேடு"}
-            </div>
-            <div className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1.5 md:block">
-              {settings.language === "en" ? "Sermon mode" : "பிரசங்க முறை"}
-            </div>
-            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
-              {settings.language === "en" ? "Verse designer" : "வசன வடிவமைப்பான்"}
+            <div className="mt-10 flex flex-wrap gap-3">
+              <button
+                onClick={() => continueReading ? goToItem(continueReading) : navigate("/books")}
+                className="group relative flex items-center gap-2 overflow-hidden rounded-full bg-gradient-to-r from-zinc-800 to-black px-8 py-4 font-bold text-white shadow-[0_0_30px_rgba(255, 255, 255,0.3)] transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(255, 255, 255,0.5)] active:scale-95"
+              >
+                <div className="absolute inset-0 bg-white/20 opacity-0 transition-opacity group-hover:opacity-100" />
+                <span className="relative z-10">{continueReading ? (["en", "ta-en"].includes(settings.language) ? "Resume Reading" : "தொடர்ந்து வாசிக்க") : (["en", "ta-en"].includes(settings.language) ? "Start Reading" : "வாசிக்கத் தொடங்கு")}</span>
+                <svg className="relative z-10 h-5 w-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
+              
+
             </div>
           </div>
-          {!isInstalled ? (
-            <div className="mt-5 md:hidden">
-              <button
-                type="button"
-                onClick={handleOpenInstallPopup}
-                className="rounded-xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-4 py-2.5 text-xs font-semibold text-white shadow-lg"
-              >
-                {t.installNow}
-              </button>
-            </div>
-          ) : null}
         </section>
 
-        <section className="mb-4 grid gap-3.5 lg:grid-cols-[1.1fr,0.9fr]">
-          <div className="app-surface rounded-[1.25rem] p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-              {settings.language === "en" ? "Continue Reading" : "தொடர் வாசிப்பு"}
-            </p>
-            <h2 className="mt-2 text-xl font-bold text-white md:text-2xl">
-              {continueReading ? continueReading.bookTamil : t.savedBookmark}
-            </h2>
-            <p className="mt-3 text-sm leading-7 text-slate-300">
-              {continueReading
-                ? `${t.chapter} ${continueReading.chapter}${continueReading.verse ? ` • ${t.verse} ${continueReading.verse}` : ""}`
-                : settings.language === "en"
-                ? "Open any book or verse once and it will appear here for quick return."
-                : "எந்த புத்தகம் அல்லது வசனத்தை ஒரு முறை திறந்தாலும், இங்கு விரைவாக மீண்டும் திறக்க காணப்படும்."}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2.5">
-              {continueReading ? (
-                <button
-                  onClick={() => goToItem(continueReading)}
-                  className="rounded-xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-4 py-2.5 text-xs font-semibold text-white shadow-lg"
-                >
-                  {settings.language === "en" ? "Resume Now" : "இப்போது தொடரு"}
-                </button>
-              ) : null}
-              <button
-                onClick={() => navigate("/books")}
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-semibold text-white"
-              >
-                {settings.language === "en" ? "Browse Books" : "புத்தகங்களை பார்"}
-              </button>
-            </div>
-          </div>
-
-          {!isInstalled ? (
-            <div className="hidden app-surface rounded-[1.25rem] p-4 md:block">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-                    {t.installApp}
-                  </p>
-                  <h2 className="mt-1.5 text-lg font-bold text-white md:text-xl">
-                    {settings.language === "en" ? "Offline-First App" : "ஆஃப்லைன் ஆப்"}
-                  </h2>
-                  <p className="mt-1.5 max-w-xl text-xs leading-6 text-slate-300">
-                    {settings.language === "en"
-                      ? "Install the app for quicker startup, better offline behavior, and a more native reading experience."
-                      : "விரைவான தொடக்கம், சிறந்த offline பயன்பாடு, மற்றும் native போன்ற வாசிப்பு அனுபவத்திற்காக ஆப்பை நிறுவுங்கள்."}
+        {/* Verse of the Day & Stats */}
+        <section className="grid gap-6 lg:grid-cols-[1.2fr,1fr]">
+          <div className="group relative flex flex-col justify-between overflow-hidden rounded-[2.5rem] border border-white/5 bg-[#000000] p-8 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:border-rose-500/30 hover:shadow-[0_20px_60px_rgba(244,63,94,0.15)]">
+            <div className="absolute -left-32 -top-32 h-64 w-64 rounded-full bg-rose-500/10 blur-[80px] transition-all duration-500 group-hover:bg-rose-500/20" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-rose-400">
+                  {t.verseOfDay}
+                </p>
+              </div>
+              
+              {verseOfTheDay ? (
+                <div className="mt-6">
+                  <h3 className="mb-4 inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-stone-300">
+                    {verseOfTheDay.bookTamil} {verseOfTheDay.chapter}:{verseOfTheDay.verse}
+                  </h3>
+                  <p className="text-2xl font-semibold leading-relaxed text-white md:text-3xl md:leading-tight">
+                    "{verseOfTheDay.text}"
                   </p>
                 </div>
-
-                <button
-                  onClick={handleInstallClick}
-                  className={`rounded-xl px-4 py-2.5 text-xs font-semibold text-white shadow-lg ${
-                    canInstall
-                      ? "bg-gradient-to-br from-indigo-500 to-sky-500 shadow-indigo-950/30"
-                      : "bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)] shadow-sky-950/20"
-                  }`}
-                >
-                  {t.installNow}
-                </button>
-              </div>
-              <p className="mt-3.5 text-xs leading-6 text-slate-400">
-                {installMessage || installInstructions || t.installHelp}
-              </p>
+              ) : (
+                <div className="mt-6 flex h-32 items-center justify-center">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-rose-400 border-t-transparent" />
+                </div>
+              )}
             </div>
-          ) : null}
-        </section>
 
-        <section className="mb-4 grid gap-3.5 lg:grid-cols-[1.35fr,0.95fr]">
-          <div className="overflow-hidden rounded-[1.25rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.14),_transparent_34%),linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(8,17,32,0.98))] p-4 shadow-xl shadow-black/20">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-              {t.verseOfDay}
-            </p>
-            {verseOfTheDay ? (
-              <>
-                <p className="mt-2.5 text-xs font-medium text-slate-400">
-                  {verseOfTheDay.bookTamil} {verseOfTheDay.chapter}:{verseOfTheDay.verse}
-                </p>
-                <p className="mt-3.5 text-base font-semibold leading-7 text-white md:text-xl md:leading-9">
-                  {verseOfTheDay.text}
-                </p>
-              </>
-            ) : (
-              <p className="mt-4 text-sm leading-7 text-slate-300">
-                Loading verse...
-              </p>
-            )}
-            <button
-              onClick={handleOpenVerseOfDay}
-              disabled={!verseOfTheDay}
-              className="mt-4 rounded-xl px-4 py-2.5 text-xs font-semibold text-white shadow-lg"
-              style={{
-                background: "linear-gradient(135deg, #2563eb, #38bdf8)",
-              }}
-            >
-              {t.openVerse}
-            </button>
+            <div className="relative z-10 mt-8 flex flex-wrap gap-3">
+              <button
+                onClick={() => {
+                  if (typeof window !== "undefined" && window.innerWidth < 768) {
+                    setVerseOfDayPopupOpen(true);
+                  } else if (verseOfTheDay) {
+                    openReader(`/reader/${encodeURIComponent(verseOfTheDay.bookEnglish)}/${verseOfTheDay.chapter}/${verseOfTheDay.verse}`, navigate);
+                  }
+                }}
+                disabled={!verseOfTheDay}
+                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+              >
+                {t.openVerse}
+              </button>
+            </div>
           </div>
 
-          <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-1">
-            <StatCard label={t.bookmarksTitle} value={bookmarkCount} />
-            <StatCard label={t.favoritesTitle} value={favoriteCount} />
-            <StatCard
-              label={t.highlightsTitle}
-              value={highlightCount}
-              sublabel={settings.language === "en" ? "with colors + folders" : "நிறங்களும் அடைவுகளும் உடன்"}
-            />
-            <StatCard
-              label={t.notesTitle}
-              value={noteCount}
-              sublabel={settings.language === "en" ? `${prayerCount} prayer journal entries` : `${prayerCount} ஜெப குறிப்புகள்`}
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <StatCard label={t.bookmarksTitle} value={bookmarkCount} icon="🔖" />
+            <StatCard label={t.favoritesTitle} value={favoriteCount} icon="❤️" />
+            <StatCard label={t.highlightsTitle} value={highlightCount} sublabel={["en", "ta-en"].includes(settings.language) ? "Color coded" : "வண்ண குறியீடு"} icon="🖍️" />
+            <StatCard label={t.notesTitle} value={noteCount} sublabel={["en", "ta-en"].includes(settings.language) ? `${prayerCount} prayers` : `${prayerCount} ஜெபங்கள்`} icon="📝" />
           </div>
         </section>
 
-        <section className="mb-4 app-surface rounded-[1.25rem] p-4">
-          <div className="flex items-center justify-between gap-3">
+        {/* Reading Plans */}
+        <section className="overflow-hidden rounded-[2.5rem] border border-white/5 bg-[#000000] p-8 shadow-xl backdrop-blur-xl md:p-10">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-                {settings.language === "en" ? "Daily Plans" : "தினசரி திட்டங்கள்"}
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-emerald-400">
+                {["en", "ta-en"].includes(settings.language) ? "Daily Plans" : "தினசரி திட்டங்கள்"}
               </p>
-              <h2 className="mt-1.5 text-lg font-bold text-white">
-                {settings.language === "en" ? "Reading Plans" : "வாசிப்பு திட்டங்கள்"}
+              <h2 className="mt-2 text-3xl font-extrabold text-white">
+                {["en", "ta-en"].includes(settings.language) ? "Reading Plans" : "வாசிப்பு திட்டங்கள்"}
               </h2>
             </div>
-            <button
-              type="button"
-              onClick={() => continueReading && goToItem(continueReading)}
-              className="rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-xs font-semibold text-white"
-            >
-              {settings.language === "en" ? "Track From Current Chapter" : "தற்போது அதிகாரத்திலிருந்து தொடர்"}
-            </button>
+            {continueReading && (
+              <button
+                onClick={() => goToItem(continueReading)}
+                className="group flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-stone-200 transition-all hover:bg-white/10 hover:text-white"
+              >
+                {["en", "ta-en"].includes(settings.language) ? "Track Current" : "தற்போதையதை தொடர்"}
+                <svg className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
+            )}
           </div>
 
-          <div className="mt-4 grid gap-3.5 lg:grid-cols-3">
+          <div className="mt-8 grid gap-5 lg:grid-cols-3">
             {readingPlans.map((plan) => (
-              <div
-                key={plan.id}
-                className="rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-3.5"
-              >
-                <div className="flex items-start justify-between gap-3">
+              <div key={plan.id} className="group relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.02] p-6 transition-all duration-300 hover:border-emerald-500/30 hover:bg-white/[0.04]">
+                <div className="absolute right-0 top-0 -z-10 h-32 w-32 translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/10 blur-[40px] transition-all duration-300 group-hover:bg-emerald-500/20" />
+                
+                <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-base font-semibold text-white">{plan.label}</p>
-                    <p className="mt-2 text-sm text-slate-400">
-                      {settings.language === "en"
-                        ? `${plan.chaptersPerDay} chapter${plan.chaptersPerDay > 1 ? "s" : ""} per day`
-                        : `ஒரு நாளுக்கு ${plan.chaptersPerDay} அதிகாரம்${plan.chaptersPerDay > 1 ? "கள்" : ""}`}
+                    <h3 className="text-xl font-bold text-white group-hover:text-emerald-100">{plan.label}</h3>
+                    <p className="mt-1 text-sm font-medium text-stone-400">
+                      {["en", "ta-en"].includes(settings.language) ? `${plan.chaptersPerDay} chapter${plan.chaptersPerDay > 1 ? "s" : ""}/day` : `தினமும் ${plan.chaptersPerDay} அதிகாரம்${plan.chaptersPerDay > 1 ? "கள்" : ""}`}
                     </p>
                   </div>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-sm font-bold text-emerald-400 ring-1 ring-emerald-500/20">
                     {plan.percentage}%
-                  </span>
-                </div>
-
-                <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
-                  <div
-                    className="h-full rounded-full bg-[linear-gradient(135deg,#2563eb,#38bdf8)]"
-                    style={{ width: `${plan.percentage}%` }}
-                  />
-                </div>
-
-                <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-300">
-                  <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-3">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                      {settings.language === "en" ? "Done" : "முடிந்தது"}
-                    </p>
-                    <p className="mt-2 font-semibold text-white">{plan.completedCount}</p>
-                  </div>
-                  <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-3">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                      {settings.language === "en" ? "Today" : "இன்று"}
-                    </p>
-                    <p className="mt-2 font-semibold text-white">
-                      {plan.todayCount}/{plan.chaptersPerDay}
-                    </p>
                   </div>
                 </div>
 
-                <div className="mt-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                    {settings.language === "en" ? "Next chapters" : "அடுத்த அதிகாரங்கள்"}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-6 h-2 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 transition-all duration-1000 ease-out" style={{ width: `${plan.percentage}%` }} />
+                </div>
+
+                <div className="mt-6 grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500">{["en", "ta-en"].includes(settings.language) ? "Done" : "முடிந்தது"}</p>
+                    <p className="mt-1 text-xl font-bold text-white">{plan.completedCount}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500">{["en", "ta-en"].includes(settings.language) ? "Today" : "இன்று"}</p>
+                    <p className="mt-1 text-xl font-bold text-emerald-400">{plan.todayCount} <span className="text-sm font-medium text-stone-500">/ {plan.chaptersPerDay}</span></p>
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-stone-500">{["en", "ta-en"].includes(settings.language) ? "Next Up" : "அடுத்தது"}</p>
+                  <div className="flex flex-wrap gap-2">
                     {plan.nextChapters.slice(0, 3).map((chapter) => (
                       <button
                         key={`${plan.id}-${chapter.id}`}
-                        type="button"
-                        onClick={() =>
-                          navigate(`/${encodeURIComponent(chapter.bookEnglish)}/${chapter.chapter}`)
-                        }
-                        className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200"
+                        onClick={() => navigate(`/${encodeURIComponent(chapter.bookEnglish)}/${chapter.chapter}`)}
+                        className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-stone-300 transition-colors hover:bg-emerald-500/20 hover:text-emerald-300"
                       >
                         {chapter.bookTamil} {chapter.chapter}
                       </button>
@@ -440,313 +333,160 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mb-4 grid gap-3.5 lg:grid-cols-2">
-          <div className="app-surface rounded-[1.25rem] p-4">
-            <div className="flex items-center justify-between">
+        {/* Quick Return & Prayers */}
+        <section className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-[2.5rem] border border-white/5 bg-[#000000] p-8 shadow-xl backdrop-blur-xl">
+            <div className="mb-6 flex items-end justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-                  {t.recentReading}
-                </p>
-                <h2 className="mt-2 text-xl font-bold text-white">
-                  {settings.language === "en" ? "Quick Return" : "விரைவான திரும்பல்"}
-                </h2>
+                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-zinc-400">{t.recentReading}</p>
+                <h2 className="mt-2 text-2xl font-extrabold text-white">{["en", "ta-en"].includes(settings.language) ? "Quick Return" : "விரைவான திரும்பல்"}</h2>
               </div>
             </div>
-
-            <div className="mt-3.5 space-y-2.5">
+            <div className="space-y-3">
               {recentHistory.length ? (
-                recentHistory.map((item) => (
+                recentHistory.map((item, i) => (
                   <button
                     key={`${item.type}-${item.id}`}
                     onClick={() => goToItem(item)}
-                    className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-left transition hover:bg-white/[0.06]"
+                    className="group flex w-full items-center justify-between rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-4 text-left transition-all hover:-translate-y-0.5 hover:border-zinc-700/30 hover:bg-white/[0.04] hover:shadow-lg"
                   >
-                    <div>
-                      <p className="text-sm font-semibold text-white">{item.bookTamil}</p>
-                      <p className="mt-1 text-xs text-slate-400">
-                        {t.chapter} {item.chapter}
-                        {item.verse ? ` • ${t.verse} ${item.verse}` : ""}
-                      </p>
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-stone-400 group-hover:bg-black/20 group-hover:text-orange-300">
+                        {i + 1}
+                      </div>
+                      <div>
+                        <p className="text-base font-bold text-white group-hover:text-indigo-100">{item.bookTamil}</p>
+                        <p className="text-xs font-medium text-stone-400">
+                          {t.chapter} {item.chapter}{item.verse ? ` • ${t.verse} ${item.verse}` : ""}
+                        </p>
+                      </div>
                     </div>
-                    <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      {item.type === "verse" ? t.openVerse : t.openChapter}
-                    </span>
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-stone-500 opacity-0 transition-opacity group-hover:opacity-100">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
                   </button>
                 ))
               ) : (
-                <p className="rounded-xl border border-dashed border-white/10 px-4 py-5 text-sm text-slate-400">
-                  {t.noItemsYet}
-                </p>
+                <div className="flex min-h-[200px] flex-col items-center justify-center rounded-[2rem] border border-dashed border-white/10 p-6 text-center">
+                  <div className="mb-3 rounded-full bg-white/5 p-3 text-stone-400">
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-medium text-stone-400">{t.noItemsYet}</p>
+                </div>
               )}
             </div>
           </div>
 
-          <div className="hidden app-surface rounded-[1.25rem] p-4 md:block">
-            <div className="flex items-center justify-between">
+          <div className="hidden rounded-[2.5rem] border border-white/5 bg-[#000000] p-8 shadow-xl backdrop-blur-xl md:block">
+            <div className="mb-6 flex items-end justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-                  {settings.language === "en" ? "Prayer Journal" : "ஜெப குறிப்பேடு"}
-                </p>
-                <h2 className="mt-2 text-xl font-bold text-white">
-                  {settings.language === "en" ? "Attached prayers" : "இணைக்கப்பட்ட ஜெபங்கள்"}
-                </h2>
+                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-zinc-200">{["en", "ta-en"].includes(settings.language) ? "Prayer Journal" : "ஜெப குறிப்பேடு"}</p>
+                <h2 className="mt-2 text-2xl font-extrabold text-white">{["en", "ta-en"].includes(settings.language) ? "Recent Prayers" : "சமீபத்திய ஜெபங்கள்"}</h2>
               </div>
-              <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300">
-                {prayerCount}
-              </span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0a0a0a]/10 text-xs font-bold text-zinc-200 ring-1 ring-zinc-700/20">{prayerCount}</span>
             </div>
-
-            <div className="mt-3.5 space-y-2.5">
+            <div className="space-y-4">
               {recentPrayers.length ? (
                 recentPrayers.map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-xl border border-white/10 bg-white/[0.03] p-3.5"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <button type="button" onClick={() => goToItem(item)} className="text-left">
-                        <p className="text-sm font-semibold text-white">
+                  <div key={item.id} className="group relative overflow-hidden rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-5 transition-all hover:border-zinc-700/30 hover:bg-white/[0.04]">
+                    <div className="flex items-start justify-between gap-4">
+                      <button type="button" onClick={() => goToItem(item)} className="flex-1 text-left">
+                        <p className="inline-flex items-center gap-2 rounded-full bg-black/40 px-3 py-1 text-xs font-bold text-zinc-300 ring-1 ring-white/10">
+                          <span className="h-1.5 w-1.5 rounded-full bg-zinc-700" />
                           {item.bookTamil} {item.chapter}:{item.verse}
                         </p>
-                        <p className="mt-2 line-clamp-2 text-sm leading-7 text-slate-300">
-                          {item.text}
-                        </p>
+                        <p className="mt-3 line-clamp-2 text-sm font-medium leading-relaxed text-stone-300">{item.text}</p>
                       </button>
                       <button
                         type="button"
                         onClick={() => togglePrayerAnswered(item.id)}
-                        className={`rounded-full px-2.5 py-1.5 text-[10px] font-semibold ${
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all ${
                           item.answered
-                            ? "bg-emerald-400 text-slate-950"
-                            : "border border-white/10 bg-white/5 text-slate-200"
+                            ? "bg-zinc-700 text-black shadow-[0_0_15px_rgba(255, 255, 255,0.4)] hover:bg-zinc-600"
+                            : "bg-white/5 text-stone-400 ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
                         }`}
+                        title={item.answered ? "Answered" : "Mark as answered"}
                       >
-                        {item.answered
-                          ? settings.language === "en"
-                            ? "Answered"
-                            : "பதிலளிக்கப்பட்டது"
-                          : settings.language === "en"
-                          ? "Mark Answered"
-                          : "பதிலாக குறி"}
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
                       </button>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="rounded-xl border border-dashed border-white/10 px-4 py-5 text-sm text-slate-400">
-                  {settings.language === "en"
-                    ? "Add prayers to verses from the chapter screen and revisit them here."
-                    : "அதிகார திரையிலிருந்து வசனங்களுக்கு ஜெபங்களை சேர்த்து, இங்கு மீண்டும் பார்க்கலாம்."}
-                </p>
-              )}
-            </div>
-          </div>
-        </section>
-
-        <section className="mb-4 grid gap-3.5 lg:grid-cols-[1.1fr,0.9fr]">
-          <div className="app-surface rounded-[1.25rem] p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-                  {t.highlightsTitle}
-                </p>
-                <h2 className="mt-2 text-xl font-bold text-white">
-                  {settings.language === "en" ? "Highlight folders" : "ஹைலைட் அடைவுகள்"}
-                </h2>
-              </div>
-            </div>
-
-            <div className="mt-3.5 grid gap-3 sm:grid-cols-2">
-              {groupedHighlights.map((folder) => (
-                <div
-                  key={folder.value}
-                  className={`rounded-xl border border-white/10 bg-white/[0.03] p-3.5 ${
-                    folder.value === "sermon" || folder.value === "prayer" ? "hidden md:block" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-white">{folder.label}</p>
-                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
-                      {folder.items.length}
-                    </span>
-                  </div>
-                  <div className="mt-3 space-y-3">
-                    {folder.items.slice(0, 2).map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => goToItem(item)}
-                        className="block w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-left"
-                      >
-                        <p className="text-sm font-semibold text-white">
-                          {item.bookTamil} {item.chapter}:{item.verse}
-                        </p>
-                        <p className="mt-2 line-clamp-2 text-xs leading-6 text-slate-400">
-                          {item.text}
-                        </p>
-                      </button>
-                    ))}
-                    {!folder.items.length ? (
-                      <p className="text-sm text-slate-400">
-                        {settings.language === "en"
-                          ? "No highlights in this folder yet."
-                          : "இந்த அடைவில் இன்னும் ஹைலைட்கள் இல்லை."}
-                      </p>
-                    ) : null}
-                  </div>
+                <div className="flex min-h-[200px] flex-col items-center justify-center rounded-[2rem] border border-dashed border-white/10 p-6 text-center">
+                  <p className="text-sm font-medium text-stone-400">{["en", "ta-en"].includes(settings.language) ? "Add prayers to verses to see them here." : "இங்கு காண வசனங்களுக்கு ஜெபங்களை சேர்க்கவும்."}</p>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="app-surface rounded-[1.25rem] p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-              {settings.language === "en" ? "Sharing + Presentation" : "பகிரல் + பிரசென்டேஷன்"}
-            </p>
-            <h2 className="mt-2 text-xl font-bold text-white">
-              <span className="md:hidden">
-                {settings.language === "en" ? "Designer Tools" : "வடிவமைப்பு கருவிகள்"}
-              </span>
-              <span className="hidden md:inline">
-                {settings.language === "en"
-                  ? "Designer and Sermon Tools"
-                  : "வடிவமைப்பு மற்றும் பிரசங்க கருவிகள்"}
-              </span>
-            </h2>
-            <div className="mt-3.5 space-y-2.5">
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3.5">
-                <p className="text-sm font-semibold text-white">
-                  {settings.language === "en" ? "Verse image designer" : "வசன பட வடிவமைப்பான்"}
-                </p>
-                <p className="mt-1.5 text-xs leading-6 text-slate-300">
-                  {settings.language === "en"
-                    ? "Share verse cards with templates, font size, watermark, and direct export for WhatsApp or Telegram from the reader popup."
-                    : "Reader popup-இலிருந்து template, font size, watermark, WhatsApp அல்லது Telegram export உடன் வசன கார்டுகளை பகிரலாம்."}
-                </p>
-              </div>
-              <div className="hidden rounded-xl border border-white/10 bg-white/[0.03] p-3.5 md:block">
-                <p className="text-sm font-semibold text-white">
-                  {settings.language === "en" ? "Sermon mode" : "பிரசங்க முறை"}
-                </p>
-                <p className="mt-1.5 text-xs leading-6 text-slate-300">
-                  {settings.language === "en"
-                    ? "Queue verses during preparation, open the sermon display on another screen, and control the active verse remotely from a second tab."
-                    : "தயாரிப்பில் வசனங்களை queue செய்து, மற்றொரு screen-இல் sermon display-ஐ திறந்து, இரண்டாம் tab-இலிருந்து active verse-ஐ control செய்யலாம்."}
-                </p>
-              </div>
-            </div>
-            <div className="mt-4 hidden flex-wrap gap-2.5 md:flex">
-              <button
-                type="button"
-                onClick={() => navigate("/sermon-control")}
-                className="rounded-xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-4 py-2.5 text-xs font-semibold text-white shadow-lg"
-              >
-                {settings.language === "en" ? "Open Sermon Control" : "பிரசங்க கட்டுப்பாட்டை திற"}
-              </button>
-              <button
-                type="button"
-                onClick={() => window.open("/sermon-mode", "_blank", "noopener,noreferrer")}
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-semibold text-white"
-              >
-                {settings.language === "en" ? "Launch Sermon Screen" : "பிரசங்க திரையை தொடங்கு"}
-              </button>
+              )}
             </div>
           </div>
         </section>
 
-        {verseOfDayPopupOpen ? (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/80 px-4 backdrop-blur-sm md:hidden">
-            <button
-              type="button"
-              aria-label="Close verse of day popup"
-              className="absolute inset-0"
-              onClick={() => setVerseOfDayPopupOpen(false)}
-            />
-
-            <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.26),_transparent_32%),linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(8,17,32,0.98))] p-5 shadow-2xl shadow-black/40">
-              <p className="text-center text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-                {t.verseOfDay}
-              </p>
-              {verseOfTheDay ? (
-                <>
-                  <p className="mt-3 text-center text-sm font-semibold text-white">
-                    {verseOfTheDay.bookTamil} {verseOfTheDay.chapter}:{verseOfTheDay.verse}
-                  </p>
-                  <p className="mt-5 text-center text-lg font-semibold leading-9 text-white">
-                    {verseOfTheDay.text}
-                  </p>
-                </>
-              ) : (
-                <p className="mt-5 text-center text-sm text-slate-300">Loading verse...</p>
-              )}
-
-              <div className="mt-6 flex flex-wrap justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={shareVerseOfDay}
-                  disabled={!verseOfTheDay}
-                  className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
-                >
-                  {t.share}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setVerseOfDayPopupOpen(false)}
-                  className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
-                >
-                  {t.close}
-                </button>
-              </div>
-
-              {shareFeedback ? (
-                <p className="mt-4 text-center text-sm text-slate-300">{shareFeedback}</p>
-              ) : null}
-            </div>
+        {/* Highlight Folders */}
+        <section className="rounded-[2.5rem] border border-white/5 bg-[#000000] p-8 shadow-xl backdrop-blur-xl">
+          <div className="mb-6">
+            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-fuchsia-400">{t.highlightsTitle}</p>
+            <h2 className="mt-2 text-2xl font-extrabold text-white">{["en", "ta-en"].includes(settings.language) ? "Highlight Folders" : "ஹைலைட் அடைவுகள்"}</h2>
           </div>
-        ) : null}
-        {installPopupOpen ? (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/80 px-4 backdrop-blur-sm md:hidden">
-            <button
-              type="button"
-              aria-label="Close install popup"
-              className="absolute inset-0"
-              onClick={() => setInstallPopupOpen(false)}
-            />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {groupedHighlights.map((folder) => (
+              <div key={folder.value} className={`group relative overflow-hidden rounded-[2rem] border border-white/5 bg-white/[0.02] p-5 transition-all hover:-translate-y-1 hover:border-fuchsia-500/30 hover:bg-white/[0.04] hover:shadow-lg ${folder.value === "sermon" || folder.value === "prayer" ? "hidden lg:block" : ""}`}>
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-white">{folder.label}</h3>
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-stone-300">{folder.items.length}</span>
+                </div>
+                <div className="space-y-2">
+                  {folder.items.slice(0, 2).map((item) => (
+                    <button key={item.id} onClick={() => goToItem(item)} className="block w-full rounded-xl bg-black/40 p-3 text-left transition-colors hover:bg-black/60">
+                      <p className="text-xs font-bold text-fuchsia-300">{item.bookTamil} {item.chapter}:{item.verse}</p>
+                      <p className="mt-1 line-clamp-1 text-xs text-stone-400">{item.text}</p>
+                    </button>
+                  ))}
+                  {!folder.items.length && <p className="py-4 text-center text-xs text-stone-500">Empty folder</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
 
-            <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.22),_transparent_32%),linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(8,17,32,0.98))] p-5 shadow-2xl shadow-black/40">
-              <p className="text-center text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-                {t.installApp}
-              </p>
-              <h3 className="mt-3 text-center text-xl font-bold text-white">
-                {settings.language === "en" ? "Install the app" : "ஆப்பை நிறுவுங்கள்"}
-              </h3>
-              <p className="mt-4 text-center text-sm leading-7 text-slate-300">
-                {installMessage || installInstructions || t.installHelp}
-              </p>
-
-              <div className="mt-6 flex flex-wrap justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleInstallClick}
-                  className={`rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-lg ${
-                    canInstall
-                      ? "bg-gradient-to-br from-indigo-500 to-sky-500 shadow-indigo-950/30"
-                      : "bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)] shadow-sky-950/20"
-                  }`}
-                >
-                  {t.installNow}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setInstallPopupOpen(false)}
-                  className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
-                >
-                  {t.close}
-                </button>
+        {/* Popups */}
+        {verseOfDayPopupOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 px-4 backdrop-blur-md md:hidden">
+            <div className="absolute inset-0" onClick={() => setVerseOfDayPopupOpen(false)} />
+            <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#000000] p-8 shadow-2xl animate-in zoom-in-95 fade-in duration-300">
+              <div className="text-center">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-rose-400">{t.verseOfDay}</p>
+                {verseOfTheDay ? (
+                  <>
+                    <h3 className="mt-4 inline-flex items-center rounded-full bg-white/5 px-4 py-1.5 text-sm font-bold text-white ring-1 ring-white/10">
+                      {verseOfTheDay.bookTamil} {verseOfTheDay.chapter}:{verseOfTheDay.verse}
+                    </h3>
+                    <p className="mt-6 text-xl font-bold leading-relaxed text-white">"{verseOfTheDay.text}"</p>
+                  </>
+                ) : (
+                  <div className="mt-6 flex justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-rose-400 border-t-transparent" /></div>
+                )}
+                <div className="mt-8 flex flex-col gap-3">
+                  <button onClick={shareVerseOfDay} disabled={!verseOfTheDay} className="rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 py-3.5 font-bold text-white shadow-lg active:scale-95">
+                    {t.share}
+                  </button>
+                  <button onClick={() => setVerseOfDayPopupOpen(false)} className="rounded-2xl bg-white/5 py-3.5 font-bold text-stone-300 active:scale-95">
+                    {t.close}
+                  </button>
+                </div>
+                {shareFeedback && <p className="mt-4 text-xs font-medium text-emerald-400">{shareFeedback}</p>}
               </div>
             </div>
           </div>
-        ) : null}
+        )}
+
+
+
       </div>
     </div>
   );

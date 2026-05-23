@@ -3,14 +3,16 @@ import booksList from "../data/Books.json";
 const NEW_TESTAMENT_START_INDEX = 39;
 
 const tamilModules = {
-  ...import.meta.glob("../data/oldTestament/*.json"),
-  ...import.meta.glob("../data/newTestament/*.json"),
+  ...import.meta.glob("../data/oldTestament/*.json", { eager: true }),
+  ...import.meta.glob("../data/newTestament/*.json", { eager: true }),
 };
 
 const englishModules = {
-  ...import.meta.glob("../data/kjv/oldTestament/*.json"),
-  ...import.meta.glob("../data/kjv/newTestament/*.json"),
+  ...import.meta.glob("../data/kjv/oldTestament/*.json", { eager: true }),
+  ...import.meta.glob("../data/kjv/newTestament/*.json", { eager: true }),
 };
+
+console.log("TAMIL MODULES KEYS:", Object.keys(tamilModules));
 
 const bookMetadataList = booksList.map((entry, index) => ({
   ...entry,
@@ -36,6 +38,9 @@ const loadedCollectionCache = new Map();
 
 function getModulePath(bookEnglish, language = "ta") {
   const metadata = bookMetadataMap.get(bookEnglish);
+  
+  // Normalize ta-en to ta for data fetching
+  const langKey = language === "ta-en" ? "ta" : language;
 
   if (!metadata) {
     return null;
@@ -43,7 +48,7 @@ function getModulePath(bookEnglish, language = "ta") {
 
   const testamentFolder = metadata.testament === "new" ? "newTestament" : "oldTestament";
 
-  if (language === "en") {
+  if (langKey === "en") {
     return `../data/kjv/${testamentFolder}/${bookEnglish}.json`;
   }
 
@@ -74,16 +79,42 @@ export async function loadBibleBook(bookEnglish, language = "ta") {
   }
 
   const modulePath = getModulePath(bookEnglish, language);
-  const moduleLoader = modulePath ? moduleMaps[language]?.[modulePath] : null;
+  
+  // Normalize ta-en to ta for module fetching
+  const langKey = language === "ta-en" ? "ta" : language;
+  
+  // Find the matching key flexibly since Vite may format paths differently (e.g., /src/data/... or ../data/...)
+  const map = moduleMaps[langKey] || {};
+  let moduleData = map[modulePath];
+  
+  if (!moduleData) {
+    const targetSuffix = modulePath.replace("../data/", "");
+    const matchingKey = Object.keys(map).find(key => key.endsWith(targetSuffix) || key.includes(targetSuffix));
+    moduleData = matchingKey ? map[matchingKey] : null;
+  }
 
-  if (!moduleLoader) {
+  if (!moduleData) {
     loadedBookCache.set(cacheKey, Promise.resolve(null));
     return null;
   }
 
-  const promise = moduleLoader()
-    .then((module) => module.default || module)
-    .catch(() => null);
+  // Resolve the module dynamically depending on whether Vite eagerly loaded it as an object or as a lazy function
+  const promise = (async () => {
+    try {
+      let resolved = moduleData;
+      
+      // If it's a dynamic import function, call it
+      if (typeof resolved === 'function') {
+        resolved = await resolved();
+      }
+      
+      // If it has a default export (typical for Vite JSON imports), use that
+      return resolved.default || resolved;
+    } catch (err) {
+      console.error(`Failed to load bible book: ${bookEnglish}`, err);
+      return null;
+    }
+  })();
 
   loadedBookCache.set(cacheKey, promise);
   return promise;

@@ -87,7 +87,7 @@ const SmoothBackground = memo(function SmoothBackground({
       style={{ zIndex: 0 }}
     >
       {/* Base black to prevent white flashes */}
-      <div className="absolute inset-0 bg-[#020617]" />
+      <div className="absolute inset-0 bg-[#000000]" />
       
       {renderLayer(layers.fading, true)}
       {renderLayer(layers.active, false)}

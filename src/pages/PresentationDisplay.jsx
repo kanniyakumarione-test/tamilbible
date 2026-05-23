@@ -5,9 +5,7 @@ import useAppSettings from "../hooks/useAppSettings";
 import useLibraryData from "../hooks/useLibraryData";
 import { setSermonDisplayMode } from "../utils/libraryData";
 import MotionBackground from "../components/MotionBackground";
-import {
-  getPresentationFontFamily,
-} from "../utils/appearance";
+import { getPresentationFontFamily, getCustomGradientString } from "../utils/appearance";
 
 const backgrounds = [
   "/bg/bg1.jpg",
@@ -27,7 +25,7 @@ function getReaderBackground(settings) {
   ];
 
   if (settings.bgType === "motion") {
-    return "#07111f";
+    return "#000000";
   }
 
   if (settings.bgType === "custom" && settings.customBackground) {
@@ -35,7 +33,7 @@ function getReaderBackground(settings) {
   }
 
   if (settings.bgType === "gradient") {
-    return gradients[settings.bgIndex];
+    return getCustomGradientString(settings.customGradientType, settings.customGradientColor1, settings.customGradientColor2);
   }
 
   return `url(${backgrounds[settings.bgIndex]})`;
@@ -52,7 +50,7 @@ function getStageBackground(settings) {
 function StageSideCard({ title, children }) {
   return (
     <div className="rounded-[1.5rem] border border-white/10 bg-black/25 p-5 backdrop-blur-md">
-      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
+      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-400">
         {title}
       </p>
       <div className="mt-4">{children}</div>
@@ -215,7 +213,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
           ) : (
             <div className="text-center">
               <p className="text-5xl font-bold text-white">{title}</p>
-              <p className="mt-4 text-xl text-slate-300">{subtitle}</p>
+              <p className="mt-4 text-xl text-stone-300">{subtitle}</p>
             </div>
           )}
         </div>
@@ -227,11 +225,11 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
     return (
       <div className="relative z-10 flex min-h-screen items-center justify-center px-8">
         <div className="max-w-5xl text-center">
-          <p className="text-lg font-semibold uppercase tracking-[0.45em] text-slate-300">
+          <p className="text-lg font-semibold uppercase tracking-[0.45em] text-stone-300">
             Presentation
           </p>
           <h1 className="mt-6 text-6xl font-bold text-white md:text-8xl">{title}</h1>
-          <p className="mt-6 text-2xl leading-10 text-slate-200 md:text-3xl">{subtitle}</p>
+          <p className="mt-6 text-2xl leading-10 text-stone-200 md:text-3xl">{subtitle}</p>
         </div>
       </div>
     );
@@ -241,11 +239,11 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
     return (
       <div className="relative z-10 flex min-h-screen items-center justify-center px-8">
         <div className="max-w-5xl rounded-[2rem] border border-white/10 bg-black/30 px-10 py-12 text-center backdrop-blur-md">
-          <p className="text-lg font-semibold uppercase tracking-[0.45em] text-slate-300">
+          <p className="text-lg font-semibold uppercase tracking-[0.45em] text-stone-300">
             Announcement
           </p>
           <h1 className="mt-6 text-5xl font-bold text-white md:text-7xl">{announcementTitle}</h1>
-          <p className="mt-6 text-2xl leading-10 text-slate-200 md:text-3xl">{announcementBody}</p>
+          <p className="mt-6 text-2xl leading-10 text-stone-200 md:text-3xl">{announcementBody}</p>
         </div>
       </div>
     );
@@ -345,12 +343,12 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
                   <p className="text-xl font-bold text-white">
                     {nextItem.bookTamil} {nextItem.chapter}:{nextItem.verse}
                   </p>
-                  <p className="mt-4 text-lg leading-9 text-slate-200">
+                  <p className="mt-4 text-lg leading-9 text-stone-200">
                     {nextItem.text}
                   </p>
                 </>
               ) : (
-                <p className="text-lg text-slate-300">No next verse queued yet.</p>
+                <p className="text-lg text-stone-300">No next verse queued yet.</p>
               )}
             </StageSideCard>
 
@@ -427,7 +425,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
         ) : (
           <div className="py-16 text-center">
             <p className="text-4xl font-bold text-white">No active sermon verse yet.</p>
-            <p className="mt-4 text-xl text-slate-300">
+            <p className="mt-4 text-xl text-stone-300">
               Add a verse from the chapter screen or open the phone remote.
             </p>
           </div>
@@ -634,13 +632,13 @@ export default function PresentationDisplay() {
       ) : (
         <div className="relative z-10 flex min-h-screen items-center justify-center px-8">
           <div className="rounded-[2rem] border border-white/10 bg-black/35 px-10 py-12 text-center backdrop-blur-md">
-            <p className="text-lg font-semibold uppercase tracking-[0.4em] text-slate-400">
+            <p className="text-lg font-semibold uppercase tracking-[0.4em] text-stone-400">
               {isStage ? "Stage View" : "Main Presentation"}
             </p>
             <p className="mt-6 text-4xl font-bold text-white">
               Turned Off
             </p>
-            <p className="mt-4 text-lg text-slate-300">
+            <p className="mt-4 text-lg text-stone-300">
               Enable this screen from Advanced Presentation when you want to show it again.
             </p>
           </div>

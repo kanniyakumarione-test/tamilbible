@@ -3,7 +3,7 @@ import useAppSettings from "../hooks/useAppSettings";
 import { getUIText } from "../utils/uiText";
 
 function DockGlyph({ active, variant }) {
-  const strokeClass = active ? "text-white" : "text-slate-400";
+  const strokeClass = active ? "text-white" : "text-stone-400";
   const fillClass = active ? "fill-white/20" : "fill-transparent";
 
   if (variant === "home") {
@@ -61,10 +61,10 @@ function isItemActive(pathname, to) {
 
 function DesktopDock({ items, pathname }) {
   return (
-    <div className="fixed bottom-5 left-1/2 z-40 hidden w-auto -translate-x-1/2 md:block">
-      <div className="relative overflow-hidden rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(20,20,27,0.97),rgba(10,10,16,0.95))] px-3 py-3 shadow-[0_20px_50px_rgba(0,0,0,0.42)] backdrop-blur-xl">
-        <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
-        <div className="flex items-center gap-3">
+    <div className="fixed bottom-6 left-1/2 z-40 hidden w-auto -translate-x-1/2 md:block">
+      <div className="relative overflow-hidden rounded-[2rem] border border-white/5 bg-[#000000] p-2 shadow-[0_30px_60px_rgba(0,0,0,0.5)] backdrop-blur-3xl before:absolute before:inset-0 before:-z-10 before:rounded-[2rem] before:bg-white/[0.02]">
+        <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        <div className="flex items-center gap-2">
           {items.map((item) => {
             const active = isItemActive(pathname, item.to);
 
@@ -73,26 +73,24 @@ function DesktopDock({ items, pathname }) {
                 key={item.to}
                 to={item.to}
                 aria-label={item.label}
-                className={`${item.desktopOnly ? "hidden md:flex" : "flex"} group relative min-w-0 items-center justify-center transition-all duration-300 ease-out ${
+                className={`${item.desktopOnly ? "hidden md:flex" : "flex"} group relative min-w-0 items-center justify-center transition-all duration-500 ease-out ${
                   active
-                    ? "rounded-full bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.24),rgba(96,165,250,0.18)_28%,rgba(37,99,235,0.92)_70%,rgba(29,78,216,0.98)_100%)] px-4 py-2.5 text-white shadow-[0_12px_24px_rgba(37,99,235,0.3),inset_0_1px_0_rgba(255,255,255,0.22)]"
-                    : "h-12 w-12 rounded-full px-0 text-slate-400 hover:bg-white/[0.04] hover:text-slate-100"
+                    ? "rounded-[1.5rem] bg-gradient-to-r from-zinc-800/20 to-black/20 px-5 py-3 text-zinc-300 shadow-[0_0_20px_rgba(255, 255, 255,0.15),inset_0_1px_0_rgba(255,255,255,0.1)] ring-1 ring-zinc-700/30"
+                    : "h-14 w-14 rounded-full px-0 text-stone-400 hover:bg-white/10 hover:text-white"
                 }`}
               >
                 <span
-                  className={`relative flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 ease-out ${
-                    active
-                      ? "scale-105 bg-black/45 ring-1 ring-white/10"
-                      : "scale-100 bg-transparent"
+                  className={`relative flex h-8 w-8 items-center justify-center rounded-full transition-transform duration-500 ease-out ${
+                    active ? "scale-110" : "scale-100 group-hover:scale-110"
                   }`}
                 >
                   <DockGlyph active={active} variant={item.glyph} />
                 </span>
-                {active ? (
-                  <span className="ml-1.5 hidden pr-1 text-xs font-semibold leading-none tracking-[0.01em] text-white transition-all duration-300 ease-out md:inline">
+                {active && (
+                  <span className="ml-2 hidden text-[13px] font-bold tracking-wide text-zinc-400 transition-all duration-500 ease-out md:inline">
                     {item.label}
                   </span>
-                ) : null}
+                )}
               </Link>
             );
           })}
@@ -109,29 +107,28 @@ function MobileDock({ items, pathname }) {
   const searchActive = searchItem ? isItemActive(pathname, searchItem.to) : false;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
-      {searchItem ? (
+    <div className="fixed inset-x-0 bottom-0 z-40 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:hidden">
+      {searchItem && (
         <Link
           to={searchItem.to}
           aria-label={searchItem.label}
-          className={`fixed right-4 top-[max(0.9rem,env(safe-area-inset-top))] z-[45] flex h-[3.6rem] w-[3.6rem] items-center justify-center rounded-[1.25rem] border transition-all duration-300 ${
+          className={`fixed right-5 top-[max(1rem,env(safe-area-inset-top))] z-[45] flex h-14 w-14 items-center justify-center rounded-[1.5rem] border transition-all duration-500 hover:scale-105 active:scale-95 ${
             searchActive
-              ? "border-cyan-300/70 bg-[radial-gradient(circle_at_30%_25%,rgba(255,255,255,0.34),rgba(56,189,248,0.24)_30%,rgba(14,165,233,0.92)_72%,rgba(8,47,73,1)_100%)] shadow-[0_18px_38px_rgba(14,165,233,0.42),inset_0_1px_0_rgba(255,255,255,0.28)]"
-              : "border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(2,6,23,0.98))] shadow-[0_18px_38px_rgba(0,0,0,0.38)]"
+              ? "border-zinc-600/40 bg-gradient-to-br from-zinc-800 to-orange-600 shadow-[0_0_25px_rgba(255, 255, 255,0.5)]"
+              : "border-white/10 bg-[#000000] shadow-[0_20px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl"
           }`}
         >
-          <span className="absolute inset-[1px] rounded-[1.1rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))]" />
-          <span className="relative flex h-9 w-9 items-center justify-center rounded-[0.9rem] bg-black/25 text-white">
+          <span className={`relative flex h-10 w-10 items-center justify-center rounded-[1.2rem] ${searchActive ? "text-white" : "bg-white/5 text-stone-300"}`}>
             <DockGlyph active={searchActive} variant={searchItem.glyph} />
           </span>
         </Link>
-      ) : null}
+      )}
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent" />
-      <div className="relative mx-auto max-w-md">
-        <div className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(180deg,rgba(20,20,27,0.97),rgba(10,10,16,0.95))] px-2 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.42)] backdrop-blur-xl">
-          <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
-          <div className="grid grid-cols-3 gap-1">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent" />
+      <div className="relative mx-auto max-w-sm">
+        <div className="relative overflow-hidden rounded-[2rem] border border-white/5 bg-[#000000] p-2.5 shadow-[0_30px_60px_rgba(0,0,0,0.6)] backdrop-blur-2xl">
+          <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+          <div className="grid grid-cols-3 gap-2">
             {primaryItems.map((item) => {
               const active = isItemActive(pathname, item.to);
               return (
@@ -139,22 +136,20 @@ function MobileDock({ items, pathname }) {
                   key={item.to}
                   to={item.to}
                   aria-label={item.label}
-                  className={`flex min-w-0 flex-col items-center justify-center rounded-[1.1rem] px-2 py-2.5 transition-all duration-300 ${
+                  className={`flex min-w-0 flex-col items-center justify-center rounded-[1.5rem] py-3 transition-all duration-500 ${
                     active
-                      ? "bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.24),rgba(96,165,250,0.18)_28%,rgba(37,99,235,0.92)_70%,rgba(29,78,216,0.98)_100%)] text-white shadow-[0_12px_24px_rgba(37,99,235,0.3),inset_0_1px_0_rgba(255,255,255,0.22)]"
-                      : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-100"
+                      ? "bg-gradient-to-b from-zinc-800/20 to-black/10 text-zinc-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] ring-1 ring-zinc-700/30"
+                      : "text-stone-400 hover:bg-white/10 hover:text-white"
                   }`}
                 >
                   <span
-                    className={`relative flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 ${
-                      active
-                        ? "scale-105 bg-black/45 ring-1 ring-white/10"
-                        : "scale-100 bg-transparent"
+                    className={`relative flex h-8 w-8 items-center justify-center rounded-full transition-transform duration-500 ${
+                      active ? "scale-110" : "scale-100"
                     }`}
                   >
                     <DockGlyph active={active} variant={item.glyph} />
                   </span>
-                  <span className={`mt-1 block text-[10px] font-medium leading-none transition-colors duration-300 ${active ? "text-white" : "text-slate-400"}`}>
+                  <span className={`mt-1.5 block text-[10px] font-bold uppercase tracking-wider transition-colors duration-500 ${active ? "text-zinc-300" : "text-stone-500"}`}>
                     {item.label}
                   </span>
                 </Link>

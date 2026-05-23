@@ -1,3 +1,4 @@
+import { getCustomGradientString } from "../utils/appearance";
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 
@@ -133,14 +134,14 @@ function ChapterNavigator({
     : "grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]";
 
   const mobileArrowClass =
-    "flex h-11 items-center justify-center rounded-[1.1rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.9),rgba(8,17,32,0.98))] text-lg text-white transition hover:border-sky-400/30 hover:bg-[linear-gradient(180deg,rgba(30,41,59,0.92),rgba(15,23,42,1))] disabled:cursor-not-allowed disabled:opacity-40 md:hidden";
+    "flex h-11 items-center justify-center rounded-[1.1rem] border border-white/10 bg-[#000000] text-lg text-white transition hover:border-zinc-600/30 hover:bg-[#000000] disabled:cursor-not-allowed disabled:opacity-40 md:hidden";
 
   const sideClass =
-    "group flex items-center gap-2.5 rounded-[1.2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.9),rgba(8,17,32,0.98))] px-3 py-3 text-left transition hover:border-sky-400/30 hover:bg-[linear-gradient(180deg,rgba(30,41,59,0.92),rgba(15,23,42,1))] disabled:cursor-not-allowed disabled:opacity-40 sm:gap-3 sm:rounded-[1.4rem] sm:px-4";
+    "group flex items-center gap-2.5 rounded-[1.2rem] border border-white/10 bg-[#000000] px-3 py-3 text-left transition hover:border-zinc-600/30 hover:bg-[#000000] disabled:cursor-not-allowed disabled:opacity-40 sm:gap-3 sm:rounded-[1.4rem] sm:px-4";
 
   const centerClass = compact
-    ? "inline-flex w-full min-w-0 items-center justify-center gap-3 rounded-[1.25rem] border border-sky-400/20 bg-[linear-gradient(135deg,rgba(37,99,235,0.16),rgba(56,189,248,0.22))] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-950/20 transition hover:border-sky-300/40 hover:bg-[linear-gradient(135deg,rgba(37,99,235,0.24),rgba(56,189,248,0.3))]"
-    : "inline-flex w-full min-w-0 items-center justify-center gap-2 rounded-[1.3rem] border border-sky-400/20 bg-[linear-gradient(135deg,rgba(37,99,235,0.16),rgba(56,189,248,0.22))] px-3 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-950/20 transition hover:border-sky-300/40 hover:bg-[linear-gradient(135deg,rgba(37,99,235,0.24),rgba(56,189,248,0.3))] md:col-span-1 md:min-w-[12rem] md:w-auto md:gap-3 md:rounded-[1.45rem] md:px-5 md:py-4 md:text-base md:shadow-xl";
+    ? "inline-flex w-full min-w-0 items-center justify-center gap-3 rounded-[1.25rem] border border-zinc-600/20 bg-[#000000] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-950/20 transition hover:border-zinc-500/40 hover:bg-[#000000]"
+    : "inline-flex w-full min-w-0 items-center justify-center gap-2 rounded-[1.3rem] border border-zinc-600/20 bg-[#000000] px-3 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-950/20 transition hover:border-zinc-500/40 hover:bg-[#000000] md:col-span-1 md:min-w-[12rem] md:w-auto md:gap-3 md:rounded-[1.45rem] md:px-5 md:py-4 md:text-base md:shadow-xl";
 
   return (
     <div className={wrapperClass}>
@@ -151,7 +152,7 @@ function ChapterNavigator({
       <button type="button" onClick={onPrev} disabled={!hasPrev} className={`${sideClass} hidden md:flex ${compact ? "sm:col-auto" : ""}`}>
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-base text-white sm:h-10 sm:w-10 sm:rounded-2xl sm:text-lg">&larr;</span>
         <span className="min-w-0">
-          <span className="block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
+          <span className="block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-stone-500">
             Previous
           </span>
           <span className="block truncate text-xs font-semibold text-slate-100 sm:text-sm">{prevLabel}</span>
@@ -159,11 +160,11 @@ function ChapterNavigator({
       </button>
 
       <button type="button" onClick={onOpenPicker} className={centerClass}>
-        <span className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-sky-100/75">
+        <span className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-amber-100/75">
           {chapterLabel}
         </span>
         <span>{chapter}</span>
-        <span className="text-sm text-sky-100/80">&#9662;</span>
+        <span className="text-sm text-amber-100/80">&#9662;</span>
       </button>
 
       <button
@@ -182,7 +183,7 @@ function ChapterNavigator({
         className={`${sideClass} hidden justify-self-stretch text-right md:flex`}
       >
         <span className="min-w-0 flex-1 md:order-1">
-          <span className="block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
+          <span className="block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-stone-500">
             Next
           </span>
           <span className="block truncate text-xs font-semibold text-slate-100 sm:text-sm">{nextLabel}</span>
@@ -212,6 +213,7 @@ export default function Verses() {
   const primaryLanguage = settings.language === "en" ? "en" : "ta";
   const [bookQuery, setBookQuery] = useState("");
   const [isDesktopBookListExpanded, setIsDesktopBookListExpanded] = useState(false);
+  const [isDesktopChapterListExpanded, setIsDesktopChapterListExpanded] = useState(false);
   const readingPaneRef = useRef(null);
   const autoScrollFrameRef = useRef(null);
   const lastAutoScrollTimeRef = useRef(null);
@@ -256,10 +258,10 @@ export default function Verses() {
 
     if (settings.bgType === "gradient" || settings.bgType === "motion") {
       const gradient = ctx.createLinearGradient(0, 0, width, height);
-      gradient.addColorStop(0, settings.bgType === "motion" ? "#020617" : "#0f172a");
-      gradient.addColorStop(1, settings.bgType === "motion" ? "#0f766e" : "#1d4ed8");
+      gradient.addColorStop(0, settings.bgType === "motion" ? "#000000" : "#000000");
+      gradient.addColorStop(1, settings.bgType === "motion" ? "#ffffff" : "#ffffff");
 
-      const gradientMatches = gradients[settings.bgIndex]?.match(/#[0-9a-fA-F]{6}/g);
+      const gradientMatches = getCustomGradientString(settings.customGradientType, settings.customGradientColor1, settings.customGradientColor2)?.match(/#[0-9a-fA-F]{6}/g);
 
       if (settings.bgType !== "motion" && gradientMatches?.[0]) {
         gradient.addColorStop(0, gradientMatches[0]);
@@ -281,7 +283,7 @@ export default function Verses() {
         const backgroundImage = await loadImage(imageSource);
         drawCoverImage(ctx, backgroundImage, width, height);
       } else {
-        ctx.fillStyle = "#07111f";
+        ctx.fillStyle = "#000000";
         ctx.fillRect(0, 0, width, height);
       }
     }
@@ -298,7 +300,7 @@ export default function Verses() {
         cardY: 160,
         cardWidth: width - 168,
         cardHeight: height - 320,
-        accent: "rgba(191, 219, 254, 0.9)",
+        accent: "rgba(255, 255, 255, 0.9)",
       },
       social: {
         cardX: 68,
@@ -319,7 +321,7 @@ export default function Verses() {
     const { cardX, cardY, cardWidth, cardHeight, accent } = selectedTemplate;
     const radius = 42;
 
-    ctx.fillStyle = `rgba(5, 10, 20, ${Math.min((settings.cardOpacity ?? 0.5) + 0.18, 0.82)})`;
+    ctx.fillStyle = `rgba(0, 0, 0, ${Math.min((settings.cardOpacity ?? 0.5) + 0.18, 0.82)})`;
     ctx.beginPath();
     ctx.moveTo(cardX + radius, cardY);
     ctx.lineTo(cardX + cardWidth - radius, cardY);
@@ -394,7 +396,7 @@ export default function Verses() {
     ctx.fillStyle = "rgba(226, 232, 240, 0.82)";
     ctx.font = "600 22px Arial";
     ctx.fillText(
-      design.watermark || (settings.language === "en" ? "Holy Bible KJV" : "Tamil Bible"),
+      design.watermark || (["en", "ta-en"].includes(settings.language) ? "Holy Bible KJV" : "Tamil Bible"),
       cardX + 54,
       cardY + cardHeight - 44
     );
@@ -695,7 +697,7 @@ export default function Verses() {
       verse,
       template: "classic",
       fontSize: 48,
-      watermark: settings.language === "en" ? "Holy Bible KJV" : isBilingual ? "Tamil Bible + KJV" : "Tamil Bible",
+      watermark: ["en", "ta-en"].includes(settings.language) ? "Holy Bible KJV" : isBilingual ? "Tamil Bible + KJV" : "Tamil Bible",
     });
   };
 
@@ -726,7 +728,7 @@ export default function Verses() {
           fontSize: Number(shareDesigner.fontSize) || 48,
           watermark:
             shareDesigner.watermark ||
-            (settings.language === "en"
+            (["en", "ta-en"].includes(settings.language)
               ? "Holy Bible KJV"
               : isBilingual
               ? "Tamil Bible + KJV"
@@ -838,6 +840,12 @@ export default function Verses() {
     ? filteredBooks
     : filteredBooks.filter((b) => b.book.english === decodedBook);
 
+  const desktopChapterList = bookData?.chapters
+    ? isDesktopChapterListExpanded
+      ? bookData.chapters
+      : bookData.chapters.filter((c) => String(c.chapter) === String(chapter))
+    : [];
+
   if (parseInt(chapter) > 1) {
     prevChapter = `/${decodedBook}/${parseInt(chapter) - 1}`;
   } else if (bookIndex > 0) {
@@ -873,9 +881,9 @@ export default function Verses() {
 
   if (bookLoading && !chapterData) {
     return (
-      <div className="min-h-screen bg-[#07111f] px-4 py-6 text-white">
-        <div className="mx-auto max-w-5xl rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(8,17,32,0.96))] p-6 shadow-2xl shadow-black/30">
-          <p className="text-sm font-medium text-slate-300">Loading chapter...</p>
+      <div className="min-h-screen bg-[#0a0a0a] px-4 py-6 text-white">
+        <div className="mx-auto max-w-5xl rounded-[2rem] border border-white/10 bg-[#000000] p-6 shadow-2xl shadow-black/30">
+          <p className="text-sm font-medium text-stone-300">Loading chapter...</p>
         </div>
       </div>
     );
@@ -883,10 +891,10 @@ export default function Verses() {
 
   if (!bookLoading && bookData && !chapterData) {
     return (
-      <div className="min-h-screen bg-[#07111f] px-4 py-6 text-white">
-        <div className="mx-auto max-w-5xl rounded-[2rem] border border-amber-300/20 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(8,17,32,0.96))] p-6 shadow-2xl shadow-black/30">
+      <div className="min-h-screen bg-[#0a0a0a] px-4 py-6 text-white">
+        <div className="mx-auto max-w-5xl rounded-[2rem] border border-zinc-500/20 bg-[#000000] p-6 shadow-2xl shadow-black/30">
           <h1 className="text-xl font-bold text-white">{bookLabel}</h1>
-          <p className="mt-2 text-sm text-slate-300">
+          <p className="mt-2 text-sm text-stone-300">
             Chapter {chapter} could not be loaded.
           </p>
         </div>
@@ -895,22 +903,22 @@ export default function Verses() {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#07111f] text-white md:h-screen md:overflow-hidden">
-      <div className="md:flex md:h-screen">
-        <aside data-lenis-prevent className="hidden w-[300px] shrink-0 overflow-y-auto border-r border-white/10 bg-[linear-gradient(180deg,_rgba(8,17,32,0.98),_rgba(10,18,30,0.94))] p-4 custom-scroll md:flex md:flex-col">
-          <div className="mb-4 rounded-[1.75rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.22),_transparent_34%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(10,18,30,0.94))] p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+    <div className="bg-[#0a0a0a] text-white">
+      <div className="md:flex">
+        <aside data-lenis-prevent className="hidden w-[300px] shrink-0 border-r border-white/10 bg-[#000000] p-4 custom-scroll md:sticky md:top-28 md:flex md:h-[calc(100vh-7rem)] md:flex-col md:overflow-y-auto">
+          <div className="mb-4 rounded-[1.75rem] border border-white/10  p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-stone-400">
               {t.navigator}
             </p>
             <h2 className="mt-3 text-xl font-bold text-white">
               {bookLabel}
             </h2>
-            <p className="mt-1 text-sm text-slate-400">{t.chapter} {chapter}</p>
+            <p className="mt-1 text-sm text-stone-400">{t.chapter} {chapter}</p>
           </div>
 
           <div className="app-surface rounded-[1.75rem] p-4">
             <div className="mb-5">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.28em] text-stone-500">
                 {t.books}
               </p>
               <input
@@ -918,7 +926,7 @@ export default function Verses() {
                 value={bookQuery}
                 onChange={(e) => setBookQuery(e.target.value)}
                 placeholder={t.searchPlaceholder}
-                className="mb-3 w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-400/40"
+                className="mb-3 w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500 focus:border-zinc-600/40"
               />
               <div
                 className="space-y-2"
@@ -933,8 +941,8 @@ export default function Verses() {
                     }
                     className={`block w-full rounded-2xl px-4 py-3 text-left text-sm transition ${
                       b.book.english === decodedBook
-                        ? "bg-gradient-to-br from-indigo-500 to-sky-500 text-white shadow-lg shadow-indigo-950/35"
-                        : "border border-white/10 bg-white/[0.03] text-slate-200 hover:bg-white/[0.07]"
+                        ? "bg-gradient-to-br from-zinc-800 to-black text-white shadow-lg shadow-indigo-950/35"
+                        : "border border-white/10 bg-white/[0.03] text-stone-200 hover:bg-white/[0.07]"
                     }`}
                   >
                     {getBookNameFromEntry(b, settings.language)}
@@ -943,19 +951,23 @@ export default function Verses() {
               </div>
             </div>
 
-            <div className="mb-5">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
+            <div 
+              className="mb-5"
+              onMouseEnter={() => setIsDesktopChapterListExpanded(true)}
+              onMouseLeave={() => setIsDesktopChapterListExpanded(false)}
+            >
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-stone-500">
                 {t.chapters}
               </p>
               <div className="grid grid-cols-4 gap-2">
-                {bookData?.chapters.map((ch) => (
+                {desktopChapterList.map((ch) => (
                   <button
                     key={ch.chapter}
                     onClick={() => navigate(`/${decodedBook}/${ch.chapter}`)}
                     className={`rounded-xl py-2 text-sm font-medium transition ${
                       String(ch.chapter) === String(chapter)
-                        ? "bg-gradient-to-br from-indigo-500 to-sky-500 text-white"
-                        : "border border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.07]"
+                        ? "bg-gradient-to-br from-zinc-800 to-black text-white"
+                        : "border border-white/10 bg-white/[0.03] text-stone-300 hover:bg-white/[0.07]"
                     }`}
                   >
                     {ch.chapter}
@@ -965,7 +977,7 @@ export default function Verses() {
             </div>
 
             <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-stone-500">
                 {t.verses}
               </p>
               <div className="grid grid-cols-4 gap-2">
@@ -979,7 +991,7 @@ export default function Verses() {
                         navigate
                       )
                     }
-                    className="rounded-xl border border-white/10 bg-white/[0.03] py-2 text-sm text-slate-300 transition hover:bg-white/[0.07]"
+                    className="rounded-xl border border-white/10 bg-white/[0.03] py-2 text-sm text-stone-300 transition hover:bg-white/[0.07]"
                   >
                     {v.verse}
                   </button>
@@ -991,21 +1003,20 @@ export default function Verses() {
 
         <main
           ref={readingPaneRef}
-          data-lenis-prevent
-          className="app-shell relative flex-1 overflow-x-hidden overflow-y-auto p-4 pb-24 md:h-screen md:p-6 md:pb-32"
+          className="app-shell relative flex-1 p-4 pb-6 md:p-6 md:pb-8"
         >
           <div className="mx-auto max-w-5xl">
-            <section className="mb-5 overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.2),_transparent_28%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(8,17,32,0.96))] px-5 py-6 shadow-2xl shadow-black/30 md:px-6">
+            <section className="mb-5 overflow-hidden rounded-[2rem] border border-white/10  px-5 py-6 shadow-2xl shadow-black/30 md:px-6">
                             <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-400">
+                    <p className="text-xs font-semibold uppercase tracking-[0.32em] text-stone-400">
                       {t.reading}
                     </p>
                     <h1 className="mt-3 text-2xl font-bold text-white md:text-3xl">
                       {isBilingual ? `${getBookName(bookData, "ta")} / ${englishBookLabel}` : bookLabel}
                     </h1>
-                    <p className="mt-2 text-sm text-slate-400">{t.chapter} {chapter}</p>
+                    <p className="mt-2 text-sm text-stone-400">{t.chapter} {chapter}</p>
                   </div>
                   <button
                     onClick={() => toggleBookmark(chapterItem)}
@@ -1045,7 +1056,7 @@ export default function Verses() {
                 return (
                   <div
                     key={v.verse}
-                    className="min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(30,41,59,0.88),_rgba(15,23,42,0.86))] p-4 transition hover:border-sky-400/25 hover:bg-slate-800 md:p-5"
+                    className="min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-[#000000] p-4 transition hover:border-zinc-600/25 hover:bg-[#0a0a0a] md:p-5"
                     style={{
                       lineHeight: settings.lineHeight || 1.8,
                       boxShadow: highlighted
@@ -1062,7 +1073,7 @@ export default function Verses() {
                           <span className="whitespace-normal break-words">{v.text}</span>
                         </p>
                         {englishVerseText ? (
-                          <p className="mt-3 break-words text-sm leading-7 text-slate-300 md:text-base">
+                          <p className="mt-3 break-words text-sm leading-7 text-stone-300 md:text-base">
                             {englishVerseText}
                           </p>
                         ) : null}
@@ -1075,7 +1086,7 @@ export default function Verses() {
                         className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
                           favorited
                             ? "bg-rose-400 text-slate-950"
-                            : "border border-white/10 bg-white/5 text-slate-200"
+                            : "border border-white/10 bg-white/5 text-stone-200"
                         }`}
                       >
                         {t.favorite}
@@ -1094,8 +1105,8 @@ export default function Verses() {
                         onClick={() => handleNote(verseItem)}
                         className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
                           note
-                            ? "bg-amber-300 text-slate-950"
-                            : "border border-white/10 bg-white/5 text-slate-200"
+                            ? "bg-zinc-600 text-slate-950"
+                            : "border border-white/10 bg-white/5 text-stone-200"
                         }`}
                       >
                         {t.note}
@@ -1105,27 +1116,27 @@ export default function Verses() {
                         className={`hidden rounded-full px-3 py-1.5 text-xs font-semibold md:inline-block ${
                           prayer
                             ? "bg-emerald-400 text-slate-950"
-                            : "border border-white/10 bg-white/5 text-slate-200"
+                            : "border border-white/10 bg-white/5 text-stone-200"
                         }`}
                       >
-                        {settings.language === "en" ? "Prayer" : "ஜெபம்"}
+                        {["en", "ta-en"].includes(settings.language) ? "Prayer" : "ஜெபம்"}
                       </button>
                       <button
                         onClick={() => handleAddToSermon(verseItem)}
-                        className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200 md:inline-block"
+                        className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-stone-200 md:inline-block"
                       >
-                        {settings.language === "en" ? "Sermon" : "பிரசங்கம்"}
+                        {["en", "ta-en"].includes(settings.language) ? "Sermon" : "பிரசங்கம்"}
                       </button>
                       <button
                         onClick={() => openShareDesigner(v)}
-                        className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200"
+                        className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-stone-200"
                       >
                         {t.share}
                       </button>
                     </div>
 
                     {note ? (
-                      <p className="mt-3 break-words rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm leading-6 text-slate-300">
+                      <p className="mt-3 break-words rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm leading-6 text-stone-300">
                         {note.text}
                       </p>
                     ) : null}
@@ -1170,8 +1181,8 @@ export default function Verses() {
             onClick={() => toggleAutoScroll("up")}
             className={`pointer-events-auto h-12 w-12 rounded-full border text-xs font-bold tracking-[0.2em] shadow-lg backdrop-blur-md transition ${
               autoScrollDirection === "up"
-                ? "border-sky-300 bg-sky-400 text-slate-950"
-                : "border-white/10 bg-slate-900/80 text-white"
+                ? "border-zinc-500 bg-zinc-700 text-slate-950"
+                : "border-white/10 bg-black/80 text-white"
             }`}
             aria-label="Auto scroll up"
             title="Auto scroll up"
@@ -1182,8 +1193,8 @@ export default function Verses() {
             onClick={() => toggleAutoScroll("down")}
             className={`pointer-events-auto h-12 w-12 rounded-full border text-xs font-bold tracking-[0.2em] shadow-lg backdrop-blur-md transition ${
               autoScrollDirection === "down"
-                ? "border-sky-300 bg-sky-400 text-slate-950"
-                : "border-white/10 bg-slate-900/80 text-white"
+                ? "border-zinc-500 bg-zinc-700 text-slate-950"
+                : "border-white/10 bg-black/80 text-white"
             }`}
             aria-label="Auto scroll down"
             title="Auto scroll down"
@@ -1194,7 +1205,7 @@ export default function Verses() {
       </div>
 
       {selectedVerse ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm md:hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm md:hidden">
           <button
             type="button"
             aria-label="Close verse preview"
@@ -1209,7 +1220,7 @@ export default function Verses() {
                 settings.bgType === "custom" && settings.customBackground
                   ? `url(${settings.customBackground})`
                   : settings.bgType === "gradient"
-                  ? gradients[settings.bgIndex]
+                  ? getCustomGradientString(settings.customGradientType, settings.customGradientColor1, settings.customGradientColor2)
                   : `url(${backgrounds[settings.bgIndex]})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
@@ -1231,7 +1242,7 @@ export default function Verses() {
                 <>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-stone-400">
                   {t.verse}
                 </p>
                 <p className="mt-2 text-sm font-bold text-white">
@@ -1256,7 +1267,7 @@ export default function Verses() {
 
             {selectedEnglishVerseText ? (
               <p
-                className="mt-4 break-words text-left text-slate-200"
+                className="mt-4 break-words text-left text-stone-200"
                 style={getMobilePopupVerseStyle(selectedEnglishVerseText)}
               >
                 {selectedEnglishVerseText}
@@ -1266,7 +1277,7 @@ export default function Verses() {
             <button
               type="button"
               onClick={() => openShareDesigner(selectedVerse)}
-              className="mt-5 w-full rounded-2xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-4 py-3 text-sm font-semibold text-white shadow-lg"
+              className="mt-5 w-full rounded-2xl bg-[#000000] px-4 py-3 text-sm font-semibold text-white shadow-lg"
             >
               {t.share}
             </button>
@@ -1279,7 +1290,7 @@ export default function Verses() {
       ) : null}
 
       {noteEditor ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm">
           <button
             type="button"
             aria-label="Close note editor"
@@ -1287,7 +1298,7 @@ export default function Verses() {
             onClick={closeNoteEditor}
           />
 
-          <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(244,114,182,0.18),_transparent_35%),linear-gradient(180deg,_rgba(28,20,29,0.98),_rgba(20,16,24,0.98))] p-5 shadow-2xl shadow-black/40 md:p-6">
+          <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/10  p-5 shadow-2xl shadow-black/40 md:p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-pink-200/80">
@@ -1296,14 +1307,14 @@ export default function Verses() {
                 <h3 className="mt-2 text-lg font-semibold text-white">
                   {t.notePrompt}
                 </h3>
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-2 text-sm text-stone-400">
                   {noteEditor.item.bookTamil} {noteEditor.item.chapter}:{noteEditor.item.verse}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={closeNoteEditor}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-stone-300 transition hover:bg-white/10 hover:text-white"
                 aria-label={t.close}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="h-4 w-4">
@@ -1325,7 +1336,7 @@ export default function Verses() {
                 )
               }
               placeholder={t.notePrompt}
-              className="mt-5 min-h-40 w-full rounded-[1.5rem] border border-pink-300/40 bg-black/20 px-4 py-4 text-sm leading-7 text-white outline-none placeholder:text-slate-500 focus:border-pink-300 focus:ring-2 focus:ring-pink-300/20"
+              className="mt-5 min-h-40 w-full rounded-[1.5rem] border border-pink-300/40 bg-black/20 px-4 py-4 text-sm leading-7 text-white outline-none placeholder:text-stone-500 focus:border-pink-300 focus:ring-2 focus:ring-pink-300/20"
               autoFocus
             />
 
@@ -1333,14 +1344,14 @@ export default function Verses() {
               <button
                 type="button"
                 onClick={closeNoteEditor}
-                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-stone-200 transition hover:bg-white/10"
               >
                 {t.cancel}
               </button>
               <button
                 type="button"
                 onClick={submitNoteEditor}
-                className="rounded-2xl bg-[linear-gradient(135deg,#f0abfc,#f472b6)] px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-pink-950/30 transition hover:brightness-105"
+                className="rounded-2xl bg-[#000000] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-pink-950/30 transition hover:brightness-105"
               >
                 {t.save}
               </button>
@@ -1350,7 +1361,7 @@ export default function Verses() {
       ) : null}
 
       {prayerEditor ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm">
           <button
             type="button"
             aria-label="Close prayer editor"
@@ -1358,23 +1369,23 @@ export default function Verses() {
             onClick={closePrayerEditor}
           />
 
-          <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_35%),linear-gradient(180deg,_rgba(14,25,22,0.98),_rgba(14,20,18,0.98))] p-5 shadow-2xl shadow-black/40 md:p-6">
+          <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/10  p-5 shadow-2xl shadow-black/40 md:p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-200/80">
-                  {settings.language === "en" ? "Prayer Journal" : "ஜெப குறிப்பேடு"}
+                  {["en", "ta-en"].includes(settings.language) ? "Prayer Journal" : "ஜெப குறிப்பேடு"}
                 </p>
                 <h3 className="mt-2 text-lg font-semibold text-white">
-                  {settings.language === "en" ? "Attach a prayer to this verse" : "இந்த வசனத்திற்கு ஒரு ஜெபத்தை இணைக்கவும்"}
+                  {["en", "ta-en"].includes(settings.language) ? "Attach a prayer to this verse" : "இந்த வசனத்திற்கு ஒரு ஜெபத்தை இணைக்கவும்"}
                 </h3>
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-2 text-sm text-stone-400">
                   {prayerEditor.item.bookTamil} {prayerEditor.item.chapter}:{prayerEditor.item.verse}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={closePrayerEditor}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-stone-300 transition hover:bg-white/10 hover:text-white"
                 aria-label={t.close}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="h-4 w-4">
@@ -1396,7 +1407,7 @@ export default function Verses() {
                 )
               }
               placeholder="Write a prayer, burden, or answered-prayer reminder"
-              className="mt-5 min-h-40 w-full rounded-[1.5rem] border border-emerald-300/30 bg-black/20 px-4 py-4 text-sm leading-7 text-white outline-none placeholder:text-slate-500 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-300/20"
+              className="mt-5 min-h-40 w-full rounded-[1.5rem] border border-emerald-300/30 bg-black/20 px-4 py-4 text-sm leading-7 text-white outline-none placeholder:text-stone-500 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-300/20"
               autoFocus
             />
 
@@ -1404,14 +1415,14 @@ export default function Verses() {
               <button
                 type="button"
                 onClick={closePrayerEditor}
-                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-stone-200 transition hover:bg-white/10"
               >
                 {t.cancel}
               </button>
               <button
                 type="button"
                 onClick={submitPrayerEditor}
-                className="rounded-2xl bg-[linear-gradient(135deg,#34d399,#10b981)] px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg"
+                className="rounded-2xl bg-[#000000] px-5 py-3 text-sm font-semibold text-white shadow-lg"
               >
                 {t.save}
               </button>
@@ -1421,7 +1432,7 @@ export default function Verses() {
       ) : null}
 
       {highlightEditor ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm">
           <button
             type="button"
             aria-label="Close highlight editor"
@@ -1429,23 +1440,23 @@ export default function Verses() {
             onClick={closeHighlightEditor}
           />
 
-          <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_35%),linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(8,17,32,0.98))] p-5 shadow-2xl shadow-black/40 md:p-6">
+          <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/10  p-5 shadow-2xl shadow-black/40 md:p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-200/80">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-zinc-400/80">
                   {t.highlight}
                 </p>
                 <h3 className="mt-2 text-lg font-semibold text-white">
-                  {settings.language === "en" ? "Choose color and folder" : "நிறமும் அடைவையும் தேர்வுசெய்க"}
+                  {["en", "ta-en"].includes(settings.language) ? "Choose color and folder" : "நிறமும் அடைவையும் தேர்வுசெய்க"}
                 </h3>
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-2 text-sm text-stone-400">
                   {highlightEditor.item.bookTamil} {highlightEditor.item.chapter}:{highlightEditor.item.verse}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={closeHighlightEditor}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-stone-300 transition hover:bg-white/10 hover:text-white"
                 aria-label={t.close}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="h-4 w-4">
@@ -1455,7 +1466,7 @@ export default function Verses() {
             </div>
 
             <div className="mt-5">
-              <p className="text-sm text-slate-300">Color</p>
+              <p className="text-sm text-stone-300">Color</p>
               <div className="mt-3 flex flex-wrap gap-3">
                 {HIGHLIGHT_COLORS.map((color) => (
                   <button
@@ -1481,7 +1492,7 @@ export default function Verses() {
             </div>
 
             <div className="mt-5">
-              <p className="text-sm text-slate-300">Folder</p>
+              <p className="text-sm text-stone-300">Folder</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {availableHighlightFolders.map((folder) => (
                   <button
@@ -1499,8 +1510,8 @@ export default function Verses() {
                     }
                     className={`rounded-full px-4 py-2 text-sm font-semibold ${
                       highlightEditor.folder === folder.value
-                        ? "bg-[linear-gradient(135deg,#2563eb,#38bdf8)] text-white"
-                        : "border border-white/10 bg-white/5 text-slate-200"
+                        ? "bg-white text-black"
+                        : "border border-white/10 bg-white/5 text-stone-300 hover:bg-white/10"
                     }`}
                   >
                     {folder.label}
@@ -1516,7 +1527,7 @@ export default function Verses() {
                   saveHighlight(highlightEditor.item, {});
                   closeHighlightEditor();
                 }}
-                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-stone-200 transition hover:bg-white/10"
               >
                 Remove
               </button>
@@ -1524,14 +1535,14 @@ export default function Verses() {
                 <button
                   type="button"
                   onClick={closeHighlightEditor}
-                  className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+                  className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-stone-200 transition hover:bg-white/10"
                 >
                   {t.cancel}
                 </button>
                 <button
                   type="button"
                   onClick={submitHighlightEditor}
-                  className="rounded-2xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-5 py-3 text-sm font-semibold text-white shadow-lg"
+                  className="rounded-2xl bg-[#000000] px-5 py-3 text-sm font-semibold text-white shadow-lg"
                 >
                   {t.save}
                 </button>
@@ -1542,7 +1553,7 @@ export default function Verses() {
       ) : null}
 
       {shareDesigner ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm">
           <button
             type="button"
             aria-label="Close share designer"
@@ -1550,23 +1561,23 @@ export default function Verses() {
             onClick={closeShareDesigner}
           />
 
-          <div className="relative z-10 w-full max-w-xl overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.18),_transparent_35%),linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(8,17,32,0.98))] p-5 shadow-2xl shadow-black/40 md:p-6">
+          <div className="relative z-10 w-full max-w-xl overflow-hidden rounded-[2rem] border border-white/10  p-5 shadow-2xl shadow-black/40 md:p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-indigo-200/80">
-                  {settings.language === "en" ? "Verse Designer" : "வசன வடிவமைப்பான்"}
+                  {["en", "ta-en"].includes(settings.language) ? "Verse Designer" : "வசன வடிவமைப்பான்"}
                 </p>
                 <h3 className="mt-2 text-lg font-semibold text-white">
-                  {settings.language === "en" ? "Share to family, WhatsApp, or Telegram" : "குடும்பத்தாருக்கு, WhatsApp அல்லது Telegram மூலம் பகிரவும்"}
+                  {["en", "ta-en"].includes(settings.language) ? "Share to family, WhatsApp, or Telegram" : "குடும்பத்தாருக்கு, WhatsApp அல்லது Telegram மூலம் பகிரவும்"}
                 </h3>
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-2 text-sm text-stone-400">
                   {bookLabel} {chapter}:{shareDesigner.verse.verse}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={closeShareDesigner}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-stone-300 transition hover:bg-white/10 hover:text-white"
                 aria-label={t.close}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="h-4 w-4">
@@ -1575,68 +1586,62 @@ export default function Verses() {
               </button>
             </div>
 
-            <div className="mt-5 grid gap-4 md:grid-cols-3">
-              <label className="block">
-                <p className="mb-2 text-sm text-slate-300">Template</p>
-                <select
-                  value={shareDesigner.template}
-                  onChange={(e) =>
-                    setShareDesigner((current) =>
-                      current
-                        ? {
-                            ...current,
-                            template: e.target.value,
-                          }
-                        : current
-                    )
-                  }
-                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none"
-                >
-                  <option value="classic">Classic</option>
-                  <option value="social">Social</option>
-                  <option value="minimal">Minimal</option>
-                </select>
-              </label>
+            <div className="mt-5 flex flex-col gap-5">
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Template</p>
+                <div className="flex gap-2">
+                  {["classic", "social", "minimal"].map((tmpl) => (
+                    <button
+                      key={tmpl}
+                      type="button"
+                      onClick={() => setShareDesigner((c) => c ? { ...c, template: tmpl } : c)}
+                      className={`flex-1 rounded-2xl border px-3 py-2.5 text-sm font-semibold capitalize transition-all ${
+                        shareDesigner.template === tmpl
+                          ? "border-white/20 bg-white/10 text-white shadow-lg shadow-black/40"
+                          : "border-white/[0.06] bg-white/[0.03] text-stone-400 hover:border-white/10 hover:bg-white/[0.06] hover:text-stone-200"
+                      }`}
+                    >
+                      {tmpl}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-              <label className="block">
-                <p className="mb-2 text-sm text-slate-300">Font Size</p>
-                <input
-                  type="number"
-                  min={30}
-                  max={64}
-                  value={shareDesigner.fontSize}
-                  onChange={(e) =>
-                    setShareDesigner((current) =>
-                      current
-                        ? {
-                            ...current,
-                            fontSize: Number(e.target.value) || 48,
-                          }
-                        : current
-                    )
-                  }
-                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none"
-                />
-              </label>
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Font Size</p>
+                <div className="flex gap-2">
+                  {[{ label: "Small", value: 30 }, { label: "Medium", value: 42 }, { label: "Large", value: 56 }].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setShareDesigner((c) => c ? { ...c, fontSize: opt.value } : c)}
+                      className={`flex-1 rounded-2xl border px-3 py-2.5 text-sm font-semibold transition-all ${
+                        shareDesigner.fontSize === opt.value
+                          ? "border-white/20 bg-white/10 text-white shadow-lg shadow-black/40"
+                          : "border-white/[0.06] bg-white/[0.03] text-stone-400 hover:border-white/10 hover:bg-white/[0.06] hover:text-stone-200"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-              <label className="block">
-                <p className="mb-2 text-sm text-slate-300">Watermark</p>
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Watermark</p>
                 <input
                   type="text"
                   value={shareDesigner.watermark}
                   onChange={(e) =>
                     setShareDesigner((current) =>
-                      current
-                        ? {
-                            ...current,
-                            watermark: e.target.value,
-                          }
-                        : current
+                      current ? { ...current, watermark: e.target.value } : current
                     )
                   }
-                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none"
+                  placeholder="Your church name..."
+                  className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-white placeholder:text-stone-600 outline-none focus:border-white/20 focus:bg-white/[0.06] transition-all"
                 />
-              </label>
+              </div>
+
             </div>
 
             <div className="mt-5 flex flex-wrap gap-3">
@@ -1646,7 +1651,7 @@ export default function Verses() {
                   await shareVerseCard(shareDesigner.verse, "system");
                   closeShareDesigner();
                 }}
-                className="rounded-2xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-5 py-3 text-sm font-semibold text-white shadow-lg"
+                className="rounded-2xl bg-[#000000] px-5 py-3 text-sm font-semibold text-white shadow-lg"
               >
                 Share Image
               </button>
@@ -1676,7 +1681,7 @@ export default function Verses() {
       ) : null}
 
       {chapterPickerOpen ? (
-        <div className="fixed inset-0 z-[55] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[55] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm">
           <button
             type="button"
             aria-label="Close chapter picker"
@@ -1684,16 +1689,16 @@ export default function Verses() {
             onClick={closeChapterPicker}
           />
 
-          <div className="relative z-10 w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.2),_transparent_35%),linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(8,17,32,0.98))] p-5 shadow-2xl shadow-black/40 md:p-6">
+          <div className="relative z-10 w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10  p-5 shadow-2xl shadow-black/40 md:p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-200/80">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-zinc-400/80">
                   {t.chapters}
                 </p>
                 <h3 className="mt-2 text-lg font-semibold text-white">
                   {bookLabel}
                 </h3>
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-2 text-sm text-stone-400">
                   {t.chapter} {chapter}
                 </p>
               </div>
@@ -1717,8 +1722,8 @@ export default function Verses() {
                   }}
                   className={`rounded-2xl py-3 text-sm font-semibold transition ${
                       String(ch.chapter) === String(chapter)
-                      ? "bg-gradient-to-br from-indigo-500 to-sky-500 text-white"
-                      : "border border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.07]"
+                      ? "bg-gradient-to-br from-zinc-800 to-black text-white"
+                      : "border border-white/10 bg-white/[0.03] text-stone-300 hover:bg-white/[0.07]"
                   }`}
                 >
                   {ch.chapter}

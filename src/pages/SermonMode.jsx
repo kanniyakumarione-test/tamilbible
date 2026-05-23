@@ -1,3 +1,4 @@
+import { getCustomGradientString } from "../utils/appearance";
 import useAppSettings from "../hooks/useAppSettings";
 import useLibraryData from "../hooks/useLibraryData";
 import { getUIText } from "../utils/uiText";
@@ -27,11 +28,11 @@ export default function SermonMode() {
 
   const background =
     settings.bgType === "motion"
-      ? "#07111f"
+      ? "#000000"
       : settings.bgType === "custom" && settings.customBackground
       ? `url(${settings.customBackground})`
       : settings.bgType === "gradient"
-      ? gradients[settings.bgIndex]
+      ? getCustomGradientString(settings.customGradientType, settings.customGradientColor1, settings.customGradientColor2)
       : `url(${backgrounds[settings.bgIndex]})`;
 
   return (
@@ -44,7 +45,7 @@ export default function SermonMode() {
       }}
     >
       {settings.bgType === "motion" ? <MotionBackground variant={settings.motionBackground} /> : null}
-      <div className="absolute inset-0 bg-slate-950/55" />
+      <div className="absolute inset-0 bg-black/55" />
       <div
         className="relative z-10 w-full max-w-6xl rounded-[2rem] border border-white/15 px-8 py-10 shadow-2xl"
         style={{
@@ -53,7 +54,7 @@ export default function SermonMode() {
       >
         {activeItem ? (
           <>
-            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-300">
+            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-stone-300">
               Sermon Mode
             </p>
             <p className="mt-4 text-2xl font-bold text-white md:text-3xl">
@@ -75,16 +76,16 @@ export default function SermonMode() {
           </>
         ) : (
           <div className="text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-300">
+            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-stone-300">
               Sermon Mode
             </p>
             <h1 className="mt-4 text-3xl font-bold text-white md:text-5xl">
               Queue a verse from the reader
             </h1>
-            <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-slate-300">
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-stone-300">
               Add a verse to sermon mode from the chapter page, then open this screen on your projector or second display.
             </p>
-            <p className="mt-6 text-sm text-slate-400">{t.noItemsYet}</p>
+            <p className="mt-6 text-sm text-stone-400">{t.noItemsYet}</p>
           </div>
         )}
       </div>

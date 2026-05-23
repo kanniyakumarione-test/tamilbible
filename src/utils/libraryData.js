@@ -1,4 +1,4 @@
-import { loadBibleBooks } from "./bibleData";
+import { loadBibleBooks, loadBibleBook } from "./bibleData";
 import {
   getCachedRemoteSermon,
   pushPresentationSermonState,
@@ -8,9 +8,9 @@ const STORAGE_KEY = "appLibraryData";
 const EVENT_NAME = "app-library-change";
 
 export const HIGHLIGHT_COLORS = [
-  "#f59e0b",
+  "#ffffff",
   "#f472b6",
-  "#38bdf8",
+  "#ffffff",
   "#34d399",
   "#c084fc",
 ];
@@ -48,6 +48,7 @@ export const defaultLibraryData = {
 };
 
 async function getChapterIndex() {
+  // If we don't have it cached, we have to load all books. But we only do this when actually needed for reading plans.
   if (!chapterIndexPromise) {
     chapterIndexPromise = loadBibleBooks("ta").then((books) =>
       books.flatMap((bookData) =>
@@ -509,16 +510,33 @@ export function getRecentPrayers(data = getLibraryData(), limit = 4) {
 }
 
 export async function getVerseOfTheDay(language = "ta") {
-  const activeVerseIndex = await getVerseIndex(language);
+  const chapterIndex = await getChapterIndex();
+  // Instead of loading all books, we just use the chapter index which only loads the metadata
+  
   const today = new Date();
   const key = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
   let hash = 0;
-
   for (let i = 0; i < key.length; i += 1) {
-    hash = (hash * 31 + key.charCodeAt(i)) % activeVerseIndex.length;
+    hash = (hash * 31 + key.charCodeAt(i)) % chapterIndex.length;
   }
-
-  return activeVerseIndex[hash];
+  
+  const targetChapter = chapterIndex[hash];
+  
+  // Now we only load the ONE book we actually need!
+  const bookData = await loadBibleBook(targetChapter.bookEnglish, language);
+  const chapterData = bookData.chapters.find((c) => c.chapter === targetChapter.chapter);
+  
+  const verseHash = (hash * 17) % chapterData.verses.length;
+  const verseData = chapterData.verses[verseHash];
+  
+  return {
+    id: `${targetChapter.bookEnglish}::${targetChapter.chapter}::${verseData.verse}`,
+    bookEnglish: targetChapter.bookEnglish,
+    bookTamil: language === "en" ? targetChapter.bookEnglish : targetChapter.bookTamil,
+    chapter: targetChapter.chapter,
+    verse: verseData.verse,
+    text: verseData.text
+  };
 }
 
 export function getLibraryEventName() {

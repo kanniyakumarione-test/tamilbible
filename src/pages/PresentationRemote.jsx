@@ -30,7 +30,7 @@ function RemoteButton({ active, children, onClick }) {
       onClick={onClick}
       className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
         active
-          ? "bg-[linear-gradient(135deg,#2563eb,#38bdf8)] text-white shadow-lg"
+          ? "bg-white text-black shadow-lg"
           : "border border-white/10 bg-white/[0.04] text-slate-100"
       }`}
     >
@@ -46,8 +46,8 @@ function NumberGridButton({ active, children, onClick }) {
       onClick={onClick}
       className={`flex h-14 items-center justify-center rounded-2xl border text-lg font-semibold transition ${
         active
-          ? "border-sky-300/40 bg-[linear-gradient(135deg,#4f46e5,#38bdf8)] text-white shadow-lg"
-          : "border-white/10 bg-white/[0.03] text-slate-200"
+          ? "border-zinc-500/40 bg-white text-black shadow-lg"
+          : "border-white/10 bg-white/[0.03] text-stone-200"
       }`}
     >
       {children}
@@ -61,11 +61,11 @@ function PickerModal({ open, title, actionLabel, onClose, children }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/70 p-3 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(8,17,32,0.98))] shadow-2xl shadow-black/40">
+    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm">
+      <div className="w-full max-w-2xl rounded-[2rem] border border-white/10 bg-[#000000] shadow-2xl shadow-black/40">
         <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-400">
               Picker
             </p>
             <h3 className="mt-2 text-lg font-bold text-white">{title}</h3>
@@ -73,7 +73,7 @@ function PickerModal({ open, title, actionLabel, onClose, children }) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200"
+            className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-stone-200"
           >
             {actionLabel || "Done"}
           </button>
@@ -229,16 +229,16 @@ export default function PresentationRemote() {
   }, [platform, remoteLabel]);
 
   return (
-    <div className="app-shell app-page min-h-screen pb-24 pt-4 md:pt-6">
+    <div className="app-shell app-page pb-6 pt-4 md:pt-6">
       <div className="app-page-inner">
-        <section className="app-hero mb-6 overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.2),_transparent_28%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(8,17,32,0.96))] px-5 py-8 md:px-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.34em] text-slate-400">
+        <section className="app-hero mb-6 overflow-hidden  px-5 py-8 md:px-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.34em] text-stone-400">
             Phone Remote
           </p>
           <h1 className="mt-3 text-3xl font-bold text-white md:text-5xl">
             Live Presentation Remote
           </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-300 md:text-base">
             Use this page on your phone to switch the live verse, move the queue, and change the display mode instantly.
           </p>
           <div className="mt-5 inline-flex rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-100">
@@ -268,7 +268,7 @@ export default function PresentationRemote() {
           </div>
 
           <div className="mt-5 rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-400">
               Now Showing
             </p>
             {activeItem ? (
@@ -276,10 +276,10 @@ export default function PresentationRemote() {
                 <p className="mt-3 text-xl font-bold text-white">
                   {activeItem.bookTamil} {activeItem.chapter}:{activeItem.verse}
                 </p>
-                <p className="mt-3 text-sm leading-7 text-slate-300">{activeItem.text}</p>
+                <p className="mt-3 text-sm leading-7 text-stone-300">{activeItem.text}</p>
               </>
             ) : (
-              <p className="mt-3 text-sm text-slate-400">No active verse selected yet.</p>
+              <p className="mt-3 text-sm text-stone-400">No active verse selected yet.</p>
             )}
           </div>
         </section>
@@ -287,25 +287,25 @@ export default function PresentationRemote() {
         <section className="mb-6 app-surface rounded-[2rem] p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-stone-400">
                 Verse Picker
               </p>
               <h2 className="mt-2 text-xl font-bold text-white">Choose a verse fast</h2>
             </div>
-            <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300">
+            <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-stone-300">
               {selectedVerses.length}
             </span>
           </div>
 
           <div className="mt-5 rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-400">
                 Current Selection
               </p>
               <button
                 type="button"
                 onClick={() => setPickerModal("book")}
-                className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200"
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-stone-200"
               >
                 Change Book
               </button>
@@ -314,7 +314,7 @@ export default function PresentationRemote() {
               <button
                 type="button"
                 onClick={() => setPickerModal("book")}
-                className="rounded-full bg-[linear-gradient(135deg,#4f46e5,#38bdf8)] px-4 py-2 text-sm font-semibold text-white shadow-lg"
+                className="rounded-full bg-[#000000] px-4 py-2 text-sm font-semibold text-white shadow-lg"
               >
                 {selectedBookLabel}
               </button>
@@ -325,7 +325,7 @@ export default function PresentationRemote() {
               >
                 Chapter {selectedChapter}
               </button>
-              <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-slate-300">
+              <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-stone-300">
                 {selectedVerses.length} verses
               </div>
             </div>
@@ -341,12 +341,12 @@ export default function PresentationRemote() {
         <section className="app-surface rounded-[2rem] p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-stone-400">
                 Queue
               </p>
               <h2 className="mt-2 text-xl font-bold text-white">Tap to show live</h2>
             </div>
-            <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300">
+            <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-stone-300">
               {queue.length}
             </span>
           </div>
@@ -358,7 +358,7 @@ export default function PresentationRemote() {
                   key={item.id}
                   className={`rounded-[1.5rem] border p-4 ${
                     item.id === activeItem?.id
-                      ? "border-sky-400/40 bg-sky-400/10"
+                      ? "border-zinc-600/40 bg-zinc-700/10"
                       : "border-white/10 bg-white/[0.03]"
                   }`}
                 >
@@ -371,7 +371,7 @@ export default function PresentationRemote() {
                       <p className="text-base font-semibold text-white">
                         {item.bookTamil} {item.chapter}:{item.verse}
                       </p>
-                      <p className="mt-2 line-clamp-3 text-sm leading-7 text-slate-300">
+                      <p className="mt-2 line-clamp-3 text-sm leading-7 text-stone-300">
                         {item.text}
                       </p>
                     </button>
@@ -383,7 +383,7 @@ export default function PresentationRemote() {
                 </div>
               ))
             ) : (
-              <p className="rounded-[1.4rem] border border-dashed border-white/10 px-4 py-5 text-sm text-slate-400">
+              <p className="rounded-[1.4rem] border border-dashed border-white/10 px-4 py-5 text-sm text-stone-400">
                 Add verses from the chapter screen using the `Sermon` button first.
               </p>
             )}
@@ -396,7 +396,7 @@ export default function PresentationRemote() {
         title="Choose Book"
         onClose={() => setPickerModal(null)}
       >
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-stone-400">
           Testament
         </p>
         <div className="mt-4 grid grid-cols-2 gap-3">
@@ -414,8 +414,8 @@ export default function PresentationRemote() {
             }}
             className={`rounded-[1.25rem] border px-4 py-4 text-left transition ${
               selectedTestament === "old"
-                ? "border-indigo-300/70 bg-[radial-gradient(circle_at_top_left,_rgba(129,140,248,0.45),_transparent_45%),linear-gradient(180deg,_rgba(79,70,229,0.7),_rgba(30,41,59,0.92))] text-white shadow-xl shadow-indigo-950/30"
-                : "border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.92),_rgba(15,23,42,0.74))] text-slate-100"
+                ? "border-orange-300/70  text-white shadow-xl shadow-indigo-950/30"
+                : "border-white/10 bg-[#000000] text-slate-100"
             }`}
           >
             <span className="block text-sm font-semibold">Old Testament</span>
@@ -434,8 +434,8 @@ export default function PresentationRemote() {
             }}
             className={`rounded-[1.25rem] border px-4 py-4 text-left transition ${
               selectedTestament === "new"
-                ? "border-cyan-300/70 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.38),_transparent_45%),linear-gradient(180deg,_rgba(8,145,178,0.58),_rgba(15,23,42,0.92))] text-white shadow-xl shadow-cyan-950/30"
-                : "border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.92),_rgba(15,23,42,0.74))] text-slate-100"
+                ? "border-cyan-300/70  text-white shadow-xl shadow-cyan-950/30"
+                : "border-white/10 bg-[#000000] text-slate-100"
             }`}
           >
             <span className="block text-sm font-semibold">New Testament</span>
@@ -443,10 +443,10 @@ export default function PresentationRemote() {
         </div>
 
         <div className="mt-5 flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-stone-400">
             Books
           </p>
-          <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300">
+          <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-stone-300">
             {visibleBooks.length}
           </span>
         </div>
@@ -462,8 +462,8 @@ export default function PresentationRemote() {
                 onClick={() => handleSelectBook(bookData)}
                 className={`rounded-2xl border px-4 py-3 text-left transition ${
                   isActive
-                    ? "border-sky-300/40 bg-[linear-gradient(135deg,#4f46e5,#38bdf8)] text-white shadow-lg"
-                    : "border-white/10 bg-[linear-gradient(180deg,_rgba(30,41,59,0.92),_rgba(15,23,42,0.86))] text-slate-100"
+                    ? "border-zinc-500/40 bg-white text-black shadow-lg"
+                    : "border-white/10 bg-[#000000] text-slate-100"
                 }`}
               >
                 <span className="block text-sm font-semibold">

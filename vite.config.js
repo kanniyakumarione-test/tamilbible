@@ -3,6 +3,9 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  json: {
+    stringify: true,
+  },
   server: {
     host: "0.0.0.0",
     proxy: {

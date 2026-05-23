@@ -408,5 +408,6 @@ const uiText = {
 };
 
 export function getUIText(language = "ta") {
+  if (language === "ta-en") return uiText.en;
   return uiText[language] || uiText.ta;
 }

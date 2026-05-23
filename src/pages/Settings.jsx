@@ -7,6 +7,7 @@ import SmoothBackground from "../components/SmoothBackground";
 import {
   FONT_FAMILY_OPTIONS,
   TAMIL_FONT_OPTIONS,
+  getResolvedBackground
 } from "../utils/appearance";
 import { optimizeImage, tryOptimizeExternalImage } from "../utils/imageOptimization";
 import { getPresentationScreens } from "../utils/screens";
@@ -23,11 +24,11 @@ const backgrounds = [
 ];
 
 const gradients = [
-  "linear-gradient(135deg, #1e293b 0%, #0f172a 45%, #020617 100%)",
-  "linear-gradient(135deg, #16324f 0%, #1d4ed8 45%, #38bdf8 100%)",
-  "linear-gradient(135deg, #312e81 0%, #6d28d9 45%, #db2777 100%)",
-  "linear-gradient(135deg, #1f2937 0%, #0f766e 45%, #22c55e 100%)",
-  "linear-gradient(135deg, #3f1d2e 0%, #9a3412 45%, #f59e0b 100%)",
+  "linear-gradient(135deg, #0a0a0a 0%, #000000 45%, #000000 100%)",
+  "linear-gradient(135deg, #000000 0%, #ffffff 45%, #ffffff 100%)",
+  "linear-gradient(135deg, #0a0a0a 0%, #0a0a0a 45%, #0a0a0a 100%)",
+  "linear-gradient(135deg, #1f2937 0%, #ffffff 45%, #ffffff 100%)",
+  "linear-gradient(135deg, #3f1d2e 0%, #9a3412 45%, #ffffff 100%)",
 ];
 
 const tabs = [
@@ -52,13 +53,13 @@ const Panel = memo(function Panel({ title, subtitle, children, className = "", i
     >
       <div className="mb-4">
         <p
-          className={`font-semibold text-sky-400/80 border-b border-white/5 pb-2 mb-3 ${
+          className={`font-semibold text-zinc-200/80 border-b border-white/5 pb-2 mb-3 ${
             isTamil ? "text-sm tracking-normal" : "text-[10px] uppercase tracking-[0.28em]"
           }`}
         >
           {title}
         </p>
-        <p className={`max-w-2xl text-slate-300 ${isTamil ? "text-sm leading-7" : "text-xs leading-6"}`}>
+        <p className={`max-w-2xl text-stone-300 ${isTamil ? "text-sm leading-7" : "text-xs leading-6"}`}>
           {subtitle}
         </p>
       </div>
@@ -76,8 +77,8 @@ const TabButton = memo(function TabButton({ active, children, onClick, isTamil =
         isTamil ? "text-sm" : "text-[13px]"
       } ${
         active
-          ? "bg-[linear-gradient(135deg,#0ea5e9,#22c55e)] text-slate-950 shadow-md"
-          : "border border-white/10 bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]"
+          ? "bg-white text-black shadow-md"
+          : "border border-white/10 bg-white/[0.04] text-stone-200 hover:bg-white/[0.08]"
       }`}
     >
       {children}
@@ -89,7 +90,7 @@ const MetricPill = memo(function MetricPill({ label, value, isTamil = false }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5">
       <p
-        className={`text-slate-500 ${
+        className={`text-stone-500 ${
           isTamil ? "text-xs font-medium tracking-normal" : "text-[9px] uppercase tracking-[0.2em]"
         }`}
       >
@@ -112,8 +113,8 @@ const StepControl = memo(function StepControl({ label, valueLabel, value, min, m
   return (
     <div className="w-full min-w-0 rounded-xl border border-white/10 bg-black/20 p-3">
       <div className="flex min-w-0 items-center justify-between gap-2.5">
-        <p className="min-w-0 flex-1 break-words text-xs font-medium text-slate-300">{label}</p>
-        <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] text-slate-400">
+        <p className="min-w-0 flex-1 break-words text-xs font-medium text-stone-300">{label}</p>
+        <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] text-stone-400">
           {valueLabel}
         </span>
       </div>
@@ -144,7 +145,7 @@ const StepControl = memo(function StepControl({ label, valueLabel, value, min, m
 const ChoiceRow = memo(function ChoiceRow({ label, options, value, onChange, isTamil = false }) {
   return (
     <div className="w-full min-w-0 rounded-xl border border-white/10 bg-black/20 p-3">
-      <p className={`break-words font-medium text-slate-300 ${isTamil ? "text-sm" : "text-xs"}`}>{label}</p>
+      <p className={`break-words font-medium text-stone-300 ${isTamil ? "text-sm" : "text-xs"}`}>{label}</p>
       <div className="mt-3 flex flex-wrap gap-1.5">
         {options.map((option) => (
           <button
@@ -155,8 +156,8 @@ const ChoiceRow = memo(function ChoiceRow({ label, options, value, onChange, isT
               isTamil ? "text-xs" : "text-[10px]"
             } ${
               value === option.value
-                ? "bg-[linear-gradient(135deg,#38bdf8,#22c55e)] text-slate-950 shadow-sm"
-                : "border border-white/10 bg-white/[0.05] text-slate-300 hover:bg-white/[0.08]"
+                ? "bg-white text-black shadow-sm"
+                : "border border-white/10 bg-white/[0.05] text-stone-300 hover:bg-white/[0.08]"
             }`}
           >
             {option.label}
@@ -184,19 +185,19 @@ const PopupSelectRow = memo(function PopupSelectRow({ label, options, value, onC
 
   return (
     <div ref={wrapperRef} className={`relative w-full min-w-0 rounded-xl border border-white/10 bg-black/20 p-3 transition-all ${open ? "z-40" : "z-10"}`}>
-      <p className="break-words text-xs font-medium text-slate-300">{label}</p>
+      <p className="break-words text-xs font-medium text-stone-300">{label}</p>
 
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="mt-3 flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-left text-xs text-white transition hover:border-sky-400/30 hover:bg-white/[0.08]"
+        className="mt-3 flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-left text-xs text-white transition hover:border-zinc-600/30 hover:bg-white/[0.08]"
       >
         <span>{selected?.label}</span>
-        <span className={`text-[10px] text-slate-400 transition ${open ? "rotate-180" : ""}`}>▼</span>
+        <span className={`text-[10px] text-stone-400 transition ${open ? "rotate-180" : ""}`}>▼</span>
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 top-full z-30 mt-1 rounded-xl border border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(8,17,32,0.98))] p-1.5 shadow-2xl shadow-black/60">
+        <div className="absolute left-0 right-0 top-full z-30 mt-1 rounded-xl border border-white/10 bg-[#000000] p-1.5 shadow-2xl shadow-black/60">
           <div className="max-h-56 overflow-y-auto pr-1 custom-scroll">
             {options.map((option) => (
               <button
@@ -208,12 +209,12 @@ const PopupSelectRow = memo(function PopupSelectRow({ label, options, value, onC
                 }}
                 className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs transition ${
                   option.value === value
-                    ? "bg-sky-400/20 text-sky-200"
-                    : "text-slate-300 hover:bg-white/[0.05]"
+                    ? "bg-zinc-700/20 text-zinc-400"
+                    : "text-stone-300 hover:bg-white/[0.05]"
                 }`}
               >
                 <span>{option.label}</span>
-                {option.value === value ? <span className="text-[10px] text-sky-400">Selected</span> : null}
+                {option.value === value ? <span className="text-[10px] text-zinc-200">Selected</span> : null}
               </button>
             ))}
           </div>
@@ -228,7 +229,7 @@ const SwitchRow = memo(function SwitchRow({ label, description, checked, onChang
     <label className="flex w-full min-w-0 items-start justify-between gap-4 rounded-xl border border-white/10 bg-black/20 px-3.5 py-3">
       <div className="min-w-0 flex-1">
         <p className="break-words text-xs font-medium text-white">{label}</p>
-        {description ? <p className="mt-1 text-[11px] leading-5 text-slate-400">{description}</p> : null}
+        {description ? <p className="mt-1 text-[11px] leading-5 text-stone-400">{description}</p> : null}
       </div>
       <span
         className={`relative mt-0.5 inline-flex h-6 w-10 shrink-0 items-center rounded-full transition ${
@@ -280,7 +281,7 @@ export default function Settings() {
   ]);
   const previewDraft = useDeferredValue(draft);
   const t = getUIText(draft.language);
-  const isTamil = draft.language !== "en";
+  const isTamil = draft.language === "ta";
   const isBilingual = draft.language === "ta-en";
 
   const settingsPageText = useMemo(
@@ -409,16 +410,10 @@ export default function Settings() {
     else setInstallFeedback("");
   };
 
-  const getBackgroundValue = (type, index, custom) => {
-    if (type === "custom") return custom;
-    if (type === "gradient") return gradients[index];
-    return backgrounds[index];
-  };
-
   return (
-    <div className="app-shell app-page pb-20 pt-3 md:pt-4">
+    <div className="app-shell app-page pb-6 pt-3 md:pt-4">
       <SmoothBackground
-        background={getBackgroundValue(settings.bgType, settings.bgIndex, settings.customBackground)}
+        background={getResolvedBackground(settings, gradients, backgrounds)}
         bgType={settings.bgType}
         customBackground={settings.customBackground}
         motionVariant={settings.motionBackground}
@@ -428,7 +423,7 @@ export default function Settings() {
       <div className="app-page-inner">
         <header className="app-hero relative mb-4 overflow-hidden px-5 py-6 md:px-7 md:py-8">
           <div className="relative z-10">
-            <p className={`font-semibold text-sky-400/80 ${isTamil ? "text-sm" : "text-[10px] uppercase tracking-[0.28em]"}`}>
+            <p className={`font-semibold text-zinc-200/80 ${isTamil ? "text-sm" : "text-[10px] uppercase tracking-[0.28em]"}`}>
               {t.settings}
             </p>
             <h1 className="mt-2 text-2xl font-bold tracking-tight text-white md:text-3xl">
@@ -505,7 +500,7 @@ export default function Settings() {
                       </button>
 
                       <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-3.5 text-xs font-semibold text-white transition hover:bg-white/10 active:scale-95">
-                        <svg className="h-4 w-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="h-4 w-4 text-zinc-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                         </svg>
                         {t.importData}
@@ -540,7 +535,53 @@ export default function Settings() {
                   <div className="grid gap-3">
                     <ChoiceRow label={t.backgroundType} value={draft.bgType || "image"} onChange={(bgType) => updateDraft({ bgType })} isTamil={isTamil} options={[{ value: "image", label: t.image }, ...(!isMobileViewport ? [{ value: "motion", label: "Motion" }] : []), { value: "gradient", label: t.gradient }, { value: "custom", label: t.custom }]} />
                     
-                    {draft.bgType === "custom" ? (
+                    {draft.bgType === "gradient" ? (
+                      <div className="space-y-4 rounded-xl border border-white/10 bg-black/20 p-4">
+                        <ChoiceRow
+                          label={isTamil ? "நிற நிரப்பல்" : "Fill Style"}
+                          options={[
+                            { value: "solid", label: isTamil ? "ஒரு நிறம்" : "Solid" },
+                            { value: "linear-gradient", label: isTamil ? "நேர்கோடு" : "Linear" },
+                            { value: "radial-gradient", label: isTamil ? "வட்டம்" : "Radial" },
+                            { value: "conic-gradient", label: isTamil ? "கோணம்" : "Conic" },
+                          ]}
+                          value={draft.customGradientType || "linear-gradient"}
+                          onChange={(val) => updateDraft({ customGradientType: val })}
+                          isTamil={isTamil}
+                        />
+                        <div className="flex flex-wrap items-center gap-6">
+                          <label className="flex cursor-pointer flex-col gap-2">
+                            <span className="text-xs font-medium text-stone-400">{isTamil ? "நிறம் 1" : "Color 1"}</span>
+                            <div className="relative h-12 w-16 overflow-hidden rounded-lg border border-white/20 shadow-inner">
+                              <input
+                                type="color"
+                                value={draft.customGradientColor1 || "#000000"}
+                                onChange={(e) => updateDraft({ customGradientColor1: e.target.value })}
+                                className="absolute -inset-2 h-20 w-24 cursor-pointer"
+                              />
+                            </div>
+                          </label>
+                          {draft.customGradientType !== "solid" && (
+                            <>
+                              <svg className="h-4 w-4 text-stone-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                              </svg>
+                              <label className="flex cursor-pointer flex-col gap-2">
+                                <span className="text-xs font-medium text-stone-400">{isTamil ? "நிறம் 2" : "Color 2"}</span>
+                                <div className="relative h-12 w-16 overflow-hidden rounded-lg border border-white/20 shadow-inner">
+                                  <input
+                                    type="color"
+                                    value={draft.customGradientColor2 || "#1a1a1a"}
+                                    onChange={(e) => updateDraft({ customGradientColor2: e.target.value })}
+                                    className="absolute -inset-2 h-20 w-24 cursor-pointer"
+                                  />
+                                </div>
+                              </label>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ) : draft.bgType === "custom" ? (
                       <div className="space-y-3">
                         <div className="grid gap-3 sm:grid-cols-2">
                           <button type="button" onClick={() => document.getElementById("bg-upload").click()} className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-white/20 bg-white/5 p-4 hover:bg-white/10">
@@ -549,25 +590,24 @@ export default function Settings() {
                           </button>
                           <div className="flex gap-2">
                             <input type="text" value={backgroundUrl} onChange={(e) => setBackgroundUrl(e.target.value)} placeholder="Image URL..." className="flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-white outline-none" />
-                            <button onClick={handleBackgroundUrlApply} className="rounded-lg bg-sky-500 px-3 py-2 text-xs font-bold text-white">Apply</button>
+                            <button onClick={handleBackgroundUrlApply} className="rounded-lg bg-[#0a0a0a] px-3 py-2 text-xs font-bold text-white">Apply</button>
                           </div>
                         </div>
                       </div>
                     ) : (
                       <div className="grid grid-cols-4 gap-2 md:grid-cols-5">
-                        {(draft.bgType === "gradient" ? gradients : draft.bgType === "motion" ? motionBackgroundOptions : backgrounds).map((val, idx) => (
+                        {(draft.bgType === "motion" ? motionBackgroundOptions : backgrounds).map((val, idx) => (
                           <button
                             key={idx}
                             onClick={() => updateDraft(draft.bgType === "motion" ? { motionBackground: val.value } : { bgIndex: idx })}
                             className={`aspect-video rounded-lg border-2 transition ${
                               (draft.bgType === "motion" ? draft.motionBackground === val.value : draft.bgIndex === idx)
-                                ? "border-sky-400 shadow-md"
+                                ? "border-zinc-600 shadow-md"
                                 : "border-white/5 hover:border-white/20"
                             } overflow-hidden`}
-                            style={draft.bgType === "gradient" ? { background: val } : {}}
                           >
                             {draft.bgType === "image" && <img src={val} alt="" className="h-full w-full object-cover" />}
-                            {draft.bgType === "motion" && <div className="flex h-full w-full items-center justify-center text-[8px] uppercase text-slate-400">{val.key}</div>}
+                            {draft.bgType === "motion" && <div className="flex h-full w-full items-center justify-center text-[8px] uppercase text-stone-400">{val.key}</div>}
                           </button>
                         ))}
                       </div>
@@ -587,47 +627,60 @@ export default function Settings() {
                     style={{
                       background:
                         previewDraft.bgType === "gradient"
-                          ? gradients[previewDraft.bgIndex]
+                          ? getResolvedBackground(previewDraft, gradients, backgrounds)
                           : undefined,
                     }}
                   >
                     {previewDraft.bgType !== "gradient" && (
                       <SmoothBackground
-                        background={getBackgroundValue(previewDraft.bgType, previewDraft.bgIndex, previewDraft.customBackground)}
+                        background={getResolvedBackground(previewDraft, gradients, backgrounds)}
                         bgType={previewDraft.bgType}
                         customBackground={previewDraft.customBackground}
                         motionVariant={previewDraft.motionBackground}
                         isFullPage={false}
                       />
                     )}
-                    <div
-                      className="relative z-10 flex h-full flex-col items-center justify-center p-5 transition-all duration-300"
-                      style={{
-                        backgroundColor:
-                          previewDraft.showReaderBox !== false
-                            ? `rgba(0,0,0,${previewDraft.cardOpacity ?? 0.5})`
-                            : "transparent",
-                        backdropFilter:
-                          previewDraft.showReaderBox !== false ? "blur(8px)" : "none",
-                        borderRadius:
-                          previewDraft.showReaderBox !== false ? "0.75rem" : "0",
-                      }}
-                    >
+                    <div className="relative z-10 flex h-full w-full items-center justify-center p-4 md:p-8">
                       <div
-                        ref={previewTextRef}
-                        className="w-full text-white"
+                        className="flex w-full flex-col items-center justify-center p-6 transition-all duration-300 shadow-2xl"
                         style={{
-                          textAlign: previewDraft.textAlign || "center",
-                          lineHeight: previewDraft.lineHeight || 1.8,
-                          fontSize: `${Math.min(previewDraft.fontSize || 24, 28)}px`,
+                          backgroundColor:
+                            previewDraft.showReaderBox !== false
+                              ? `rgba(0,0,0,${previewDraft.cardOpacity ?? 0.5})`
+                              : "transparent",
+                          backdropFilter:
+                            previewDraft.showReaderBox !== false ? "blur(12px)" : "none",
+                          borderRadius:
+                            previewDraft.showReaderBox !== false ? "1rem" : "0",
                         }}
                       >
-                        <p className="font-bold" style={{ textShadow: "0 2px 14px rgba(0,0,0,0.6)" }}>
-                          {t.previewVerse}
-                        </p>
-                        <p className="mt-3 text-xs font-semibold text-slate-300" style={{ textShadow: "0 1px 6px rgba(0,0,0,0.8)" }}>
-                          {t.previewRef}
-                        </p>
+                        <div
+                          ref={previewTextRef}
+                          className="w-full text-white"
+                          style={{
+                            textAlign: previewDraft.textAlign || "center",
+                            lineHeight: previewDraft.lineHeight || 1.8,
+                            fontSize: `${Math.min(previewDraft.fontSize || 24, 28)}px`,
+                          }}
+                        >
+                          {isBilingual ? (
+                            <div className="space-y-4">
+                              <p className="font-bold" style={{ textShadow: "0 2px 14px rgba(0,0,0,0.6)", fontFamily: previewDraft.tamilFontFamily }}>
+                                {getUIText("ta").previewVerse}
+                              </p>
+                              <p className="font-semibold text-stone-200" style={{ fontSize: `${Math.max((previewDraft.fontSize || 24) - 2, 18)}px`, textShadow: "0 2px 14px rgba(0,0,0,0.6)", fontFamily: previewDraft.fontFamily }}>
+                                {t.previewVerseEnglish || "The Lord is my shepherd; I shall not want."}
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="font-bold" style={{ textShadow: "0 2px 14px rgba(0,0,0,0.6)", fontFamily: isTamil ? previewDraft.tamilFontFamily : previewDraft.fontFamily }}>
+                              {t.previewVerse}
+                            </p>
+                          )}
+                          <p className="mt-4 text-xs font-semibold text-stone-300 uppercase tracking-widest" style={{ textShadow: "0 1px 6px rgba(0,0,0,0.8)" }}>
+                            {isBilingual ? `${getUIText("ta").previewRef} / ${t.previewRef}` : t.previewRef}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -640,7 +693,7 @@ export default function Settings() {
                     </button>
                     <button
                       onClick={() => window.location.reload()}
-                      className="flex-1 rounded-xl bg-sky-500 py-3 text-xs font-bold text-white shadow-lg active:scale-95"
+                      className="flex-1 rounded-xl bg-[#0a0a0a] py-3 text-xs font-bold text-white shadow-lg active:scale-95"
                     >
                       Save & Refresh
                     </button>

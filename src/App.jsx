@@ -1,7 +1,9 @@
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Suspense, lazy, useEffect } from "react";
+import { Toaster } from "react-hot-toast";
 
-import BottomNav from "./components/BottomNav";
+import ErrorBoundary from "./components/ErrorBoundary";
+import TopNav from "./components/TopNav";
 import SeoManager from "./components/SeoManager";
 import useAppSettings from "./hooks/useAppSettings";
 import {
@@ -19,6 +21,7 @@ const Search = lazy(() => import("./pages/Search"));
 const Reader = lazy(() => import("./pages/Reader"));
 const Settings = lazy(() => import("./pages/Settings"));
 const AdvancedPresentation = lazy(() => import("./pages/AdvancedPresentation"));
+const Library = lazy(() => import("./pages/Library"));
 const SermonMode = lazy(() => import("./pages/SermonMode"));
 const SermonControl = lazy(() => import("./pages/SermonControl"));
 const PresentationDisplay = lazy(() => import("./pages/PresentationDisplay"));
@@ -33,8 +36,8 @@ function RouteLoadingScreen() {
     <div className="app-shell app-page pb-24 pt-4 md:pt-6">
       <div className="app-page-inner">
         <div className="app-surface rounded-[2rem] p-6 md:p-8">
-          <div className="flex items-center gap-3 text-slate-300">
-            <span className="h-3 w-3 rounded-full bg-sky-300" />
+          <div className="flex items-center gap-3 text-stone-300">
+            <span className="h-3 w-3 rounded-full bg-zinc-600" />
             <span className="text-sm font-medium">Loading...</span>
           </div>
         </div>
@@ -65,10 +68,12 @@ function Layout() {
   }, [settings]);
 
   return (
-    <>
+    <div className="flex min-h-screen flex-col">
       <SeoManager />
 
-      <div className={isReader ? "" : "pb-24 md:pb-0"}>
+      {!isReader && <TopNav />}
+      
+      <main className={`flex-1 ${isReader ? "" : "pt-24 md:pt-28"}`}>
         <Suspense fallback={<RouteLoadingScreen />}>
           <div key={isReader ? "reader-shell" : location.pathname} className={isReader ? "" : "app-page-transition"}>
             <Routes>
@@ -76,6 +81,7 @@ function Layout() {
               <Route path="/books" element={<Books />} />
               <Route path="/search" element={<Search />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/library" element={<Library />} />
               <Route path="/advanced-presentation" element={<AdvancedPresentation />} />
               <Route path="/presentation/:mode" element={<PresentationDisplay />} />
               <Route path="/presentation-remote" element={<PresentationRemote />} />
@@ -89,19 +95,40 @@ function Layout() {
             </Routes>
           </div>
         </Suspense>
-      </div>
+      </main>
 
       {!isReader && <Footer />}
-      {!isReader && <BottomNav />}
-    </>
+    </div>
   );
 }
 
 function App() {
   return (
-    <BrowserRouter>
-      <Layout />
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Layout />
+      </BrowserRouter>
+      <Toaster 
+        position="bottom-center"
+        toastOptions={{
+          style: {
+            background: '#0a0a0a',
+            color: '#fff',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '999px',
+            fontSize: '14px',
+            fontWeight: '500',
+            padding: '12px 24px',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#000000',
+            },
+          },
+        }}
+      />
+    </ErrorBoundary>
   );
 }
 

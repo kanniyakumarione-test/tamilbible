@@ -7,18 +7,22 @@ export default function Books() {
   const t = getUIText(settings.language);
 
   return (
-    <div className="app-shell app-page pb-24 pt-4 md:pt-6">
-      <div className="app-page-inner">
-        <section className="app-hero mb-6 overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.26),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(56,189,248,0.18),_transparent_26%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(8,17,32,0.96))] px-5 py-8 md:px-8 md:py-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.34em] text-slate-400">
-            {t.library}
-          </p>
-          <h1 className="mt-3 text-3xl font-bold leading-tight text-white md:text-5xl">
-            {t.books}
-          </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
-            {t.chooseStart}
-          </p>
+    <div className="app-shell pt-2 md:pt-4">
+      <div className="mx-auto w-full max-w-7xl px-4 md:px-8 lg:px-12">
+        <section className="relative z-20 mb-8 overflow-hidden rounded-[2.5rem] border border-white/5 bg-[#000000] p-6 shadow-2xl backdrop-blur-2xl md:p-10">
+          <div className="pointer-events-none absolute inset-0 -z-10 rounded-[2.5rem] " />
+          
+          <div className="text-center">
+            <span className="inline-block rounded-full border border-zinc-600/20 bg-zinc-700/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] text-zinc-200 shadow-[0_0_20px_rgba(255, 255, 255,0.1)]">
+              {t.library}
+            </span>
+            <h1 className="mt-5 bg-gradient-to-br from-white via-white to-zinc-500 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent md:text-5xl lg:text-6xl">
+              {t.books}
+            </h1>
+            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-stone-400 md:text-base">
+              {t.chooseStart}
+            </p>
+          </div>
         </section>
 
         <BookList />

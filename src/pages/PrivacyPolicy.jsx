@@ -4,17 +4,17 @@ export default function PrivacyPolicy() {
   const [settings] = useAppSettings();
 
   return (
-    <div className="app-shell app-page pb-24 pt-4 md:pt-10">
+    <div className="app-shell app-page pb-6 pt-4 md:pt-10">
       <div className="app-page-inner max-w-4xl">
         <section className="app-surface rounded-[2rem] p-8 md:p-12">
           <h1 className="text-3xl font-bold text-white md:text-4xl">
-            {settings.language === "en" ? "Privacy Policy" : "தனியுரிமைக் கொள்கை"}
+            {["en", "ta-en"].includes(settings.language) ? "Privacy Policy" : "தனியுரிமைக் கொள்கை"}
           </h1>
-          <p className="mt-4 text-slate-400">
+          <p className="mt-4 text-stone-400">
             Last Updated: May 15, 2026
           </p>
 
-          <div className="mt-10 space-y-8 text-sm leading-8 text-slate-300 md:text-base">
+          <div className="mt-10 space-y-8 text-sm leading-8 text-stone-300 md:text-base">
             <section>
               <h2 className="text-xl font-semibold text-white">1. Introduction</h2>
               <p className="mt-3">

@@ -23,7 +23,7 @@ import {
 } from "../utils/presentationRemotePresence";
 import { getUIText } from "../utils/uiText";
 import MotionBackground from "../components/MotionBackground";
-import { getPresentationFontFamily } from "../utils/appearance";
+import { getPresentationFontFamily, getCustomGradientString } from "../utils/appearance";
 import { getSiteUrl } from "../utils/siteUrl";
 import { optimizeImage } from "../utils/imageOptimization";
 
@@ -47,7 +47,7 @@ function AccordionSection({ title, defaultOpen = true, children }) {
   return (
     <details
       open={defaultOpen}
-      className="overflow-hidden rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.94),_rgba(8,17,32,0.96))]"
+      className="overflow-hidden rounded-[1.6rem] border border-white/10 bg-[#000000]"
     >
       <summary className="cursor-pointer list-none bg-white/10 px-5 py-4 text-base font-semibold text-white">
         {title}
@@ -60,11 +60,11 @@ function AccordionSection({ title, defaultOpen = true, children }) {
 const SelectControl = memo(function SelectControl({ label, value, onChange, options }) {
   return (
     <label className="block">
-      <p className="mb-2 text-sm text-slate-300">{label}</p>
+      <p className="mb-2 text-sm text-stone-300">{label}</p>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-sky-400/40"
+        className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -78,12 +78,12 @@ const SelectControl = memo(function SelectControl({ label, value, onChange, opti
 
 const CheckboxControl = memo(function CheckboxControl({ label, checked, onChange }) {
   return (
-    <label className="flex items-center gap-3 text-sm text-slate-200">
+    <label className="flex items-center gap-3 text-sm text-stone-200">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="h-4 w-4 rounded border-white/20 bg-black/20 accent-sky-400"
+        className="h-4 w-4 rounded border-white/20 bg-black/20 accent-amber-400"
         />
         <span>{label}</span>
       </label>
@@ -92,7 +92,7 @@ const CheckboxControl = memo(function CheckboxControl({ label, checked, onChange
 
 const ColorChip = memo(function ColorChip({ label, value, onChange }) {
   return (
-    <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200">
+    <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-stone-200">
       <input
         type="color"
         value={value}
@@ -123,7 +123,7 @@ const ControlPanel = memo(function ControlPanel({ title, subtitle, children, cla
     <div className={`rounded-[2.2rem] border border-white/10 bg-black/20 p-6 backdrop-blur-xl ${className}`}>
       <div className="mb-6">
         <h3 className="text-lg font-bold text-white">{title}</h3>
-        <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
+        <p className="mt-1 text-sm text-stone-400">{subtitle}</p>
       </div>
       {children}
     </div>
@@ -165,14 +165,14 @@ const ConnectedDevicesPanel = memo(function ConnectedDevicesPanel() {
     <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">
             Connected Devices
           </p>
-          <p className="mt-2 text-xs leading-6 text-slate-400">
+          <p className="mt-2 text-xs leading-6 text-stone-400">
             Active remotes seen in the last 15 seconds.
           </p>
         </div>
-        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200">
+        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-stone-200">
           {remoteDevices.length}
         </span>
       </div>
@@ -191,7 +191,7 @@ const ConnectedDevicesPanel = memo(function ConnectedDevicesPanel() {
             </div>
           ))
         ) : (
-          <p className="rounded-2xl border border-dashed border-white/10 px-4 py-4 text-sm text-slate-400">
+          <p className="rounded-2xl border border-dashed border-white/10 px-4 py-4 text-sm text-stone-400">
             No remote devices connected yet.
           </p>
         )}
@@ -339,7 +339,7 @@ const StatusCard = memo(function StatusCard({ label, value, icon, colorClass }) 
           {icon}
         </div>
         <div>
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{label}</p>
+          <p className="text-xs font-medium text-stone-500 uppercase tracking-wider">{label}</p>
           <p className="mt-0.5 text-sm font-bold text-white">{value}</p>
         </div>
       </div>
@@ -464,7 +464,7 @@ export default function AdvancedPresentation() {
     }
 
     return settings.bgType === "gradient"
-      ? gradients[settings.bgIndex]
+      ? getCustomGradientString(settings.customGradientType, settings.customGradientColor1, settings.customGradientColor2)
       : `url(${backgrounds[settings.bgIndex]})`;
   }, [settings.bgIndex, settings.bgType, settings.customBackground]);
 
@@ -587,16 +587,16 @@ export default function AdvancedPresentation() {
   }, [activeItem?.text, settings.presentationMaxFontSize, settings.presentationJustify]);
 
   return (
-    <div className="hidden px-4 pb-24 pt-4 md:block md:px-6 md:pt-6">
+    <div className="hidden px-4 pb-6 pt-4 md:block md:px-6 md:pt-6">
       <div className="w-full space-y-5">
-        <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.22),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(56,189,248,0.16),_transparent_24%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(8,17,32,0.98))] p-5 shadow-2xl shadow-black/30 md:p-7">
-          <p className="text-xs font-semibold uppercase tracking-[0.34em] text-slate-400">
+        <section className="overflow-hidden rounded-[2rem] border border-white/10  p-5 shadow-2xl shadow-black/30 md:p-7">
+          <p className="text-xs font-semibold uppercase tracking-[0.34em] text-stone-400">
             {t.screenSetup}
           </p>
           <h1 className="mt-3 text-3xl font-bold text-white md:text-5xl">
             {t.advancedPresentation}
           </h1>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300 md:text-base">
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-stone-300 md:text-base">
             {t.advancedPresentationIntro}
           </p>
 
@@ -610,7 +610,7 @@ export default function AdvancedPresentation() {
                   "tamil-bible-presentation-main"
                 )
               }
-              className="rounded-2xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-5 py-3 text-sm font-semibold text-white shadow-lg"
+              className="rounded-2xl bg-[#000000] px-5 py-3 text-sm font-semibold text-white shadow-lg"
             >
               Open Main Display
             </button>
@@ -642,10 +642,10 @@ export default function AdvancedPresentation() {
           </div>
         </section>
 
-        <section className="rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.9),_rgba(8,17,32,0.92))] p-5 shadow-xl shadow-black/20">
+        <section className="rounded-[1.8rem] border border-white/10 bg-[#000000] p-5 shadow-xl shadow-black/20">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-stone-400">
                 Live Queue
               </p>
               <h2 className="mt-2 text-2xl font-bold text-white">
@@ -653,11 +653,11 @@ export default function AdvancedPresentation() {
                   ? `${activeItem.bookTamil} ${activeItem.chapter}:${activeItem.verse}`
                   : "No active verse"}
               </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-300">
                 The display windows below update live from this sermon queue. Pick which verse should show right now, then open the main or stage screen in a separate window.
               </p>
             </div>
-            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
+            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-stone-300">
               {queue.length} queued
             </div>
           </div>
@@ -669,7 +669,7 @@ export default function AdvancedPresentation() {
                   key={item.id}
                   className={`rounded-[1.4rem] border p-4 ${
                     item.id === activeItem?.id
-                      ? "border-sky-400/40 bg-sky-400/10"
+                      ? "border-zinc-600/40 bg-zinc-700/10"
                       : "border-white/10 bg-white/[0.03]"
                   }`}
                 >
@@ -678,7 +678,7 @@ export default function AdvancedPresentation() {
                       <p className="text-base font-semibold text-white">
                         {item.bookTamil} {item.chapter}:{item.verse}
                       </p>
-                      <p className="mt-2 line-clamp-2 text-sm leading-7 text-slate-300">
+                      <p className="mt-2 line-clamp-2 text-sm leading-7 text-stone-300">
                         {item.text}
                       </p>
                     </div>
@@ -686,7 +686,7 @@ export default function AdvancedPresentation() {
                       <button
                         type="button"
                         onClick={() => setActiveSermonItem(item)}
-                        className="rounded-xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-4 py-2.5 text-sm font-semibold text-white"
+                        className="rounded-xl bg-[#000000] px-4 py-2.5 text-sm font-semibold text-white"
                       >
                         Show Live
                       </button>
@@ -702,42 +702,42 @@ export default function AdvancedPresentation() {
                 </div>
               ))
             ) : (
-              <p className="rounded-[1.4rem] border border-dashed border-white/10 px-4 py-5 text-sm text-slate-400">
+              <p className="rounded-[1.4rem] border border-dashed border-white/10 px-4 py-5 text-sm text-stone-400">
                 Add verses from the chapter screen using the `Sermon` button, then control them here.
               </p>
             )}
           </div>
         </section>
 
-        <section className="rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.9),_rgba(8,17,32,0.92))] p-5 shadow-xl shadow-black/20">
+        <section className="rounded-[1.8rem] border border-white/10 bg-[#000000] p-5 shadow-xl shadow-black/20">
           <div className="grid gap-5 lg:grid-cols-[1fr,1fr,0.9fr]">
             <label className="block">
-              <p className="mb-2 text-sm text-slate-300">Title Slide Title</p>
+              <p className="mb-2 text-sm text-stone-300">Title Slide Title</p>
               <input
                 type="text"
                 value={settings.presentationTitle}
                 onChange={(e) => updateSettings({ presentationTitle: e.target.value })}
-                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-sky-400/40"
+                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
               />
             </label>
 
             <label className="block">
-              <p className="mb-2 text-sm text-slate-300">Title Slide Subtitle</p>
+              <p className="mb-2 text-sm text-stone-300">Title Slide Subtitle</p>
               <input
                 type="text"
                 value={settings.presentationSubtitle}
                 onChange={(e) => updateSettings({ presentationSubtitle: e.target.value })}
-                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-sky-400/40"
+                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
               />
             </label>
 
             <div>
-              <p className="mb-2 text-sm text-slate-300">Quick Display Modes</p>
+              <p className="mb-2 text-sm text-stone-300">Quick Display Modes</p>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => setSermonDisplayMode("live")}
-                  className="rounded-xl bg-[linear-gradient(135deg,#2563eb,#38bdf8)] px-4 py-2.5 text-sm font-semibold text-white"
+                  className="rounded-xl bg-[#000000] px-4 py-2.5 text-sm font-semibold text-white"
                 >
                   Live
                 </button>
@@ -775,22 +775,22 @@ export default function AdvancedPresentation() {
 
           <div className="mt-5 grid gap-5 lg:grid-cols-[1fr,1fr,0.9fr]">
             <label className="block">
-              <p className="mb-2 text-sm text-slate-300">Announcement Title</p>
+              <p className="mb-2 text-sm text-stone-300">Announcement Title</p>
               <input
                 type="text"
                 value={settings.presentationAnnouncementTitle}
                 onChange={(e) => updateSettings({ presentationAnnouncementTitle: e.target.value })}
-                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-sky-400/40"
+                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
               />
             </label>
 
             <label className="block">
-              <p className="mb-2 text-sm text-slate-300">Announcement Body</p>
+              <p className="mb-2 text-sm text-stone-300">Announcement Body</p>
               <textarea
                 value={settings.presentationAnnouncementBody}
                 onChange={(e) => updateSettings({ presentationAnnouncementBody: e.target.value })}
                 rows={3}
-                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-sky-400/40"
+                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
               />
             </label>
 
@@ -809,20 +809,20 @@ export default function AdvancedPresentation() {
               </div>
 
               {!serverInfo ? (
-                <p className="mt-2 text-[10px] text-slate-400">
+                <p className="mt-2 text-[10px] text-stone-400">
                   Run <code>npm run backend</code> to enable network discovery.
                 </p>
               ) : null}
 
               {candidateOrigins.length > 1 && isLocalOnlyHost(window.location.hostname) ? (
                 <div className="mt-3">
-                  <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-stone-500">
                     Switch Network Address
                   </p>
                   <select
                     value={selectedOriginIndex}
                     onChange={(e) => setSelectedOriginIndex(Number(e.target.value))}
-                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 outline-none"
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-stone-200 outline-none"
                   >
                     {candidateOrigins.map((origin, idx) => (
                       <option key={origin} value={idx}>
@@ -834,9 +834,9 @@ export default function AdvancedPresentation() {
               ) : null}
 
               <div className="mx-auto mt-4 flex h-40 w-40 items-center justify-center rounded-2xl bg-white p-3">
-                <QRCode value={remoteUrl} size={136} bgColor="#ffffff" fgColor="#0f172a" level="M" />
+                <QRCode value={remoteUrl} size={136} bgColor="#ffffff" fgColor="#000000" level="M" />
               </div>
-              <p className="mt-3 break-all text-xs leading-6 text-slate-400">{remoteUrl}</p>
+              <p className="mt-3 break-all text-xs leading-6 text-stone-400">{remoteUrl}</p>
               <button
                 type="button"
                 onClick={handleCopyRemoteUrl}
@@ -846,12 +846,12 @@ export default function AdvancedPresentation() {
               </button>
               {remoteNeedsPublicHost ? (
                 <div className="mt-3 space-y-2">
-                  <p className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-6 text-amber-100">
+                  <p className="rounded-xl border border-zinc-600/20 bg-zinc-700/10 px-3 py-2 text-xs leading-6 text-amber-100">
                     Your phone usually cannot reach "localhost". {candidateOrigins.length > 1 ? "Try selecting a different address above." : "Make sure the backend is running on your LAN."}
                   </p>
                 </div>
               ) : (
-                <p className="mt-3 text-xs leading-6 text-slate-500">
+                <p className="mt-3 text-xs leading-6 text-stone-500">
                   Make sure your phone is on the same Wi-Fi network to use this address.
                 </p>
               )}
@@ -862,7 +862,7 @@ export default function AdvancedPresentation() {
         </section>
 
         <div className="grid gap-5 md:grid-cols-2">
-          <div className="rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.92),_rgba(8,17,32,0.94))] p-4">
+          <div className="rounded-[1.6rem] border border-white/10 bg-[#000000] p-4">
             <div className="mb-4">
               <CheckboxControl
                 label={t.enableMainPresentation}
@@ -878,7 +878,7 @@ export default function AdvancedPresentation() {
             />
           </div>
 
-          <div className="rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,_rgba(15,23,42,0.92),_rgba(8,17,32,0.94))] p-4">
+          <div className="rounded-[1.6rem] border border-white/10 bg-[#000000] p-4">
             <div className="mb-4">
               <CheckboxControl
                 label={t.enableStagePresentation}
@@ -909,7 +909,7 @@ export default function AdvancedPresentation() {
               />
 
               <label className="block">
-                <p className="mb-2 text-sm text-slate-300">{t.maximumFontSize}</p>
+                <p className="mb-2 text-sm text-stone-300">{t.maximumFontSize}</p>
                 <input
                   type="number"
                   min={30}
@@ -920,7 +920,7 @@ export default function AdvancedPresentation() {
                       presentationMaxFontSize: Number(e.target.value) || 0,
                     })
                   }
-                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-sky-400/40"
+                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
                 />
               </label>
 
@@ -936,7 +936,7 @@ export default function AdvancedPresentation() {
               />
 
               <label className="block">
-                <p className="mb-2 text-sm text-slate-300">Letter Spacing</p>
+                <p className="mb-2 text-sm text-stone-300">Letter Spacing</p>
                 <input
                   type="number"
                   min={0}
@@ -947,7 +947,7 @@ export default function AdvancedPresentation() {
                       presentationLetterSpacing: Number(e.target.value) || 0,
                     })
                   }
-                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-sky-400/40"
+                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
                 />
               </label>
             </div>
@@ -983,7 +983,7 @@ export default function AdvancedPresentation() {
               />
 
               <div>
-                <p className="mb-2 text-sm text-slate-300">{t.stageScreenStyle}</p>
+                <p className="mb-2 text-sm text-stone-300">{t.stageScreenStyle}</p>
                 <div className="grid gap-3 md:grid-cols-2">
                   <CheckboxControl label={t.greenScreen} checked={settings.stageGreenScreen} onChange={(value) => updateSettings({ stageGreenScreen: value })} />
                   <CheckboxControl label={t.windowView} checked={settings.stageWindowView} onChange={(value) => updateSettings({ stageWindowView: value })} />
@@ -994,12 +994,12 @@ export default function AdvancedPresentation() {
             </div>
 
             <label className="block">
-              <p className="mb-2 text-sm text-slate-300">{t.message}</p>
+              <p className="mb-2 text-sm text-stone-300">{t.message}</p>
               <textarea
                 value={settings.stageMessage}
                 onChange={(e) => updateSettings({ stageMessage: e.target.value })}
                 rows={3}
-                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-sky-400/40"
+                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
               />
             </label>
 
@@ -1011,7 +1011,7 @@ export default function AdvancedPresentation() {
             <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
               <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-1">
                 <div>
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Main Preview</p>
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">Main Preview</p>
                   <div className="relative flex h-52 items-center justify-center overflow-hidden rounded-[1.5rem] border border-white/10 bg-black p-4 shadow-inner shadow-black/40">
                     <SmoothBackground
                       background={settings.background}
@@ -1077,19 +1077,19 @@ export default function AdvancedPresentation() {
                 </div>
 
                 <div>
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">{t.backgroundImage}</p>
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">{t.backgroundImage}</p>
                   <div className="relative h-44 overflow-hidden rounded-[1.5rem] border border-white/10 bg-black" style={{ background: previewBackground, backgroundImage: settings.bgType === "motion" ? undefined : previewBackground, backgroundSize: "cover", backgroundPosition: "center" }}>
                     {settings.bgType === "motion" ? <MotionBackground variant={settings.motionBackground} /> : null}
                   </div>
                 </div>
 
                 <div>
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">{t.logoImage}</p>
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">{t.logoImage}</p>
                   <div className="flex h-44 items-center justify-center rounded-[1.5rem] border border-white/10 bg-black/70 p-4">
                     {settings.stageLogoImage ? (
                       <img src={settings.stageLogoImage} alt="Stage logo" className="max-h-full max-w-full object-contain" />
                     ) : (
-                      <span className="text-sm text-slate-500">{t.uploadLogo}</span>
+                      <span className="text-sm text-stone-500">{t.uploadLogo}</span>
                     )}
                   </div>
                   <div className="mt-3 flex gap-3">
@@ -1104,7 +1104,7 @@ export default function AdvancedPresentation() {
 
               <div className="space-y-5">
                 <div>
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Stage Preview</p>
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">Stage Preview</p>
                   <div
                     className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-black"
                     style={{ background: stageBackground, backgroundSize: "cover", backgroundPosition: "center" }}
@@ -1127,15 +1127,15 @@ export default function AdvancedPresentation() {
                       >
                         {displayMode === "title" ? (
                           <>
-                            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-300">Title</p>
+                            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-300">Title</p>
                             <p className="mt-3 text-2xl font-bold text-white">{settings.presentationTitle}</p>
-                            <p className="mt-3 text-sm leading-6 text-slate-200">{settings.presentationSubtitle}</p>
+                            <p className="mt-3 text-sm leading-6 text-stone-200">{settings.presentationSubtitle}</p>
                           </>
                         ) : displayMode === "announcement" ? (
                           <>
-                            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-300">Announcement</p>
+                            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-300">Announcement</p>
                             <p className="mt-3 text-2xl font-bold text-white">{settings.presentationAnnouncementTitle}</p>
-                            <p className="mt-3 text-sm leading-6 text-slate-200">{settings.presentationAnnouncementBody}</p>
+                            <p className="mt-3 text-sm leading-6 text-stone-200">{settings.presentationAnnouncementBody}</p>
                           </>
                         ) : displayMode === "logo" ? (
                           <div className="flex h-full min-h-40 items-center justify-center">
@@ -1144,13 +1144,13 @@ export default function AdvancedPresentation() {
                             ) : (
                               <div className="text-center">
                                 <p className="text-2xl font-bold text-white">{settings.presentationTitle}</p>
-                                <p className="mt-2 text-sm text-slate-200">{settings.presentationSubtitle}</p>
+                                <p className="mt-2 text-sm text-stone-200">{settings.presentationSubtitle}</p>
                               </div>
                             )}
                           </div>
                         ) : displayMode === "black" ? (
                           <div className="flex h-full min-h-40 items-center justify-center bg-black">
-                            <p className="text-sm uppercase tracking-[0.28em] text-slate-500">Black Screen</p>
+                            <p className="text-sm uppercase tracking-[0.28em] text-stone-500">Black Screen</p>
                           </div>
                         ) : (
                           <>
@@ -1195,29 +1195,29 @@ export default function AdvancedPresentation() {
                         <div className="space-y-4">
                           {settings.stageShowDateTime ? (
                             <div className="rounded-[1.25rem] border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
-                              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-300">Date / Time</p>
+                              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-300">Date / Time</p>
                               <p className="mt-3 text-sm text-white">Clock visible on stage screen</p>
                             </div>
                           ) : null}
 
                           {settings.stageMessageVisible && settings.stageMessage ? (
                             <div className="rounded-[1.25rem] border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
-                              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-300">Message</p>
+                              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-300">Message</p>
                               <p className="mt-3 text-sm leading-6 text-white">{settings.stageMessage}</p>
                             </div>
                           ) : null}
 
                           <div className="rounded-[1.25rem] border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
-                            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-300">Next Verse</p>
+                            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-300">Next Verse</p>
                             {nextItem ? (
                               <>
                                 <p className="mt-3 text-sm font-bold text-white">
                                   {nextItem.bookTamil} {nextItem.chapter}:{nextItem.verse}
                                 </p>
-                                <p className="mt-2 text-sm leading-6 text-slate-200">{nextItem.text}</p>
+                                <p className="mt-2 text-sm leading-6 text-stone-200">{nextItem.text}</p>
                               </>
                             ) : (
-                              <p className="mt-3 text-sm text-slate-300">No next verse queued yet.</p>
+                              <p className="mt-3 text-sm text-stone-300">No next verse queued yet.</p>
                             )}
                           </div>
                         </div>
@@ -1228,7 +1228,7 @@ export default function AdvancedPresentation() {
 
                 <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
                   <div>
-                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">{t.stillBackground}</p>
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">{t.stillBackground}</p>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                       {backgrounds.map((bg, index) => (
                         <BackgroundTile key={`stage-bg-${bg}`} active={settings.stageStillBackground === index} onClick={() => updateSettings({ stageStillBackground: index })}>
@@ -1240,7 +1240,7 @@ export default function AdvancedPresentation() {
 
                   <div className="space-y-5">
                     <div>
-                      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">{t.textColor}</p>
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">{t.textColor}</p>
                       <div className="flex flex-wrap gap-3">
                         <ColorChip label={t.textOne} value={settings.stageTextColor1} onChange={(stageTextColor1) => updateSettings({ stageTextColor1 })} />
                         <ColorChip label={t.textTwo} value={settings.stageTextColor2} onChange={(stageTextColor2) => updateSettings({ stageTextColor2 })} />
@@ -1248,7 +1248,7 @@ export default function AdvancedPresentation() {
                     </div>
 
                     <div>
-                      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">{t.overlayColor}</p>
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">{t.overlayColor}</p>
                       <ColorChip label={t.overlay} value={settings.stageOverlayColor} onChange={(stageOverlayColor) => updateSettings({ stageOverlayColor })} />
                     </div>
                   </div>

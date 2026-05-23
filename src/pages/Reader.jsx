@@ -14,9 +14,7 @@ import {
   getParallelVerseData,
   isBilingualLanguage,
 } from "../utils/bibleContent";
-import {
-  getReaderFontFamily,
-} from "../utils/appearance";
+import { getReaderFontFamily, getCustomGradientString } from "../utils/appearance";
 import MotionBackground from "../components/MotionBackground";
 import { getBookLabelFromMetadata } from "../utils/bibleData";
 
@@ -65,7 +63,7 @@ export default function Reader() {
   ];
   const tamilFontFamily = getReaderFontFamily(settings, "ta");
   const englishFontFamily = getReaderFontFamily(settings, "en");
-  const primaryFontFamily = settings.language === "en" ? englishFontFamily : tamilFontFamily;
+  const primaryFontFamily = ["en", "ta-en"].includes(settings.language) ? englishFontFamily : tamilFontFamily;
 
   const { bookData } = useBibleBook(decodedBook, language);
   const chapterData = bookData?.chapters.find(
@@ -368,12 +366,12 @@ export default function Reader() {
       style={{
         background:
           settings.bgType === "motion"
-            ? "#07111f"
+            ? "#000000"
             :
           settings.bgType === "custom" && settings.customBackground
             ? `url(${settings.customBackground})`
             : settings.bgType === "gradient"
-            ? gradients[settings.bgIndex]
+            ? getCustomGradientString(settings.customGradientType, settings.customGradientColor1, settings.customGradientColor2)
             : `url(${backgrounds[settings.bgIndex]})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
@@ -493,10 +491,10 @@ export default function Reader() {
 
           {verseItem && libraryData.notes[verseItem.id] ? (
             <div className="mt-5 rounded-3xl border border-white/10 bg-black/20 px-4 py-4 text-left">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
                 {t.note}
               </p>
-              <p className="mt-2 text-sm leading-7 text-slate-200" style={{ fontFamily: tamilFontFamily }}>
+              <p className="mt-2 text-sm leading-7 text-stone-200" style={{ fontFamily: tamilFontFamily }}>
                 {libraryData.notes[verseItem.id].text}
               </p>
             </div>
