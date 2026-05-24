@@ -1150,7 +1150,7 @@ export default function Verses() {
               })}
             </div>
 
-                        <div className="mb-6 mt-6 pr-16 sm:pr-0">
+                        <div className="mb-6 mt-6">
               <ChapterNavigator
                 chapter={chapter}
                 chapterLabel={t.chapter}
