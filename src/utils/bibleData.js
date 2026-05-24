@@ -80,6 +80,11 @@ export async function loadBibleBook(bookEnglish, language = "ta") {
 
   const modulePath = getModulePath(bookEnglish, language);
   
+  if (!modulePath) {
+    loadedBookCache.set(cacheKey, Promise.resolve(null));
+    return null;
+  }
+
   // Normalize ta-en to ta for module fetching
   const langKey = language === "ta-en" ? "ta" : language;
   

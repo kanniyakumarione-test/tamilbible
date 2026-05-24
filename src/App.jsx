@@ -26,7 +26,11 @@ const SermonMode = lazy(() => import("./pages/SermonMode"));
 const SermonControl = lazy(() => import("./pages/SermonControl"));
 const PresentationDisplay = lazy(() => import("./pages/PresentationDisplay"));
 const PresentationRemote = lazy(() => import("./pages/PresentationRemote"));
+const Memorize = lazy(() => import("./pages/Memorize"));
+const SermonBuilder = lazy(() => import("./pages/SermonBuilder"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const AboutUs = lazy(() => import("./pages/AboutUs"));
+const Terms = lazy(() => import("./pages/Terms"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 import Footer from "./components/Footer";
@@ -87,10 +91,14 @@ function Layout() {
               <Route path="/presentation-remote" element={<PresentationRemote />} />
               <Route path="/sermon-mode" element={<SermonMode />} />
               <Route path="/sermon-control" element={<SermonControl />} />
+              <Route path="/memorize" element={<Memorize />} />
+              <Route path="/sermon-builder" element={<SermonBuilder />} />
               <Route path="/:book" element={<Chapters />} />
               <Route path="/:book/:chapter" element={<Verses />} />
               <Route path="/reader/:book/:chapter/:verse" element={<Reader />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/about" element={<AboutUs />} />
+              <Route path="/terms" element={<Terms />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>

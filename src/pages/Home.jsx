@@ -139,7 +139,7 @@ export default function Home() {
   const goToItem = (item) => {
     if (!item) return;
     if (item.type === "verse" || item.verse) {
-      openReader(`/reader/${encodeURIComponent(item.bookEnglish)}/${item.chapter}/${item.verse || 1}`, navigate);
+      navigate(`/${encodeURIComponent(item.bookEnglish)}/${item.chapter}?verse=${item.verse || 1}`);
       return;
     }
     navigate(`/${encodeURIComponent(item.bookEnglish)}/${item.chapter}`);
@@ -182,9 +182,7 @@ export default function Home() {
             <span className="inline-block rounded-full border border-zinc-600/20 bg-zinc-700/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] text-zinc-200 shadow-[0_0_20px_rgba(255, 255, 255,0.1)]">
               {t.tamilBible}
             </span>
-            <h1 className="mt-6 max-w-3xl bg-gradient-to-br from-white via-white to-zinc-500 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent md:text-6xl lg:text-7xl lg:leading-[1.1]">
-              {t.richReader}
-            </h1>
+
             <p className="mt-6 max-w-2xl text-base leading-relaxed text-stone-300 md:text-lg">
               {t.homeIntro}
             </p>
@@ -220,7 +218,7 @@ export default function Home() {
               {verseOfTheDay ? (
                 <div className="mt-6">
                   <h3 className="mb-4 inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-stone-300">
-                    {verseOfTheDay.bookTamil} {verseOfTheDay.chapter}:{verseOfTheDay.verse}
+                    {settings.language === "en" ? verseOfTheDay.bookEnglish : verseOfTheDay.bookTamil} {verseOfTheDay.chapter}:{verseOfTheDay.verse}
                   </h3>
                   <p className="text-2xl font-semibold leading-relaxed text-white md:text-3xl md:leading-tight">
                     "{verseOfTheDay.text}"
@@ -323,7 +321,7 @@ export default function Home() {
                         onClick={() => navigate(`/${encodeURIComponent(chapter.bookEnglish)}/${chapter.chapter}`)}
                         className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-stone-300 transition-colors hover:bg-emerald-500/20 hover:text-emerald-300"
                       >
-                        {chapter.bookTamil} {chapter.chapter}
+                        {settings.language === "en" ? chapter.bookEnglish : chapter.bookTamil} {chapter.chapter}
                       </button>
                     ))}
                   </div>
@@ -334,7 +332,7 @@ export default function Home() {
         </section>
 
         {/* Quick Return & Prayers */}
-        <section className="grid gap-6 lg:grid-cols-2">
+        <section className={`grid gap-6 ${settings.pastorsMode ? "lg:grid-cols-2" : "grid-cols-1"}`}>
           <div className="rounded-[2.5rem] border border-white/5 bg-[#000000] p-8 shadow-xl backdrop-blur-xl">
             <div className="mb-6 flex items-end justify-between">
               <div>
@@ -355,7 +353,7 @@ export default function Home() {
                         {i + 1}
                       </div>
                       <div>
-                        <p className="text-base font-bold text-white group-hover:text-indigo-100">{item.bookTamil}</p>
+                        <p className="text-base font-bold text-white group-hover:text-indigo-100">{settings.language === "en" ? item.bookEnglish : item.bookTamil}</p>
                         <p className="text-xs font-medium text-stone-400">
                           {t.chapter} {item.chapter}{item.verse ? ` • ${t.verse} ${item.verse}` : ""}
                         </p>
@@ -381,50 +379,52 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="hidden rounded-[2.5rem] border border-white/5 bg-[#000000] p-8 shadow-xl backdrop-blur-xl md:block">
-            <div className="mb-6 flex items-end justify-between">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-zinc-200">{["en", "ta-en"].includes(settings.language) ? "Prayer Journal" : "ஜெப குறிப்பேடு"}</p>
-                <h2 className="mt-2 text-2xl font-extrabold text-white">{["en", "ta-en"].includes(settings.language) ? "Recent Prayers" : "சமீபத்திய ஜெபங்கள்"}</h2>
-              </div>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0a0a0a]/10 text-xs font-bold text-zinc-200 ring-1 ring-zinc-700/20">{prayerCount}</span>
-            </div>
-            <div className="space-y-4">
-              {recentPrayers.length ? (
-                recentPrayers.map((item) => (
-                  <div key={item.id} className="group relative overflow-hidden rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-5 transition-all hover:border-zinc-700/30 hover:bg-white/[0.04]">
-                    <div className="flex items-start justify-between gap-4">
-                      <button type="button" onClick={() => goToItem(item)} className="flex-1 text-left">
-                        <p className="inline-flex items-center gap-2 rounded-full bg-black/40 px-3 py-1 text-xs font-bold text-zinc-300 ring-1 ring-white/10">
-                          <span className="h-1.5 w-1.5 rounded-full bg-zinc-700" />
-                          {item.bookTamil} {item.chapter}:{item.verse}
-                        </p>
-                        <p className="mt-3 line-clamp-2 text-sm font-medium leading-relaxed text-stone-300">{item.text}</p>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => togglePrayerAnswered(item.id)}
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all ${
-                          item.answered
-                            ? "bg-zinc-700 text-black shadow-[0_0_15px_rgba(255, 255, 255,0.4)] hover:bg-zinc-600"
-                            : "bg-white/5 text-stone-400 ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
-                        }`}
-                        title={item.answered ? "Answered" : "Mark as answered"}
-                      >
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="flex min-h-[200px] flex-col items-center justify-center rounded-[2rem] border border-dashed border-white/10 p-6 text-center">
-                  <p className="text-sm font-medium text-stone-400">{["en", "ta-en"].includes(settings.language) ? "Add prayers to verses to see them here." : "இங்கு காண வசனங்களுக்கு ஜெபங்களை சேர்க்கவும்."}</p>
+          {settings.pastorsMode && (
+            <div className="hidden rounded-[2.5rem] border border-white/5 bg-[#000000] p-8 shadow-xl backdrop-blur-xl md:block">
+              <div className="mb-6 flex items-end justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-zinc-200">{["en", "ta-en"].includes(settings.language) ? "Prayer Journal" : "ஜெப குறிப்பேடு"}</p>
+                  <h2 className="mt-2 text-2xl font-extrabold text-white">{["en", "ta-en"].includes(settings.language) ? "Recent Prayers" : "சமீபத்திய ஜெபங்கள்"}</h2>
                 </div>
-              )}
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0a0a0a]/10 text-xs font-bold text-zinc-200 ring-1 ring-zinc-700/20">{prayerCount}</span>
+              </div>
+              <div className="space-y-4">
+                {recentPrayers.length ? (
+                  recentPrayers.map((item) => (
+                    <div key={item.id} className="group relative overflow-hidden rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-5 transition-all hover:border-zinc-700/30 hover:bg-white/[0.04]">
+                      <div className="flex items-start justify-between gap-4">
+                        <button type="button" onClick={() => goToItem(item)} className="flex-1 text-left">
+                          <p className="inline-flex items-center gap-2 rounded-full bg-black/40 px-3 py-1 text-xs font-bold text-zinc-300 ring-1 ring-white/10">
+                            <span className="h-1.5 w-1.5 rounded-full bg-zinc-700" />
+                            {settings.language === "en" ? item.bookEnglish : item.bookTamil} {item.chapter}:{item.verse}
+                          </p>
+                          <p className="mt-3 line-clamp-2 text-sm font-medium leading-relaxed text-stone-300">{item.text}</p>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => togglePrayerAnswered(item.id)}
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all ${
+                            item.answered
+                              ? "bg-zinc-700 text-black shadow-[0_0_15px_rgba(255, 255, 255,0.4)] hover:bg-zinc-600"
+                              : "bg-white/5 text-stone-400 ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
+                          }`}
+                          title={item.answered ? "Answered" : "Mark as answered"}
+                        >
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex min-h-[200px] flex-col items-center justify-center rounded-[2rem] border border-dashed border-white/10 p-6 text-center">
+                    <p className="text-sm font-medium text-stone-400">{["en", "ta-en"].includes(settings.language) ? "Add prayers to verses to see them here." : "இங்கு காண வசனங்களுக்கு ஜெபங்களை சேர்க்கவும்."}</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </section>
 
         {/* Highlight Folders */}
@@ -434,8 +434,11 @@ export default function Home() {
             <h2 className="mt-2 text-2xl font-extrabold text-white">{["en", "ta-en"].includes(settings.language) ? "Highlight Folders" : "ஹைலைட் அடைவுகள்"}</h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {groupedHighlights.map((folder) => (
-              <div key={folder.value} className={`group relative overflow-hidden rounded-[2rem] border border-white/5 bg-white/[0.02] p-5 transition-all hover:-translate-y-1 hover:border-fuchsia-500/30 hover:bg-white/[0.04] hover:shadow-lg ${folder.value === "sermon" || folder.value === "prayer" ? "hidden lg:block" : ""}`}>
+            {groupedHighlights.filter(f => {
+              if (f.value === 'prayer' || f.value === 'sermon') return settings.pastorsMode;
+              return true;
+            }).map((folder) => (
+              <div key={folder.value} className="group relative overflow-hidden rounded-[2rem] border border-white/5 bg-white/[0.02] p-5 transition-all hover:-translate-y-1 hover:border-fuchsia-500/30 hover:bg-white/[0.04] hover:shadow-lg">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-sm font-bold text-white">{t[folder.value] || folder.label}</h3>
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-stone-300">{folder.items.length}</span>
@@ -443,7 +446,7 @@ export default function Home() {
                 <div className="space-y-2">
                   {folder.items.slice(0, 2).map((item) => (
                     <button key={item.id} onClick={() => goToItem(item)} className="block w-full rounded-xl bg-black/40 p-3 text-left transition-colors hover:bg-black/60">
-                      <p className="text-xs font-bold text-fuchsia-300">{item.bookTamil} {item.chapter}:{item.verse}</p>
+                      <p className="text-xs font-bold text-fuchsia-300">{settings.language === "en" ? item.bookEnglish : item.bookTamil} {item.chapter}:{item.verse}</p>
                       <p className="mt-1 line-clamp-1 text-xs text-stone-400">{item.text}</p>
                     </button>
                   ))}

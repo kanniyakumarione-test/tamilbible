@@ -46,6 +46,36 @@ function NavGlyph({ active, variant }) {
     );
   }
 
+  if (variant === "library") {
+    return (
+      <svg viewBox="0 0 24 24" className={`h-5 w-5 transition-colors ${strokeClass} ${fillClass}`} fill="currentColor" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+      </svg>
+    );
+  }
+
+  if (variant === "memorize") {
+    return (
+      <svg viewBox="0 0 24 24" className={`h-5 w-5 transition-colors ${strokeClass} ${fillClass}`} fill="currentColor" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+        <polyline points="14 2 14 8 20 8" />
+        <path d="M8 13h2" />
+        <path d="M8 17h2" />
+        <path d="M14 13h2" />
+        <path d="M14 17h2" />
+      </svg>
+    );
+  }
+
+  if (variant === "sermon") {
+    return (
+      <svg viewBox="0 0 24 24" className={`h-5 w-5 transition-colors ${strokeClass} ${fillClass}`} fill="currentColor" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+      </svg>
+    );
+  }
+
   return (
     <svg viewBox="0 0 24 24" className={`h-5 w-5 transition-colors ${strokeClass} ${fillClass}`} fill="currentColor" stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="4" y="5" width="7" height="6" rx="1.9" fill={active ? "currentColor" : "none"} className={active ? "opacity-20" : ""} />
@@ -84,15 +114,21 @@ export default function TopNav() {
     { to: "/", label: t.home, glyph: "home" },
     { to: "/books", label: t.books, glyph: "books" },
     { to: "/search", label: t.search, glyph: "search" },
-    { to: "/library", label: t.library || "Library", glyph: "books" },
+    { to: "/library", label: t.library || "Library", glyph: "library" },
+    { to: "/memorize", label: t.memorize || (settings.language === "ta" ? "மனப்பாடம்" : "Memorize"), glyph: "memorize" },
+    { to: "/sermon-builder", label: settings.language === "ta" ? "பிரசங்கம்" : "Sermon Builder", glyph: "sermon", pastorsOnly: true },
     { to: "/settings", label: t.settings, glyph: "settings" },
     {
       to: "/advanced-presentation",
       label: t.advancedPresentation,
       glyph: "grid",
       desktopOnly: true,
+      pastorsOnly: true,
     },
-  ];
+  ].filter(item => {
+    if (item.pastorsOnly && !settings.pastorsMode) return false;
+    return true;
+  });
 
   return (
     <>
@@ -100,49 +136,53 @@ export default function TopNav() {
           DESKTOP NAVIGATION (Full Width Header)
           ========================================= */}
       <header
-        className={`hidden md:flex fixed inset-x-0 top-0 z-50 w-full items-center justify-between px-8 transition-all duration-300 ${
+        className={`hidden md:flex fixed inset-x-0 top-0 z-50 w-full items-center justify-between px-6 transition-all duration-300 gap-6 ${
           scrolled ? "h-16 bg-black/80 backdrop-blur-xl border-b border-white/10" : "h-24 bg-transparent"
         }`}
       >
         {/* Left: Logo */}
-        <Link to="/" className="group flex items-center gap-3">
-          <div className="flex items-center justify-center rounded-xl bg-white/5 text-zinc-200 border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.05)] transition-all group-hover:bg-white/10 group-hover:scale-105 h-10 w-10">
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
-          </div>
-          <span className="bg-gradient-to-r from-white to-zinc-400 bg-clip-text font-extrabold tracking-tight text-transparent transition-all group-hover:to-white text-xl">
-            {t.tamilBible}
-          </span>
-        </Link>
+        <div className="flex shrink-0">
+          <Link to="/" className="group flex items-center gap-3">
+            <div className="flex items-center justify-center rounded-xl bg-white/5 text-zinc-200 border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.05)] transition-all group-hover:bg-white/10 group-hover:scale-105 h-10 w-10">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <span className="bg-gradient-to-r from-white to-zinc-400 bg-clip-text font-extrabold tracking-tight text-transparent transition-all group-hover:to-white text-xl whitespace-nowrap">
+              {t.tamilBible}
+            </span>
+          </Link>
+        </div>
 
         {/* Center: Main Links */}
-        <nav className="absolute left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/5 bg-white/[0.02] p-1 backdrop-blur-md">
-          {items
-            .filter((item) => !["settings", "advanced-presentation"].includes(item.glyph))
-            .map((item) => {
-              const active = isItemActive(pathname, item.to);
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={`group relative flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold transition-all duration-300 ${
-                    active
-                      ? "bg-white/10 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
-                      : "text-stone-400 hover:bg-white/5 hover:text-white"
-                  }`}
-                >
-                  <span className="relative z-10 flex items-center justify-center">
-                    <NavGlyph active={active} variant={item.glyph} />
-                  </span>
-                  <span className="relative z-10 whitespace-nowrap tracking-wide">{item.label}</span>
-                </Link>
-              );
-            })}
-        </nav>
+        <div className="flex-1 flex justify-center">
+          <nav className="flex items-center gap-1.5 rounded-full border border-white/5 bg-white/[0.02] p-1.5 backdrop-blur-md">
+            {items
+              .filter((item) => !["settings", "advanced-presentation"].includes(item.glyph))
+              .map((item) => {
+                const active = isItemActive(pathname, item.to);
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className={`group relative flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold transition-all duration-300 ${
+                      active
+                        ? "bg-white/10 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
+                        : "text-stone-400 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <span className="relative z-10 flex items-center justify-center">
+                      <NavGlyph active={active} variant={item.glyph} />
+                    </span>
+                    <span className="relative z-10 whitespace-nowrap tracking-wide">{item.label}</span>
+                  </Link>
+                );
+              })}
+          </nav>
+        </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-2">
+        {/* Right: Actions (Icon Only) */}
+        <div className="flex shrink-0 items-center gap-2">
           {items
             .filter((item) => ["settings", "advanced-presentation"].includes(item.glyph))
             .map((item) => {
@@ -151,16 +191,14 @@ export default function TopNav() {
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={`group relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all duration-300 ${
+                  title={item.label}
+                  className={`group relative flex items-center justify-center h-10 w-10 rounded-full transition-all duration-300 ${
                     active
                       ? "bg-white/10 text-white border border-white/10"
                       : "text-stone-400 hover:bg-white/5 border border-transparent hover:text-white hover:border-white/10"
                   }`}
                 >
-                  <span className="relative z-10 flex items-center justify-center">
-                    <NavGlyph active={active} variant={item.glyph} />
-                  </span>
-                  <span className="relative z-10 whitespace-nowrap tracking-wide">{item.label}</span>
+                  <NavGlyph active={active} variant={item.glyph} />
                 </Link>
               );
             })}

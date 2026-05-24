@@ -25,13 +25,14 @@ export default function Library() {
     { id: "favorites", label: t.favoritesTitle || "Favorites", icon: "♥" },
     { id: "notes", label: t.notesTitle || "Notes", icon: "✎" },
     { id: "highlights", label: t.highlightsTitle || "Highlights", icon: "✧" },
-    { id: "prayers", label: t.prayersTitle || "Prayers", icon: "🙏" },
+    ...(settings.pastorsMode ? [{ id: "prayers", label: t.prayersTitle || "Prayers", icon: "🙏" }] : []),
   ];
 
   const getItems = () => {
-    if (activeTab === "favorites") return Object.values(data.favorites).sort((a, b) => b.timestamp - a.timestamp);
-    if (activeTab === "notes") return Object.values(data.notes).sort((a, b) => b.timestamp - a.timestamp);
-    if (activeTab === "highlights") return Object.values(data.highlights).sort((a, b) => b.timestamp - a.timestamp);
+    const sortByDate = (a, b) => (b.timestamp || b.updatedAt || 0) - (a.timestamp || a.updatedAt || 0);
+    if (activeTab === "favorites") return Object.values(data.favorites).sort(sortByDate);
+    if (activeTab === "notes") return Object.values(data.notes).sort(sortByDate);
+    if (activeTab === "highlights") return Object.values(data.highlights).sort(sortByDate);
     if (activeTab === "prayers") return data.prayers.queue || [];
     return [];
   };
@@ -40,7 +41,7 @@ export default function Library() {
 
   const handleItemClick = (item) => {
     if (item.verse) {
-      navigate(`/reader/${encodeURIComponent(item.bookEnglish)}/${item.chapter}/${item.verse}`);
+      navigate(`/${encodeURIComponent(item.bookEnglish)}/${item.chapter}?verse=${item.verse}`);
     } else {
       navigate(`/${encodeURIComponent(item.bookEnglish)}/${item.chapter}`);
     }
@@ -93,7 +94,9 @@ export default function Library() {
               <p className="mt-1 text-sm text-stone-500">{t.emptyLibraryMsg || "Items you save will appear here."}</p>
             </div>
           ) : (
-            items.map((item, index) => (
+            items.map((item, index) => {
+              const itemDate = item.timestamp || item.updatedAt;
+              return (
               <div 
                 key={item.id || index}
                 onClick={() => handleItemClick(item)}
@@ -104,22 +107,16 @@ export default function Library() {
                     {formatVerseRef(item)}
                   </span>
                   <span className="text-xs text-stone-500">
-                    {new Date(item.timestamp).toLocaleDateString()}
+                    {itemDate ? new Date(itemDate).toLocaleDateString() : ""}
                   </span>
                 </div>
                 
-                {activeTab === "notes" && (
-                  <p className="mb-3 text-sm text-amber-200/90 leading-relaxed italic">
-                    "{item.note}"
-                  </p>
-                )}
-
                 {item.text && (
                   <p className={`text-base leading-relaxed ${activeTab === 'highlights' ? 'text-white' : 'text-stone-400'}`}>
                     <span 
                       style={activeTab === 'highlights' ? {
                         backgroundColor: item.color, 
-                        color: ['#ffffff', '#f472b6', '#34d399'].includes(item.color) ? '#000' : 'inherit',
+                        color: ['#ffffff', '#f472b6', '#fbbf24', '#34d399'].includes(item.color) ? '#000' : 'inherit',
                         padding: '2px 4px',
                         borderRadius: '4px'
                       } : {}}
@@ -129,7 +126,8 @@ export default function Library() {
                   </p>
                 )}
               </div>
-            ))
+              );
+            })
           )}
         </div>
         

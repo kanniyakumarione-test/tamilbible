@@ -527,6 +527,60 @@ export default function Settings() {
                       </label>
                     </div>
                   </Panel>
+
+                  <Panel 
+                    title={
+                      <span className="block">
+                        <span className="inline md:hidden">{isTamil ? "போதகர் கருவிகள்" : "Pastor Tools"}</span>
+                        <span className="hidden md:inline">{isTamil ? "போதகர் & திரையிடல் நிலை" : "Pastor & Presenter Mode"}</span>
+                      </span>
+                    } 
+                    subtitle={
+                      <span className="block">
+                        {isTamil ? "பிரசங்கம், ஜெபம் மற்றும் " : "Enable Sermon Builder, Prayer folders, Related Verses"}
+                        <span className="hidden md:inline">{isTamil ? "மேம்பட்ட திரையிடல் கருவிகளை இயக்கு." : ", and Advanced Presentation tools."}</span>
+                        <span className="inline md:hidden">{isTamil ? "கருவிகளை இயக்கு." : "."}</span>
+                      </span>
+                    } 
+                    isTamil={isTamil}
+                  >
+                    <label className="flex cursor-pointer items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4 transition hover:bg-white/10">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-white block">
+                          <span className="inline md:hidden">{isTamil ? "போதகர் கருவிகளை இயக்கு" : "Enable Pastor Tools"}</span>
+                          <span className="hidden md:inline">{isTamil ? "போதகர் & திரையிடல் நிலையை இயக்கு" : "Enable Pastor & Presenter Mode"}</span>
+                        </span>
+                      </div>
+                      <div className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:ring-offset-2 focus:ring-offset-black" style={{ backgroundColor: draft.pastorsMode ? "#10b981" : "#3f3f46" }} onClick={(e) => { e.preventDefault(); updateDraft({ pastorsMode: !draft.pastorsMode }); }}>
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${draft.pastorsMode ? "translate-x-6" : "translate-x-1"}`} />
+                      </div>
+                    </label>
+                  </Panel>
+
+                  <Panel title={settingsPageText.panels.installApp.title} subtitle={settingsPageText.panels.installApp.subtitle} isTamil={isTamil}>
+                    <div className="flex flex-col gap-3">
+                      {isInstalled ? (
+                        <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs font-semibold text-emerald-400">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                          {isTamil ? "செயலி ஏற்கனவே நிறுவப்பட்டுள்ளது!" : "App is already installed!"}
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleInstall}
+                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3.5 text-xs font-bold text-black transition hover:bg-emerald-400 active:scale-95"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                          {isTamil ? "செயலியை நிறுவு" : "Install App"}
+                        </button>
+                      )}
+                      {installFeedback && (
+                        <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs leading-relaxed text-stone-300">
+                          {installFeedback}
+                        </div>
+                      )}
+                    </div>
+                  </Panel>
                 </>
               )}
 
@@ -642,7 +696,7 @@ export default function Settings() {
                     )}
                     <div className="relative z-10 flex h-full w-full items-center justify-center p-4 md:p-8">
                       <div
-                        className="flex w-full flex-col items-center justify-center p-6 transition-all duration-300 shadow-2xl"
+                        className={`flex w-full flex-col items-center justify-center p-6 transition-all duration-300 ${previewDraft.showReaderBox !== false ? "shadow-2xl" : ""}`}
                         style={{
                           backgroundColor:
                             previewDraft.showReaderBox !== false

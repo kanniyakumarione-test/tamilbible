@@ -612,6 +612,161 @@ html.lenis body {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
+@keyframes app-page-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.992);
+    filter: blur(6px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes motion-stars-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-80px, 120px, 0);
+  }
+}
+
+@keyframes motion-float {
+  from {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+
+  to {
+    transform: translate3d(2%, 2%, 0) scale(1.05);
+  }
+}
+
+@keyframes motion-pulse {
+  0%, 100% {
+    opacity: 0.28;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes motion-shimmer {
+  0%, 100% {
+    transform: translate3d(-2%, 0, 0);
+    opacity: 0.3;
+  }
+
+  50% {
+    transform: translate3d(2%, -1%, 0);
+    opacity: 0.7;
+  }
+}
+
+@keyframes motion-wave {
+  0%, 100% {
+    transform: translate3d(-3%, 0, 0) rotate(0deg);
+  }
+
+  50% {
+    transform: translate3d(3%, -3%, 0) rotate(7deg);
+  }
+}
+
+@keyframes motion-wave-highlight {
+  0%, 100% {
+    transform: translate3d(-2%, 0, 0) scaleY(1);
+    opacity: 0.16;
+  }
+
+  50% {
+    transform: translate3d(2%, -2%, 0) scaleY(1.08);
+    opacity: 0.36;
+  }
+}
+
+@keyframes motion-particles-rise {
+  from {
+    transform: translate3d(0, 16%, 0);
+  }
+
+  to {
+    transform: translate3d(0, -16%, 0);
+  }
+}
+
+@keyframes motion-aurora-sweep {
+  from {
+    transform: translate3d(-4%, 0, 0) rotate(-5deg) scale(1);
+  }
+
+  to {
+    transform: translate3d(4%, -2%, 0) rotate(6deg) scale(1.06);
+  }
+}
+
+@keyframes motion-embers-rise {
+  from {
+    transform: translate3d(0, 18%, 0);
+  }
+
+  to {
+    transform: translate3d(0, -18%, 0);
+  }
+}
+
+@keyframes motion-halo-spin {
+  from {
+    transform: rotate(0deg) scale(1);
+  }
+
+  to {
+    transform: rotate(360deg) scale(1.02);
+  }
+}
+
+@keyframes motion-mist-drift {
+  from {
+    transform: translate3d(-3%, 0, 0) scale(1);
+  }
+
+  to {
+    transform: translate3d(3%, -2%, 0) scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-page-transition {
+    animation: none;
+  }
+
+  .motion-bg__layer {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .app-page {
+    padding-inline: 0.9rem;
+  }
+
+  .app-hero {
+    border-radius: 1.8rem;
+  }
+}
+
+/* Scrollbar hiding utility */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
@@ -651,3 +806,15 @@ html.lenis body {
   overflow-x: clip;
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}

@@ -1,6 +1,7 @@
 import { getCustomGradientString } from "../utils/appearance";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import booksList from "../data/Books.json";
 
@@ -197,6 +198,7 @@ function ChapterNavigator({
 export default function Verses() {
   const { book, chapter } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [selectedVerse, setSelectedVerse] = useState(null);
   const [noteEditor, setNoteEditor] = useState(null);
@@ -204,8 +206,17 @@ export default function Verses() {
   const [highlightEditor, setHighlightEditor] = useState(null);
   const [shareDesigner, setShareDesigner] = useState(null);
   const [sermonSuccess, setSermonSuccess] = useState("");
+  const [copiedSuccess, setCopiedSuccess] = useState("");
   const [chapterPickerOpen, setChapterPickerOpen] = useState(false);
+  const [crossReferencesViewer, setCrossReferencesViewer] = useState(null);
+  const [crossReferencesData, setCrossReferencesData] = useState({});
   const [autoScrollDirection, setAutoScrollDirection] = useState(null);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [playingVerseId, setPlayingVerseId] = useState(null);
+  const audioRef = useRef(null);
+  const pressTimerRef = useRef(null);
+  const hasLongPressed = useRef(false);
+  const copiedTimerRef = useRef(null);
   const [settings] = useAppSettings();
   const libraryData = useLibraryData();
   const t = getUIText(settings.language);
@@ -218,14 +229,33 @@ export default function Verses() {
   const autoScrollFrameRef = useRef(null);
   const lastAutoScrollTimeRef = useRef(null);
   const isMobileView = typeof window !== "undefined" && window.innerWidth < 768;
-  const mobileHighlightFolders = HIGHLIGHT_FOLDERS.filter(
-    (folder) => folder.value === "promise" || folder.value === "memory"
-  );
-  const availableHighlightFolders = isMobileView
-    ? mobileHighlightFolders
-    : HIGHLIGHT_FOLDERS;
+  const availableHighlightFolders = HIGHLIGHT_FOLDERS.filter((folder) => {
+    if (!settings.pastorsMode && (folder.value === "prayer" || folder.value === "sermon")) {
+      return false;
+    }
+    if (isMobileView && folder.value !== "promise" && folder.value !== "memory") {
+      return false;
+    }
+    return true;
+  });
 
   const decodedBook = decodeURIComponent(book);
+
+  useEffect(() => {
+    return () => {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    fetch('/data/cross_references.json')
+      .then(res => res.json())
+      .then(data => setCrossReferencesData(data))
+      .catch(() => setCrossReferencesData({}));
+  }, []);
+
 
   const backgrounds = [
     "/bg/bg1.jpg",
@@ -405,35 +435,15 @@ export default function Verses() {
   };
 
   const getScrollMetrics = () => {
-    if (window.innerWidth < 768) {
-      const scrollElement =
-        document.scrollingElement || document.documentElement;
-
-      return {
-        currentTop: window.scrollY,
-        maxScrollTop: Math.max(
-          scrollElement.scrollHeight - window.innerHeight,
-          0
-        ),
-        setTop: (value) => window.scrollTo(0, value),
-      };
-    }
-
-    const container = readingPaneRef.current;
-
-    if (!container) {
-      return null;
-    }
+    const scrollElement = document.scrollingElement || document.documentElement;
 
     return {
-      currentTop: container.scrollTop,
+      currentTop: window.scrollY,
       maxScrollTop: Math.max(
-        container.scrollHeight - container.clientHeight,
+        scrollElement.scrollHeight - window.innerHeight,
         0
       ),
-      setTop: (value) => {
-        container.scrollTop = value;
-      },
+      setTop: (value) => window.scrollTo(0, value),
     };
   };
 
@@ -456,6 +466,23 @@ export default function Verses() {
     chapter,
   };
   const chapterItemId = chapterItem.id;
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const verseNum = params.get("verse");
+    if (verseNum && bookData) {
+      setTimeout(() => {
+        const el = document.getElementById(`verse-${verseNum}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.classList.add("ring-2", "ring-fuchsia-500", "bg-[#110011]");
+          setTimeout(() => {
+            el.classList.remove("ring-2", "ring-fuchsia-500", "bg-[#110011]");
+          }, 3000);
+        }
+      }, 300);
+    }
+  }, [location.search, bookData]);
 
   useEffect(() => {
     if (bookData && chapterData) {
@@ -576,6 +603,37 @@ export default function Verses() {
       document.body.style.overflow = previousOverflow;
     };
   }, [chapterPickerOpen, highlightEditor, noteEditor, prayerEditor, selectedVerse, shareDesigner]);
+
+  const handleCopy = (text) => {
+    const doCopy = () => {
+      setCopiedSuccess(settings.language === "ta" ? "நகலெடுக்கப்பட்டது" : "Copied to clipboard");
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopiedSuccess(""), 2000);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(doCopy).catch(() => {
+        fallbackCopy(text);
+        doCopy();
+      });
+    } else {
+      fallbackCopy(text);
+      doCopy();
+    }
+  };
+
+  const fallbackCopy = (text) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand("copy");
+    } catch (err) {}
+    document.body.removeChild(textArea);
+  };
 
   const getVerseItem = (verse) => ({
     id: getVerseId(decodedBook, chapter, verse.verse),
@@ -799,7 +857,7 @@ export default function Verses() {
     recordHistory(getVerseItem(verse));
 
     if (window.innerWidth < 768) {
-      setSelectedVerse(verse);
+      setSelectedVerse(getVerseItem(verse));
       return;
     }
 
@@ -825,6 +883,100 @@ export default function Verses() {
       metrics.setTop(nextTop);
       return direction;
     });
+  };
+
+  const isPlayingAudioRef = useRef(false);
+
+  const toggleAudioPlay = () => {
+    if (isPlayingAudioRef.current) {
+      window.speechSynthesis.cancel();
+      setIsPlayingAudio(false);
+      isPlayingAudioRef.current = false;
+      setPlayingVerseId(null);
+      return;
+    }
+
+    if (!chapterData?.verses?.length) return;
+
+    setIsPlayingAudio(true);
+    isPlayingAudioRef.current = true;
+    let vIndex = 0;
+
+    const speakNext = () => {
+      if (!isPlayingAudioRef.current) {
+        window.speechSynthesis.cancel();
+        return;
+      }
+
+      if (vIndex >= chapterData.verses.length) {
+        setIsPlayingAudio(false);
+        isPlayingAudioRef.current = false;
+        setPlayingVerseId(null);
+        return;
+      }
+
+      const v = chapterData.verses[vIndex];
+      setPlayingVerseId(v.verse);
+      
+      const el = document.getElementById(`verse-${v.verse}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      const isEnglishOnly = settings.language === "en";
+      let textToRead = v.text;
+      if (isEnglishOnly) {
+        textToRead = getEnglishVerseText(v.verse) || "";
+      } else if (isBilingual) {
+        textToRead = v.text; 
+      }
+
+      // Sometimes speech synthesis gets stuck, canceling before speaking helps
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(textToRead);
+      utterance.lang = isEnglishOnly ? "en-US" : "ta-IN";
+      utterance.rate = 0.85; // Slow down for better clarity and reverence
+      
+      const voices = window.speechSynthesis.getVoices();
+      
+      if (!isEnglishOnly) {
+        const taVoice = voices.find(voice => voice.lang.includes("ta") && voice.name.toLowerCase().includes("google")) 
+          || voices.find(voice => voice.lang.includes("ta") && voice.name.toLowerCase().includes("online"))
+          || voices.find(voice => voice.lang.includes("ta"));
+          
+        if (taVoice) utterance.voice = taVoice;
+      } else {
+        const enVoice = voices.find(voice => voice.lang.includes("en") && voice.name.toLowerCase().includes("google") && voice.name.toLowerCase().includes("uk"))
+          || voices.find(voice => voice.lang.includes("en") && voice.name.toLowerCase().includes("google"))
+          || voices.find(voice => voice.lang.includes("en") && voice.name.toLowerCase().includes("online"))
+          || voices.find(voice => voice.lang.includes("en") && voice.name.toLowerCase().includes("natural"))
+          || voices.find(voice => voice.lang.includes("en"));
+          
+        if (enVoice) utterance.voice = enVoice;
+      }
+
+      utterance.onend = () => {
+        vIndex++;
+        speakNext();
+      };
+      
+      utterance.onerror = (e) => {
+        console.error("Speech Synthesis Error:", e);
+        // Only stop if it wasn't a manual cancellation
+        if (isPlayingAudioRef.current) {
+          setIsPlayingAudio(false);
+          isPlayingAudioRef.current = false;
+          setPlayingVerseId(null);
+        }
+      };
+
+      window.speechSynthesis.speak(utterance);
+    };
+
+    if (window.speechSynthesis.getVoices().length === 0) {
+      window.speechSynthesis.onvoiceschanged = speakNext;
+    } else {
+      speakNext();
+    }
   };
 
   const bookIndex = booksList.findIndex(
@@ -879,15 +1031,7 @@ export default function Verses() {
   const prevLabel = formatChapterTargetLabel(prevChapter, "Start");
   const nextLabel = formatChapterTargetLabel(nextChapter, "End");
 
-  if (bookLoading && !chapterData) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] px-4 py-6 text-white">
-        <div className="mx-auto max-w-5xl rounded-[2rem] border border-white/10 bg-[#000000] p-6 shadow-2xl shadow-black/30">
-          <p className="text-sm font-medium text-stone-300">Loading chapter...</p>
-        </div>
-      </div>
-    );
-  }
+
 
   if (!bookLoading && bookData && !chapterData) {
     return (
@@ -1018,16 +1162,28 @@ export default function Verses() {
                     </h1>
                     <p className="mt-2 text-sm text-stone-400">{t.chapter} {chapter}</p>
                   </div>
-                  <button
-                    onClick={() => toggleBookmark(chapterItem)}
-                    className={`self-start rounded-2xl px-4 py-3 text-sm font-semibold transition md:self-auto ${
-                      isBookmarked(libraryData, chapterItem.id)
-                        ? "bg-white text-slate-950"
-                        : "border border-white/10 bg-white/5 text-white hover:bg-white/10"
-                    }`}
-                  >
-                    {t.chapterBookmark}
-                  </button>
+                  <div className="flex gap-2 self-start md:self-auto">
+                    <button
+                      onClick={toggleAudioPlay}
+                      className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                        isPlayingAudio
+                          ? "bg-fuchsia-500 text-white shadow-[0_0_15px_rgba(217,70,239,0.5)]"
+                          : "border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                      }`}
+                    >
+                      {isPlayingAudio ? "Stop Audio" : "Play Audio"}
+                    </button>
+                    <button
+                      onClick={() => toggleBookmark(chapterItem)}
+                      className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                        isBookmarked(libraryData, chapterItem.id)
+                          ? "bg-white text-slate-950"
+                          : "border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                      }`}
+                    >
+                      {t.chapterBookmark}
+                    </button>
+                  </div>
                 </div>
 
                 <ChapterNavigator
@@ -1044,8 +1200,9 @@ export default function Verses() {
               </div>
             </section>
 
-            <div className="space-y-3">
-              {chapterData?.verses.map((v) => {
+            {chapterData ? (
+              <div key={`loaded-${decodedBook}-${chapter}`} className="space-y-3 animate-fade-in">
+                {chapterData.verses.map((v) => {
                 const verseItem = getVerseItem(v);
                 const favorited = isFavorited(libraryData, verseItem.id);
                 const highlighted = libraryData.highlights[verseItem.id];
@@ -1055,8 +1212,13 @@ export default function Verses() {
 
                 return (
                   <div
+                    id={`verse-${v.verse}`}
                     key={v.verse}
-                    className="min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-[#000000] p-4 transition hover:border-zinc-600/25 hover:bg-[#0a0a0a] md:p-5"
+                    className={`min-w-0 overflow-hidden rounded-[1.6rem] border p-4 transition duration-700 md:p-5 ${
+                      playingVerseId === v.verse 
+                        ? "border-fuchsia-500/50 bg-[#110011] shadow-[0_0_20px_rgba(217,70,239,0.1)]" 
+                        : "border-white/10 bg-[#000000] hover:border-zinc-600/25 hover:bg-[#0a0a0a]"
+                    }`}
                     style={{
                       lineHeight: settings.lineHeight || 1.8,
                       boxShadow: highlighted
@@ -1064,23 +1226,43 @@ export default function Verses() {
                         : undefined,
                     }}
                   >
-                    <button onClick={() => openVerse(v)} className="block min-w-0 w-full overflow-hidden text-left">
-                      <div className="min-w-0">
-                        <p className="text-base text-slate-100 md:text-lg">
-                          <span className="mr-2 inline text-sm font-bold text-white md:text-base">
-                            {v.verse}.
-                          </span>
-                          <span className="whitespace-normal break-words">{v.text}</span>
-                        </p>
-                        {englishVerseText ? (
-                          <p className="mt-3 break-words text-sm leading-7 text-stone-300 md:text-base">
-                            {englishVerseText}
+                    <button 
+                      onClick={() => openVerse(v)}
+                      className="block min-w-0 w-full overflow-hidden text-left"
+                    >
+                      {isBilingual && englishVerseText ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                          <div className="min-w-0 md:pr-4 md:border-r md:border-white/10">
+                            <p className="text-base text-slate-100 md:text-lg">
+                              <span className="mr-2 inline text-sm font-bold text-white md:text-base">{v.verse}.</span>
+                              <span className="whitespace-normal break-words">{v.text}</span>
+                            </p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-base text-stone-300 md:text-lg leading-7 md:leading-[1.8]">
+                              <span className="mr-2 inline text-sm font-bold text-stone-500 md:text-base">{v.verse}.</span>
+                              <span className="whitespace-normal break-words">{englishVerseText}</span>
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="min-w-0">
+                          <p className="text-base text-slate-100 md:text-lg">
+                            <span className="mr-2 inline text-sm font-bold text-white md:text-base">
+                              {v.verse}.
+                            </span>
+                            <span className="whitespace-normal break-words">{v.text}</span>
                           </p>
-                        ) : null}
-                      </div>
+                          {englishVerseText ? (
+                            <p className="mt-3 break-words text-sm leading-7 text-stone-300 md:text-base">
+                              {englishVerseText}
+                            </p>
+                          ) : null}
+                        </div>
+                      )}
                     </button>
 
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <div className="mt-4 flex flex-wrap justify-center gap-2 md:mt-5 md:border-t md:border-white/5 md:pt-4">
                       <button
                         onClick={() => toggleFavorite(verseItem)}
                         className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
@@ -1093,10 +1275,11 @@ export default function Verses() {
                       </button>
                       <button
                         onClick={() => handleHighlight(verseItem)}
-                        className="rounded-full px-3 py-1.5 text-xs font-semibold text-white"
+                        className="rounded-full px-3 py-1.5 text-xs font-semibold"
                         style={{
                           background: highlighted?.color || "rgba(255,255,255,0.06)",
                           border: highlighted ? "none" : "1px solid rgba(255,255,255,0.1)",
+                          color: highlighted && ['#ffffff', '#f472b6', '#fbbf24', '#34d399'].includes(highlighted.color) ? '#000' : '#fff'
                         }}
                       >
                         {t.highlight}
@@ -1111,21 +1294,37 @@ export default function Verses() {
                       >
                         {t.note}
                       </button>
+                      {settings.pastorsMode && (
+                        <button
+                          onClick={() => handlePrayer(verseItem)}
+                          className={`hidden rounded-full px-3 py-1.5 text-xs font-semibold md:inline-block ${
+                            prayer
+                              ? "bg-emerald-400 text-slate-950"
+                              : "border border-white/10 bg-white/5 text-stone-200"
+                          }`}
+                        >
+                          {["en", "ta-en"].includes(settings.language) ? "Prayer" : "ஜெபம்"}
+                        </button>
+                      )}
+                      {settings.pastorsMode && (
+                        <button
+                          onClick={() => handleAddToSermon(verseItem)}
+                          className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-stone-200 md:inline-block"
+                        >
+                          {["en", "ta-en"].includes(settings.language) ? "Sermon" : "பிரசங்கம்"}
+                        </button>
+                      )}
                       <button
-                        onClick={() => handlePrayer(verseItem)}
-                        className={`hidden rounded-full px-3 py-1.5 text-xs font-semibold md:inline-block ${
-                          prayer
-                            ? "bg-emerald-400 text-slate-950"
-                            : "border border-white/10 bg-white/5 text-stone-200"
-                        }`}
+                        onClick={() => {
+                          const ref = `${bookLabel} ${chapter}:${v.verse}`;
+                          const copyStr = isBilingual && englishVerseText 
+                            ? `${ref}\n${v.text}\n${englishVerseText}` 
+                            : `${ref} - ${v.text}`;
+                          handleCopy(copyStr);
+                        }}
+                        className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-stone-200"
                       >
-                        {["en", "ta-en"].includes(settings.language) ? "Prayer" : "ஜெபம்"}
-                      </button>
-                      <button
-                        onClick={() => handleAddToSermon(verseItem)}
-                        className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-stone-200 md:inline-block"
-                      >
-                        {["en", "ta-en"].includes(settings.language) ? "Sermon" : "பிரசங்கம்"}
+                        {["en", "ta-en"].includes(settings.language) ? "Copy" : "நகலெடு"}
                       </button>
                       <button
                         onClick={() => openShareDesigner(v)}
@@ -1133,6 +1332,14 @@ export default function Verses() {
                       >
                         {t.share}
                       </button>
+                      {settings.pastorsMode && (
+                        <button
+                          onClick={() => setCrossReferencesViewer(verseItem)}
+                          className="rounded-full border border-fuchsia-400/20 bg-fuchsia-400/10 px-3 py-1.5 text-xs font-semibold text-fuchsia-200"
+                        >
+                          {["en", "ta-en"].includes(settings.language) ? "Related Verses" : "தொடர்புடைய வசனங்கள்"}
+                        </button>
+                      )}
                     </div>
 
                     {note ? (
@@ -1149,6 +1356,9 @@ export default function Verses() {
                 );
               })}
             </div>
+            ) : (
+              <div className="min-h-[50vh]" />
+            )}
 
                         <div className="mb-6 mt-6">
               <ChapterNavigator
@@ -1173,6 +1383,18 @@ export default function Verses() {
                 {sermonSuccess}
               </div>
             </div>
+          ) : null}
+
+          {copiedSuccess ? createPortal(
+            <div className="pointer-events-none fixed top-24 left-1/2 z-[99999] -translate-x-1/2 transform animate-fade-in">
+              <div className="flex w-max items-center gap-2 rounded-full border border-white/10 bg-zinc-900/95 px-5 py-2.5 text-sm font-semibold text-white shadow-2xl backdrop-blur-md">
+                <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+                {copiedSuccess}
+              </div>
+            </div>,
+            document.body
           ) : null}
         </main>
 
@@ -1274,13 +1496,22 @@ export default function Verses() {
               </p>
             ) : null}
 
-            <button
-              type="button"
-              onClick={() => openShareDesigner(selectedVerse)}
-              className="mt-5 w-full rounded-2xl bg-[#000000] px-4 py-3 text-sm font-semibold text-white shadow-lg"
-            >
-              {t.share}
-            </button>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setCrossReferencesViewer(selectedVerse)}
+                className="w-full rounded-2xl border border-fuchsia-500/30 bg-fuchsia-500/10 px-4 py-3 text-sm font-semibold text-fuchsia-100 shadow-lg"
+              >
+                {["en", "ta-en"].includes(settings.language) ? "Related" : "தொடர்பு"}
+              </button>
+              <button
+                type="button"
+                onClick={() => openShareDesigner(selectedVerse)}
+                className="w-full rounded-2xl bg-[#000000] px-4 py-3 text-sm font-semibold text-white shadow-lg"
+              >
+                {t.share}
+              </button>
+            </div>
                 </>
               );
             })()}
@@ -1340,21 +1571,33 @@ export default function Verses() {
               autoFocus
             />
 
-            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
               <button
                 type="button"
-                onClick={closeNoteEditor}
+                onClick={() => {
+                  saveNote(noteEditor.item, "");
+                  closeNoteEditor();
+                }}
                 className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-stone-200 transition hover:bg-white/10"
               >
-                {t.cancel}
+                {t.removeTitle || "Remove"}
               </button>
-              <button
-                type="button"
-                onClick={submitNoteEditor}
-                className="rounded-2xl bg-[#000000] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-pink-950/30 transition hover:brightness-105"
-              >
-                {t.save}
-              </button>
+              <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={closeNoteEditor}
+                  className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-stone-200 transition hover:bg-white/10"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="button"
+                  onClick={submitNoteEditor}
+                  className="rounded-2xl bg-[#000000] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-pink-950/30 transition hover:brightness-105"
+                >
+                  {t.save}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1411,21 +1654,33 @@ export default function Verses() {
               autoFocus
             />
 
-            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
               <button
                 type="button"
-                onClick={closePrayerEditor}
+                onClick={() => {
+                  savePrayer(prayerEditor.item, "");
+                  closePrayerEditor();
+                }}
                 className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-stone-200 transition hover:bg-white/10"
               >
-                {t.cancel}
+                {t.removeTitle || "Remove"}
               </button>
-              <button
-                type="button"
-                onClick={submitPrayerEditor}
-                className="rounded-2xl bg-[#000000] px-5 py-3 text-sm font-semibold text-white shadow-lg"
-              >
-                {t.save}
-              </button>
+              <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={closePrayerEditor}
+                  className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-stone-200 transition hover:bg-white/10"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="button"
+                  onClick={submitPrayerEditor}
+                  className="rounded-2xl bg-[#000000] px-5 py-3 text-sm font-semibold text-white shadow-lg"
+                >
+                  {t.save}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1711,7 +1966,7 @@ export default function Verses() {
               </button>
             </div>
 
-            <div className="mt-5 grid max-h-[55vh] grid-cols-4 gap-3 overflow-y-auto pr-1 custom-scroll sm:grid-cols-5">
+            <div data-lenis-prevent="true" className="mt-5 grid max-h-[55vh] grid-cols-4 gap-3 overflow-y-auto pr-1 custom-scroll sm:grid-cols-5">
               {bookData?.chapters.map((ch) => (
                 <button
                   key={ch.chapter}
@@ -1737,6 +1992,107 @@ export default function Verses() {
       {sermonSuccess ? (
         <div className="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-2xl border border-emerald-500/30 bg-black/90 px-6 py-3 text-sm font-semibold text-emerald-400 shadow-xl shadow-black/40 backdrop-blur-md whitespace-nowrap">
           {sermonSuccess}
+        </div>
+      ) : null}
+
+      {crossReferencesViewer ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm">
+          <button
+            type="button"
+            aria-label="Close cross references"
+            className="absolute inset-0"
+            onClick={() => setCrossReferencesViewer(null)}
+          />
+
+          <div className="relative z-10 flex w-full max-w-lg flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-[#0a0a0a] shadow-2xl shadow-black/40" style={{ maxHeight: '85vh' }}>
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-white/10 p-5 md:p-6">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-fuchsia-300">
+                  {["en", "ta-en"].includes(settings.language) ? "Cross References" : "தொடர்புடைய வசனங்கள்"}
+                </p>
+                <h3 className="mt-2 text-lg font-bold text-white">
+                  {["en", "ta-en"].includes(settings.language) ? "Related Verses" : "தொடர்புடைய வசனங்கள்"}
+                </h3>
+                <p className="mt-1 text-sm font-medium text-stone-400">
+                  {crossReferencesViewer.bookTamil || (crossReferencesViewer.book ? getBookName(bookData, "ta") : crossReferencesViewer.bookEnglish)} {crossReferencesViewer.chapter}:{crossReferencesViewer.verse}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCrossReferencesViewer(null)}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-stone-300 transition hover:bg-white/10 hover:text-white"
+                aria-label={t.close}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="h-4 w-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div data-lenis-prevent="true" className="flex-1 overflow-y-auto p-5 md:p-6 custom-scroll">
+              {(() => {
+                const bookKey = `${crossReferencesViewer.bookEnglish} ${crossReferencesViewer.chapter}`;
+                const references = crossReferencesData[bookKey]?.[crossReferencesViewer.verse];
+                
+                if (!references || references.length === 0) {
+                  return (
+                    <div className="flex min-h-[200px] flex-col items-center justify-center rounded-3xl border border-dashed border-white/10 p-6 text-center">
+                      <p className="text-sm font-medium text-stone-400">
+                        {["en", "ta-en"].includes(settings.language) 
+                          ? "No related verses found for this verse." 
+                          : "இந்த வசனத்திற்கு தொடர்புடைய வசனங்கள் கிடைக்கவில்லை."}
+                      </p>
+                      {Object.keys(crossReferencesData).length === 0 && (
+                        <p className="mt-3 text-xs text-stone-500">
+                          (Dataset missing or loading...)
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-3">
+                    {references.map((ref, idx) => {
+                      const match = ref.match(/^(.+?)\s(\d+):(\d+)$/);
+                      if (!match) return <div key={idx} className="rounded-2xl bg-white/5 p-4 text-sm text-stone-300">{ref}</div>;
+                      
+                      const refBook = match[1];
+                      const refChap = match[2];
+                      const refVerse = match[3];
+
+                      const bookEntry = booksList.find(b => b.book.english === refBook);
+                      const displayRefBook = bookEntry && settings.language !== "en" 
+                        ? getBookNameFromEntry(bookEntry, "ta") 
+                        : refBook;
+                      
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setCrossReferencesViewer(null);
+                            if (window.innerWidth < 768) setSelectedVerse(null);
+                            navigate(`/${encodeURIComponent(refBook)}/${refChap}?verse=${refVerse}`);
+                          }}
+                          className="flex w-full items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-left transition hover:border-fuchsia-500/30 hover:bg-white/[0.04]"
+                        >
+                          <div>
+                            <p className="text-sm font-bold text-fuchsia-100">{displayRefBook} {refChap}:{refVerse}</p>
+                            <p className="mt-1 text-xs text-stone-400">
+                              {["en", "ta-en"].includes(settings.language) ? "Tap to open chapter" : "அதிகாரத்தை திறக்க அழுத்தவும்"}
+                            </p>
+                          </div>
+                          <svg className="h-4 w-4 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
         </div>
       ) : null}
 

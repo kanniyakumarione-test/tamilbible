@@ -10,7 +10,7 @@ const EVENT_NAME = "app-library-change";
 export const HIGHLIGHT_COLORS = [
   "#ffffff",
   "#f472b6",
-  "#ffffff",
+  "#fbbf24",
   "#34d399",
   "#c084fc",
 ];

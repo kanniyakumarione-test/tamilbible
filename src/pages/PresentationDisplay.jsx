@@ -437,7 +437,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
   return (
     <div className="relative z-10 flex h-full w-full items-center justify-center px-8 py-10">
       <div
-        className="flex flex-col w-full h-full rounded-[2rem] border border-white/15 px-10 py-12 backdrop-blur-md"
+        className={`flex flex-col w-full h-full rounded-[2rem] px-10 py-12 ${settings.presentationBox ? "border border-white/15 backdrop-blur-md" : ""}`}
         style={{
           maxHeight: "90vh",
           maxWidth: settings.presentationPreset === "horizontal" ? "1400px" : "1100px",
