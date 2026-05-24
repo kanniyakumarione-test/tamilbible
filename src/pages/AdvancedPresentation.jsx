@@ -1051,7 +1051,8 @@ export default function AdvancedPresentation() {
                               textShadow: settings.presentationShadow ? "0 2px 10px rgba(0,0,0,0.75)" : "none",
                               WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
                               whiteSpace: settings.presentationLineWrap === false ? "nowrap" : "normal",
-                              overflowWrap: "anywhere",
+                              overflowWrap: "normal",
+                              wordBreak: "normal",
                               letterSpacing: `${settings.presentationLetterSpacing || 0}px`,
                               color: "#ffffff",
                               fontFamily: presentationFont,
@@ -1155,24 +1156,17 @@ export default function AdvancedPresentation() {
                         ) : (
                           <>
                             <p
-                              className="text-xs font-semibold uppercase tracking-[0.28em]"
-                              style={{ color: settings.stageTextColor2 || "#f8fafc" }}
-                            >
-                              Live Verse
-                            </p>
-                            <p
-                              className="mt-3 text-sm font-bold"
+                              className="text-sm font-bold"
                               style={{ color: settings.stageTextColor2 || "#f8fafc" }}
                             >
                               {previewReference}
                             </p>
                             <div ref={stagePreviewContainerRef} style={{ width: "100%", height: "100%" }}>
-                              <div ref={stagePreviewTextRef} className="mt-4">
+                              <div ref={stagePreviewTextRef} className="mt-4" style={{ fontSize: `${stagePreviewFontSize}px` }}>
                                 <PresentationPreviewText
                                   text={previewItem.text}
                                   twoLines={settings.presentationTwoLines}
                                   style={{
-                                    fontSize: `${stagePreviewFontSize}px`,
                                     lineHeight: settings.presentationTwoLines ? 1.05 : 1.2,
                                     textAlign: settings.presentationJustify || "center",
                                     textTransform: settings.presentationUppercase ? "uppercase" : "none",
@@ -1180,7 +1174,8 @@ export default function AdvancedPresentation() {
                                     color: settings.stageTextColor1 || "#ffffff",
                                     WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
                                     whiteSpace: settings.presentationLineWrap === false ? "nowrap" : "normal",
-                                    overflowWrap: "anywhere",
+                                    overflowWrap: "normal",
+                                    wordBreak: "normal",
                                     letterSpacing: `${settings.presentationLetterSpacing || 0}px`,
                                     fontFamily: presentationFont,
                                   }}

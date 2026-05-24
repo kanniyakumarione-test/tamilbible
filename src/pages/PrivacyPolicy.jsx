@@ -5,7 +5,7 @@ export default function PrivacyPolicy() {
 
   return (
     <div className="app-shell app-page pb-6 pt-4 md:pt-10">
-      <div className="app-page-inner max-w-4xl">
+      <div className="app-page-inner max-w-[1600px]">
         <section className="app-surface rounded-[2rem] p-8 md:p-12">
           <h1 className="text-3xl font-bold text-white md:text-4xl">
             {["en", "ta-en"].includes(settings.language) ? "Privacy Policy" : "தனியுரிமைக் கொள்கை"}

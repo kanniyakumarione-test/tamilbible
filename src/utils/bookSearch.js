@@ -101,6 +101,11 @@ export function normalizeRoman(text = "") {
     .replace(/sh/g, "s")
     .replace(/ch/g, "c")
     .replace(/j/g, "c")
+    .replace(/s/g, "c")
+    .replace(/d/g, "t")
+    .replace(/b/g, "p")
+    .replace(/g/g, "k")
+    .replace(/w/g, "v")
     .replace(/[^a-z0-9]/g, "")
     .replace(/(.)\1+/g, "$1");
 }
@@ -190,14 +195,15 @@ function matchWordQuery(word, query) {
 
   if (queryWords.length === 1) {
     return (
-      wordLower === queryLower ||
-      wordRoman === queryRoman ||
-      wordTanglishRoman === queryRoman
+      wordLower.includes(queryLower) ||
+      wordRoman.includes(queryRoman) ||
+      wordTanglishRoman.includes(queryRoman) ||
+      wordConsonants.includes(queryConsonants)
     );
   }
 
   if (queryWords.length > 1) {
-    return queryWords.includes(wordRoman) || queryWords.includes(wordTanglishRoman);
+    return queryWords.some(qw => wordRoman.includes(qw) || wordTanglishRoman.includes(qw));
   }
 
   return (

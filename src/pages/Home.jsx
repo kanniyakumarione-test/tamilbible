@@ -171,7 +171,7 @@ export default function Home() {
 
   return (
     <div className="home-shell pt-2 md:pt-4">
-      <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 md:px-8 lg:px-12">
+      <div className="mx-auto grid w-full max-w-[1600px] gap-6 px-4 md:px-8 lg:px-12">
         
         {/* Hero Section */}
         <section className="group relative overflow-hidden rounded-[2.5rem] border border-white/5 bg-[#000000] p-8 shadow-2xl backdrop-blur-2xl md:p-12 lg:p-16">
@@ -289,7 +289,7 @@ export default function Home() {
                 
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="text-xl font-bold text-white group-hover:text-emerald-100">{plan.label}</h3>
+                    <h3 className="text-xl font-bold text-white group-hover:text-emerald-100">{t[plan.id] || plan.label}</h3>
                     <p className="mt-1 text-sm font-medium text-stone-400">
                       {["en", "ta-en"].includes(settings.language) ? `${plan.chaptersPerDay} chapter${plan.chaptersPerDay > 1 ? "s" : ""}/day` : `தினமும் ${plan.chaptersPerDay} அதிகாரம்${plan.chaptersPerDay > 1 ? "கள்" : ""}`}
                     </p>
@@ -437,7 +437,7 @@ export default function Home() {
             {groupedHighlights.map((folder) => (
               <div key={folder.value} className={`group relative overflow-hidden rounded-[2rem] border border-white/5 bg-white/[0.02] p-5 transition-all hover:-translate-y-1 hover:border-fuchsia-500/30 hover:bg-white/[0.04] hover:shadow-lg ${folder.value === "sermon" || folder.value === "prayer" ? "hidden lg:block" : ""}`}>
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-white">{folder.label}</h3>
+                  <h3 className="text-sm font-bold text-white">{t[folder.value] || folder.label}</h3>
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-stone-300">{folder.items.length}</span>
                 </div>
                 <div className="space-y-2">
@@ -447,7 +447,7 @@ export default function Home() {
                       <p className="mt-1 line-clamp-1 text-xs text-stone-400">{item.text}</p>
                     </button>
                   ))}
-                  {!folder.items.length && <p className="py-4 text-center text-xs text-stone-500">Empty folder</p>}
+                  {!folder.items.length && <p className="py-4 text-center text-xs text-stone-500">{t.emptyFolder}</p>}
                 </div>
               </div>
             ))}

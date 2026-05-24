@@ -620,9 +620,9 @@ html.lenis body {
 .tamil-text,
 [lang="ta"],
 [lang="ta-en"] {
-  overflow-wrap: break-word;
-  word-break: break-word;
-  hyphens: auto;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 
 /* Prevent layout breaking on very small screens (<400px) */

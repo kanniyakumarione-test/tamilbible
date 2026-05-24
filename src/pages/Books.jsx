@@ -8,7 +8,7 @@ export default function Books() {
 
   return (
     <div className="app-shell pt-2 md:pt-4">
-      <div className="mx-auto w-full max-w-7xl px-4 md:px-8 lg:px-12">
+      <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 lg:px-12">
         <section className="relative z-20 mb-8 overflow-hidden rounded-[2.5rem] border border-white/5 bg-[#000000] p-6 shadow-2xl backdrop-blur-2xl md:p-10">
           <div className="pointer-events-none absolute inset-0 -z-10 rounded-[2.5rem] " />
           

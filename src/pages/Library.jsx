@@ -22,10 +22,10 @@ export default function Library() {
   if (!data) return null;
 
   const tabs = [
-    { id: "favorites", label: "Favorites", icon: "♥" },
-    { id: "notes", label: "Notes", icon: "✎" },
-    { id: "highlights", label: "Highlights", icon: "✧" },
-    { id: "prayers", label: "Prayers", icon: "🙏" },
+    { id: "favorites", label: t.favoritesTitle || "Favorites", icon: "♥" },
+    { id: "notes", label: t.notesTitle || "Notes", icon: "✎" },
+    { id: "highlights", label: t.highlightsTitle || "Highlights", icon: "✧" },
+    { id: "prayers", label: t.prayersTitle || "Prayers", icon: "🙏" },
   ];
 
   const getItems = () => {
@@ -55,11 +55,11 @@ export default function Library() {
 
   return (
     <div className="min-h-screen pt-4 md:pt-8 pb-32">
-      <div className="mx-auto max-w-4xl px-4 sm:px-6">
+      <div className="mx-auto max-w-[1600px] px-4 sm:px-6">
         
         <header className="mb-8">
-          <h1 className="text-3xl font-extrabold text-white md:text-4xl">Library</h1>
-          <p className="mt-2 text-stone-400">Your saved verses, notes, and highlights.</p>
+          <h1 className="text-3xl font-extrabold text-white md:text-4xl">{t.library || "Library"}</h1>
+          <p className="mt-2 text-stone-400">{t.librarySubtitle || "Your saved verses, notes, and highlights."}</p>
         </header>
 
         {/* Tabs */}
@@ -89,8 +89,8 @@ export default function Library() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-stone-300">Nothing here yet</h3>
-              <p className="mt-1 text-sm text-stone-500">Items you save will appear here.</p>
+              <h3 className="text-lg font-medium text-stone-300">{t.noItemsYet || "Nothing here yet"}</h3>
+              <p className="mt-1 text-sm text-stone-500">{t.emptyLibraryMsg || "Items you save will appear here."}</p>
             </div>
           ) : (
             items.map((item, index) => (

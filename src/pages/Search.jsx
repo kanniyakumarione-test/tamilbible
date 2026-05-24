@@ -87,7 +87,7 @@ function HighlightedVerse({ text, query }) {
           key={`${part.text}-${index}`}
           className={
             part.match
-              ? "rounded-md bg-[#000000] px-1.5 py-0.5 text-white font-semibold shadow-[0_0_15px_rgba(255, 255, 255,0.4)]"
+              ? "rounded-md bg-amber-500/20 px-1.5 py-0.5 text-amber-200 font-bold ring-1 ring-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
               : ""
           }
         >
@@ -139,6 +139,8 @@ function SearchPagination({
   );
 }
 
+import { createPortal } from "react-dom";
+
 function PopupFilterSelect({ label, value, options, onChange }) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef(null);
@@ -148,6 +150,8 @@ function PopupFilterSelect({ label, value, options, onChange }) {
     if (!open) return undefined;
     const handlePointerDown = (event) => {
       if (wrapperRef.current?.contains(event.target)) return;
+      // Also check if clicking inside the portal
+      if (event.target.closest('.filter-portal-content')) return;
       setOpen(false);
     };
     document.addEventListener("pointerdown", handlePointerDown);
@@ -184,11 +188,11 @@ function PopupFilterSelect({ label, value, options, onChange }) {
         </svg>
       </button>
 
-      {open && (
+      {open && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 p-4 pb-8 backdrop-blur-sm sm:items-center sm:p-0">
           <div className="absolute inset-0" onClick={() => setOpen(false)} aria-hidden="true" />
           <div
-            className="relative z-10 flex max-h-[75vh] w-full max-w-md flex-col overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#000000] p-2 shadow-[0_30px_60px_rgba(0,0,0,0.6)] sm:max-h-[60vh] animate-in slide-in-from-bottom-10 fade-in duration-300"
+            className="filter-portal-content relative z-10 flex max-h-[75vh] w-full max-w-md flex-col overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#000000] p-2 shadow-[0_30px_60px_rgba(0,0,0,0.6)] sm:max-h-[60vh] animate-in slide-in-from-bottom-10 fade-in duration-300"
           >
             <div className="mb-2 flex items-center justify-between p-4">
               <div>
@@ -205,7 +209,7 @@ function PopupFilterSelect({ label, value, options, onChange }) {
                 </svg>
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto px-2 pb-4 custom-scroll">
+            <div data-lenis-prevent className="flex-1 overflow-y-auto px-2 pb-4 custom-scroll">
               <div className="flex flex-col gap-1">
                 {options.map((option) => (
                   <button
@@ -232,14 +236,15 @@ function PopupFilterSelect({ label, value, options, onChange }) {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
 }
 
 export default function Search() {
-  const RESULTS_PER_PAGE = 50;
+  const RESULTS_PER_PAGE = 10;
   const navigate = useNavigate();
   const [settings] = useAppSettings();
   const t = getUIText(settings.language);
@@ -337,7 +342,10 @@ export default function Search() {
                 if (queryWords.length === 1) return verse.tanglishWords.includes(queryWords[0]);
                 return verse.tanglishWords.join(" ").includes(queryWords.join(" "));
               }
-              if (queryWords.length === 1) return verse.tanglishWords.includes(queryWords[0]);
+              // Partial match logic (exactWordOnly is false)
+              if (queryWords.length === 1) {
+                return verse.tanglishWords.some(word => word.includes(queryWords[0]));
+              }
               return verse.tanglishWords.join(" ").includes(queryWords.join(" "));
             }
 
@@ -427,7 +435,7 @@ export default function Search() {
 
   return (
     <div className="app-shell pt-2 md:pt-4">
-      <div className="mx-auto w-full max-w-4xl px-4 md:px-8 lg:px-12">
+      <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 lg:px-12">
         <section className="relative z-20 mb-8 rounded-[2.5rem] border border-white/5 bg-[#000000] p-6 shadow-2xl backdrop-blur-2xl md:p-10">
           <div className="pointer-events-none absolute inset-0 -z-10 rounded-[2.5rem] " />
           
@@ -435,7 +443,7 @@ export default function Search() {
             <span className="inline-block rounded-full border border-zinc-600/20 bg-zinc-700/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] text-zinc-200 shadow-[0_0_20px_rgba(255, 255, 255,0.1)]">
               {t.globalSearch}
             </span>
-            <h1 className="mt-5 bg-gradient-to-br from-white via-white to-zinc-500 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent md:text-5xl lg:text-6xl">
+            <h1 className={`mt-5 py-2 bg-gradient-to-br from-white via-white to-zinc-500 bg-clip-text font-extrabold tracking-tight text-transparent ${isEnglishLanguage(settings.language) ? 'text-4xl md:text-5xl lg:text-6xl' : 'text-[26px] leading-snug sm:text-3xl md:text-4xl lg:text-5xl'}`}>
               {t.searchTitle}
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-stone-400 md:text-base">

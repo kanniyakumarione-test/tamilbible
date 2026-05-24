@@ -1466,7 +1466,7 @@ export default function Verses() {
             </div>
 
             <div className="mt-5">
-              <p className="text-sm text-stone-300">Color</p>
+              <p className="text-sm text-stone-300">{t.colorTitle || "Color"}</p>
               <div className="mt-3 flex flex-wrap gap-3">
                 {HIGHLIGHT_COLORS.map((color) => (
                   <button
@@ -1492,7 +1492,7 @@ export default function Verses() {
             </div>
 
             <div className="mt-5">
-              <p className="text-sm text-stone-300">Folder</p>
+              <p className="text-sm text-stone-300">{t.folderTitle || "Folder"}</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {availableHighlightFolders.map((folder) => (
                   <button
@@ -1514,7 +1514,7 @@ export default function Verses() {
                         : "border border-white/10 bg-white/5 text-stone-300 hover:bg-white/10"
                     }`}
                   >
-                    {folder.label}
+                    {t[folder.value] || folder.label}
                   </button>
                 ))}
               </div>
@@ -1529,7 +1529,7 @@ export default function Verses() {
                 }}
                 className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-stone-200 transition hover:bg-white/10"
               >
-                Remove
+                {t.removeTitle || "Remove"}
               </button>
               <div className="flex flex-col-reverse gap-3 sm:flex-row">
                 <button
@@ -1731,6 +1731,12 @@ export default function Verses() {
               ))}
             </div>
           </div>
+        </div>
+      ) : null}
+
+      {sermonSuccess ? (
+        <div className="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-2xl border border-emerald-500/30 bg-black/90 px-6 py-3 text-sm font-semibold text-emerald-400 shadow-xl shadow-black/40 backdrop-blur-md whitespace-nowrap">
+          {sermonSuccess}
         </div>
       ) : null}
 

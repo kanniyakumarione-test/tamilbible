@@ -100,11 +100,11 @@ function splitIntoPresentationLines(text = "", lineCount = 2) {
   return lines.filter(Boolean);
 }
 
-function PresentationText({ text, style, className = "", twoLines = false }) {
+function PresentationText({ text, style, className = "", twoLines = false, innerRef }) {
   const lines = twoLines ? splitIntoPresentationLines(text, 2) : [text];
 
   return (
-    <div className={className}>
+    <div className={className} ref={innerRef}>
       {lines.map((line, index) => (
         <p
           key={`${line}-${index}`}
@@ -114,6 +114,75 @@ function PresentationText({ text, style, className = "", twoLines = false }) {
           {line}
         </p>
       ))}
+    </div>
+  );
+}
+
+function FitTextContainer({ text, baseStyle, className, maxFontSize, minFontSize, twoLines }) {
+  const containerRef = useRef(null);
+  const textRef = useRef(null);
+  const [dynamicFontSize, setDynamicFontSize] = useState(maxFontSize);
+
+  useEffect(() => {
+    let mounted = true;
+    let rafId = null;
+
+    const fitText = () => {
+      const container = containerRef.current;
+      const textEl = textRef.current;
+      if (!container || !textEl) return;
+
+      let lo = minFontSize;
+      let hi = maxFontSize;
+      let best = minFontSize;
+
+      while (lo <= hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        textEl.style.fontSize = `${mid}px`;
+        const fits = textEl.scrollHeight <= container.clientHeight && textEl.scrollWidth <= container.clientWidth;
+
+        if (fits) {
+          best = mid;
+          lo = mid + 1;
+        } else {
+          hi = mid - 1;
+        }
+      }
+
+      textEl.style.fontSize = `${best}px`;
+      if (mounted) setDynamicFontSize(best);
+    };
+
+    rafId = window.requestAnimationFrame(fitText);
+    
+    let ro = null;
+    if (typeof ResizeObserver !== "undefined" && containerRef.current?.parentElement) {
+      ro = new ResizeObserver(() => {
+        rafId = window.requestAnimationFrame(fitText);
+      });
+      ro.observe(containerRef.current.parentElement);
+    }
+
+    return () => {
+      mounted = false;
+      if (rafId) window.cancelAnimationFrame(rafId);
+      if (ro) ro.disconnect();
+    };
+  }, [text, maxFontSize, minFontSize, twoLines]);
+
+  return (
+    <div 
+      className="flex-1 min-h-0 flex flex-col justify-center overflow-hidden w-full h-full" 
+      ref={containerRef}
+      style={{ fontSize: `${dynamicFontSize}px` }}
+    >
+      <PresentationText
+        innerRef={textRef}
+        text={text}
+        className={className}
+        style={baseStyle}
+        twoLines={twoLines}
+      />
     </div>
   );
 }
@@ -157,29 +226,23 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
   const liveReference = activeItem
     ? `${activeItem.bookTamil} ${activeItem.chapter}:${activeItem.verse}`
     : null;
+  const mainMaxFont = Math.max(Math.min(settings.presentationMaxFontSize || 90, 72), 28);
   const mainTextStyle = {
-    fontSize: `${Math.max(Math.min(settings.presentationMaxFontSize || 90, 72), 28)}px`,
     lineHeight: settings.presentationTwoLines ? 1.08 : 1.24,
     textAlign: settings.presentationJustify || "center",
     textTransform: settings.presentationUppercase ? "uppercase" : "none",
     textShadow: settings.presentationShadow ? "0 4px 18px rgba(0,0,0,0.52)" : "none",
     WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
     whiteSpace: settings.presentationLineWrap === false ? "nowrap" : "normal",
-    overflowWrap: "anywhere",
-    wordBreak: "break-word",
+    overflowWrap: "normal",
+    wordBreak: "normal",
     maxWidth: "100%",
     marginInline: "auto",
     fontFamily: presentationFont,
     letterSpacing: `${settings.presentationLetterSpacing || 0}px`,
   };
+  const stageMaxFont = Math.max(Math.min((settings.presentationMaxFontSize || 90) * (settings.stageSmallWindow ? 0.82 : 1), 140), 34);
   const stageTextStyle = {
-    fontSize: `${Math.max(
-      Math.min(
-        (settings.presentationMaxFontSize || 90) * (settings.stageSmallWindow ? 0.82 : 1),
-        140
-      ),
-      34
-    )}px`,
     lineHeight: settings.presentationTwoLines ? 1.05 : 1.2,
     textAlign: settings.presentationJustify || "center",
     textTransform: settings.presentationUppercase ? "uppercase" : "none",
@@ -187,8 +250,8 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
     color: settings.stageTextColor1 || "#ffffff",
     WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
     whiteSpace: settings.presentationLineWrap === false ? "nowrap" : "normal",
-    overflowWrap: "anywhere",
-    wordBreak: "break-word",
+    overflowWrap: "normal",
+    wordBreak: "normal",
     maxWidth: "100%",
     fontFamily: presentationFont,
     letterSpacing: `${settings.presentationLetterSpacing || 0}px`,
@@ -252,7 +315,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
   if (isStage) {
     return (
       <div
-        className={`relative z-10 grid min-h-screen gap-6 px-6 py-6 ${
+        className={`relative z-10 grid h-full w-full gap-6 px-6 py-6 ${
           settings.stagePreset === "horizontal"
             ? "xl:grid-cols-[1.3fr,0.7fr]"
             : "xl:grid-cols-[1fr]"
@@ -263,7 +326,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
         }}
       >
         <div
-          className={`flex flex-col rounded-[2rem] border border-white/10 bg-black/25 px-8 py-10 backdrop-blur-md ${
+          className={`flex h-full min-h-0 flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-black/25 px-8 py-10 backdrop-blur-md ${
             settings.stageWindowView ? "justify-start" : "justify-center"
           }`}
           style={{
@@ -289,23 +352,27 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
           {activeItem ? (
             <>
               <p
-                className="text-lg font-semibold uppercase tracking-[0.35em]"
+                className="hidden text-lg font-semibold uppercase tracking-[0.35em]"
                 style={{ color: settings.stageTextColor2 || "#f8fafc" }}
               >
-                Live Verse
+
               </p>
               <p
-                className="mt-5 text-4xl font-bold"
+                className="text-4xl font-bold shrink-0"
                 style={{ color: settings.stageTextColor2 || "#f8fafc" }}
               >
                 {liveReference}
               </p>
-              <PresentationText
-                text={activeItem.text}
-                className="mt-10 font-bold"
-                style={stageTextStyle}
-                twoLines={settings.presentationTwoLines}
-              />
+              <div className="mt-8 flex-1 min-h-0 flex flex-col">
+                <FitTextContainer
+                  text={activeItem.text}
+                  className="font-bold"
+                  baseStyle={stageTextStyle}
+                  maxFontSize={stageMaxFont}
+                  minFontSize={18}
+                  twoLines={settings.presentationTwoLines}
+                />
+              </div>
             </>
           ) : (
             <p className="text-4xl font-bold text-white">
@@ -324,7 +391,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
 
         {settings.stagePreset === "horizontal" ? (
           <div
-            className="space-y-5"
+            className="flex min-h-0 flex-col space-y-5 overflow-hidden"
             style={{
               maxWidth: settings.stageSmallWindow ? "320px" : undefined,
             }}
@@ -339,14 +406,14 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
 
             <StageSideCard title="Next Verse">
               {nextItem ? (
-                <>
-                  <p className="text-xl font-bold text-white">
+                <div className="flex min-h-0 flex-col overflow-hidden">
+                  <p className="shrink-0 text-xl font-bold text-white">
                     {nextItem.bookTamil} {nextItem.chapter}:{nextItem.verse}
                   </p>
-                  <p className="mt-4 text-lg leading-9 text-stone-200">
+                  <p className="mt-4 min-h-0 flex-1 overflow-hidden text-ellipsis text-lg leading-9 text-stone-200">
                     {nextItem.text}
                   </p>
-                </>
+                </div>
               ) : (
                 <p className="text-lg text-stone-300">No next verse queued yet.</p>
               )}
@@ -368,10 +435,11 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
   }
 
   return (
-    <div className="relative z-10 flex min-h-screen items-center justify-center px-8 py-10">
+    <div className="relative z-10 flex h-full w-full items-center justify-center px-8 py-10">
       <div
-        className="w-full rounded-[2rem] border border-white/15 px-10 py-12 backdrop-blur-md"
+        className="flex flex-col w-full h-full rounded-[2rem] border border-white/15 px-10 py-12 backdrop-blur-md"
         style={{
+          maxHeight: "90vh",
           maxWidth: settings.presentationPreset === "horizontal" ? "1400px" : "1100px",
           background: settings.presentationBox
             ? `rgba(0, 0, 0, ${Math.min((settings.cardOpacity ?? 0.5) + 0.2, 0.9)})`
@@ -415,12 +483,16 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
               </div>
             </div>
 
-            <PresentationText
-              text={activeItem.text}
-              className="mt-6 font-bold text-white"
-              style={mainTextStyle}
-              twoLines={settings.presentationTwoLines}
-            />
+            <div className="mt-8 flex-1 min-h-0 flex flex-col">
+              <FitTextContainer
+                text={activeItem.text}
+                className="font-bold text-white"
+                baseStyle={mainTextStyle}
+                maxFontSize={mainMaxFont}
+                minFontSize={20}
+                twoLines={settings.presentationTwoLines}
+              />
+            </div>
           </>
         ) : (
           <div className="py-16 text-center">
@@ -582,7 +654,7 @@ export default function PresentationDisplay() {
   return (
     <div
       ref={displayRef}
-      className="relative min-h-screen overflow-hidden text-white"
+      className="relative flex h-screen w-screen flex-col overflow-hidden text-white"
       style={{
         background: visibleState.displayMode === "black" ? "#000000" : background,
         backgroundSize: "cover",
@@ -613,7 +685,7 @@ export default function PresentationDisplay() {
 
       {isEnabled ? (
         <div
-          className={`transition-opacity duration-200 ease-in-out ${
+          className={`relative z-10 flex flex-1 min-h-0 w-full flex-col transition-opacity duration-200 ease-in-out ${
             effectiveIsFading ? "opacity-0" : "opacity-100"
           }`}
           style={{
