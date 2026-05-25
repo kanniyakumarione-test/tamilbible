@@ -88,15 +88,15 @@ const TabButton = memo(function TabButton({ active, children, onClick, isTamil =
 
 const MetricPill = memo(function MetricPill({ label, value, isTamil = false }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5">
+    <div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.04] px-2 py-2.5 sm:px-3">
       <p
-        className={`text-stone-500 ${
-          isTamil ? "text-xs font-medium tracking-normal" : "text-[9px] uppercase tracking-[0.2em]"
+        className={`truncate text-stone-500 ${
+          isTamil ? "text-[11px] sm:text-xs font-medium tracking-normal" : "text-[9px] uppercase tracking-[0.2em]"
         }`}
       >
         {label}
       </p>
-      <p className="mt-1 text-sm font-semibold text-white">{value}</p>
+      <p className="mt-1 truncate text-xs sm:text-sm font-semibold text-white">{value}</p>
     </div>
   );
 });
@@ -119,21 +119,21 @@ const StepControl = memo(function StepControl({ label, valueLabel, value, min, m
         </span>
       </div>
 
-      <div className="mt-3 flex min-w-0 items-center gap-2">
+      <div className="mt-3 flex min-w-0 items-center gap-1.5 sm:gap-2">
         <button
           type="button"
           onClick={() => updateValue(-1)}
-          className="h-9 w-9 rounded-lg border border-white/10 bg-white/[0.06] text-base font-bold text-white transition hover:bg-white/[0.1]"
+          className="shrink-0 h-9 w-9 rounded-lg border border-white/10 bg-white/[0.06] text-base font-bold text-white transition hover:bg-white/[0.1]"
         >
           -
         </button>
-        <div className="flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-center text-xs font-semibold text-white">
+        <div className="flex-1 min-w-0 truncate rounded-lg border border-white/10 bg-white/[0.04] px-1 sm:px-3 py-2 text-center text-xs font-semibold text-white">
           {valueLabel}
         </div>
         <button
           type="button"
           onClick={() => updateValue(1)}
-          className="h-9 w-9 rounded-lg border border-white/10 bg-white/[0.06] text-base font-bold text-white transition hover:bg-white/[0.1]"
+          className="shrink-0 h-9 w-9 rounded-lg border border-white/10 bg-white/[0.06] text-base font-bold text-white transition hover:bg-white/[0.1]"
         >
           +
         </button>
@@ -229,7 +229,7 @@ const SwitchRow = memo(function SwitchRow({ label, description, checked, onChang
     <label className="flex w-full min-w-0 items-start justify-between gap-4 rounded-xl border border-white/10 bg-black/20 px-3.5 py-3">
       <div className="min-w-0 flex-1">
         <p className="break-words text-xs font-medium text-white">{label}</p>
-        {description ? <p className="mt-1 text-[11px] leading-5 text-stone-400">{description}</p> : null}
+        {description ? <p className="mt-1 text-[11px] leading-5 text-stone-400 break-words">{description}</p> : null}
       </div>
       <span
         className={`relative mt-0.5 inline-flex h-6 w-10 shrink-0 items-center rounded-full transition ${
@@ -421,15 +421,15 @@ export default function Settings() {
       />
       
       <div className="app-page-inner">
-        <header className="app-hero relative mb-4 overflow-hidden px-5 py-6 md:px-7 md:py-8">
-          <div className="relative z-10">
+        <header className="app-hero relative min-w-0 mb-4 overflow-hidden px-5 py-6 md:px-7 md:py-8">
+          <div className="relative z-10 min-w-0">
             <p className={`font-semibold text-zinc-200/80 ${isTamil ? "text-sm" : "text-[10px] uppercase tracking-[0.28em]"}`}>
               {t.settings}
             </p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-white md:text-3xl">
+            <h1 className="mt-2 truncate text-2xl font-bold tracking-tight text-white md:text-3xl">
               {t.settingsTitle}
             </h1>
-            <div className="mt-4 grid grid-cols-3 gap-2">
+            <div className="mt-4 grid min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
               <MetricPill label={t.fontSize} value={`${draft.fontSize}px`} isTamil={isTamil} />
               <MetricPill
                 label={t.language}
@@ -441,7 +441,7 @@ export default function Settings() {
           </div>
         </header>
 
-        <div className="mb-4 scrollbar-none -mx-1 flex items-center gap-2 overflow-x-auto px-1">
+        <div className="mb-4 min-w-0 scrollbar-none -mx-1 flex items-center gap-2 overflow-x-auto px-1">
           <div className="flex shrink-0 gap-2">
             {tabs.map((item) => (
               <TabButton key={item.id} active={tab === item.id} onClick={() => setTab(item.id)} isTamil={isTamil}>
@@ -451,7 +451,7 @@ export default function Settings() {
           </div>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-[1.1fr,0.9fr]">
+        <div className="grid min-w-0 gap-4 xl:grid-cols-[1.1fr,0.9fr]">
             <div className="min-w-0 space-y-4">
               {tab === "reader" && (
                 <>
