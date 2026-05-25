@@ -75,9 +75,6 @@ export default function BookList() {
                 <h3 className="text-lg font-bold text-slate-100 transition-colors group-hover:text-white">
                   {getBookNameFromEntry(b, settings.language)}
                 </h3>
-                <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-stone-500">
-                  {b.book.chapters} {settings.language === "en" ? "Chapters" : "அதிகாரங்கள்"}
-                </p>
               </div>
             </div>
           </Link>

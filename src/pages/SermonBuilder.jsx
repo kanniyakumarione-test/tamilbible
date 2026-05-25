@@ -53,7 +53,8 @@ const CustomSelect = ({ label, value, options, onChange }) => {
 export default function SermonBuilder() {
   const [settings] = useAppSettings();
   const t = getUIText(settings.language);
-  const isTamil = settings.language === "ta";
+  const isTamil = settings.language === "ta" || settings.language === "ta-en";
+  const isBilingual = settings.language === "ta-en";
 
   // Editor State
   const [title, setTitle] = useState("");
@@ -71,7 +72,8 @@ export default function SermonBuilder() {
   const [importBook, setImportBook] = useState("Genesis");
   const [importChapter, setImportChapter] = useState(1);
   const [importVerse, setImportVerse] = useState(1);
-  const { bookData } = useBibleBook(importBook, settings.language);
+  const { bookData } = useBibleBook(importBook, isBilingual ? "ta" : settings.language);
+  const { bookData: englishBookData } = useBibleBook(importBook, "en");
 
   // Load saved sermons on mount
   useEffect(() => {
@@ -184,8 +186,21 @@ export default function SermonBuilder() {
     if (!vData) return;
 
     const bookEntry = booksList.find(b => b.book.english === importBook);
-    const bookLabel = isTamil ? (bookEntry?.book.tamil || importBook).trim() : importBook;
-    const verseHtml = `<blockquote><b style="color: #fbbf24;">${bookLabel} ${importChapter}:${importVerse}</b> - <i>${vData.text}</i></blockquote><br/>`;
+    const bookLabelTamil = (bookEntry?.book.tamil || importBook).trim();
+    const bookLabelEnglish = importBook;
+    
+    let verseHtml = "";
+
+    if (isBilingual) {
+      const enChData = englishBookData?.chapters.find((c) => String(c.chapter) === String(importChapter));
+      const enVData = enChData?.verses.find((v) => String(v.verse) === String(importVerse));
+      const englishText = enVData ? enVData.text : "";
+      
+      verseHtml = `<blockquote><b style="color: #fbbf24;">${bookLabelTamil} / ${bookLabelEnglish} ${importChapter}:${importVerse}</b><br/><i>${vData.text}</i><br/><i style="color: #a8a29e;">${englishText}</i></blockquote><br/>`;
+    } else {
+      const bookLabel = isTamil ? bookLabelTamil : bookLabelEnglish;
+      verseHtml = `<blockquote><b style="color: #fbbf24;">${bookLabel} ${importChapter}:${importVerse}</b> - <i>${vData.text}</i></blockquote><br/>`;
+    }
     
     if (contentRef.current) contentRef.current.focus();
     formatText(null, "insertHTML", verseHtml);
