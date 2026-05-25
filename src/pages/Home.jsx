@@ -380,7 +380,7 @@ export default function Home() {
           </div>
 
           {settings.pastorsMode && (
-            <div className="hidden rounded-[2.5rem] border border-white/5 bg-[#000000] p-8 shadow-xl backdrop-blur-xl md:block">
+            <div className="block rounded-[2.5rem] border border-white/5 bg-[#000000] p-8 shadow-xl backdrop-blur-xl">
               <div className="mb-6 flex items-end justify-between">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-zinc-200">{["en", "ta-en"].includes(settings.language) ? "Prayer Journal" : "ஜெப குறிப்பேடு"}</p>
@@ -435,7 +435,8 @@ export default function Home() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {groupedHighlights.filter(f => {
-              if (f.value === 'prayer' || f.value === 'sermon') return settings.pastorsMode;
+              if (f.value === 'prayer' && !settings.pastorsMode) return false;
+              if (f.value === 'sermon' && !settings.pastorsMode) return false;
               return true;
             }).map((folder) => (
               <div key={folder.value} className="group relative overflow-hidden rounded-[2rem] border border-white/5 bg-white/[0.02] p-5 transition-all hover:-translate-y-1 hover:border-fuchsia-500/30 hover:bg-white/[0.04] hover:shadow-lg">

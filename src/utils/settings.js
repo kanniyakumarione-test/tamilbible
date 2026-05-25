@@ -20,6 +20,7 @@ export const defaultSettings = {
   keepScreenAwake: false,
   tamilKeyboardAutoOpen: true,
   pastorsMode: false,
+  presentationMode: false,
   enableMainPresentation: false,
   enableStagePresentation: true,
   mainPresentationScreen: "screen1",

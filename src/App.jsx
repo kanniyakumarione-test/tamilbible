@@ -1,7 +1,8 @@
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { Toaster } from "react-hot-toast";
 
+import WelcomeScreen from "./components/WelcomeScreen";
 import ErrorBoundary from "./components/ErrorBoundary";
 import TopNav from "./components/TopNav";
 import SeoManager from "./components/SeoManager";
@@ -111,8 +112,11 @@ function Layout() {
 }
 
 function App() {
+  const [showWelcome, setShowWelcome] = useState(true);
+
   return (
     <ErrorBoundary>
+      {showWelcome && <WelcomeScreen onComplete={() => setShowWelcome(false)} />}
       <BrowserRouter>
         <Layout />
       </BrowserRouter>

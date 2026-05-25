@@ -123,10 +123,11 @@ export default function TopNav() {
       label: t.advancedPresentation,
       glyph: "grid",
       desktopOnly: true,
-      pastorsOnly: true,
+      presentationOnly: true,
     },
   ].filter(item => {
     if (item.pastorsOnly && !settings.pastorsMode) return false;
+    if (item.presentationOnly && !settings.presentationMode) return false;
     return true;
   });
 
@@ -143,10 +144,8 @@ export default function TopNav() {
         {/* Left: Logo */}
         <div className="flex shrink-0">
           <Link to="/" className="group flex items-center gap-3">
-            <div className="flex items-center justify-center rounded-xl bg-white/5 text-zinc-200 border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.05)] transition-all group-hover:bg-white/10 group-hover:scale-105 h-10 w-10">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
+            <div className="flex items-center justify-center rounded-xl overflow-hidden bg-white/5 border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.05)] transition-all group-hover:scale-105 h-10 w-10">
+              <img src="/logo.png" alt="Tamil Bible" className="h-full w-full object-cover" />
             </div>
             <span className="bg-gradient-to-r from-white to-zinc-400 bg-clip-text font-extrabold tracking-tight text-transparent transition-all group-hover:to-white text-xl whitespace-nowrap">
               {t.tamilBible}
@@ -218,10 +217,8 @@ export default function TopNav() {
         >
           {/* Mobile Logo */}
           <Link to="/" className="group flex items-center gap-2.5 pl-2">
-            <div className={`flex items-center justify-center rounded-xl bg-white/5 text-zinc-200 border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.05)] transition-all ${scrolled ? "h-9 w-9" : "h-10 w-10"}`}>
-              <svg className={`transition-all ${scrolled ? "h-5 w-5" : "h-5 w-5"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
+            <div className={`flex items-center justify-center rounded-xl overflow-hidden bg-white/5 border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.05)] transition-all ${scrolled ? "h-9 w-9" : "h-10 w-10"}`}>
+              <img src="/logo.png" alt="Tamil Bible" className="h-full w-full object-cover" />
             </div>
             <span className={`bg-gradient-to-r from-white to-slate-300 bg-clip-text font-extrabold tracking-tight text-transparent transition-all sm:block ${scrolled ? "text-lg" : "text-xl"}`}>
               {t.tamilBible}

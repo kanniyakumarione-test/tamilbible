@@ -209,6 +209,8 @@ export default function Verses() {
   const [copiedSuccess, setCopiedSuccess] = useState("");
   const [chapterPickerOpen, setChapterPickerOpen] = useState(false);
   const [crossReferencesViewer, setCrossReferencesViewer] = useState(null);
+  const [swipedVerseId, setSwipedVerseId] = useState(null);
+  const [favoriteAnimation, setFavoriteAnimation] = useState(null);
   const [crossReferencesData, setCrossReferencesData] = useState({});
   const [autoScrollDirection, setAutoScrollDirection] = useState(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -230,12 +232,12 @@ export default function Verses() {
   const lastAutoScrollTimeRef = useRef(null);
   const isMobileView = typeof window !== "undefined" && window.innerWidth < 768;
   const availableHighlightFolders = HIGHLIGHT_FOLDERS.filter((folder) => {
-    if (!settings.pastorsMode && (folder.value === "prayer" || folder.value === "sermon")) {
-      return false;
-    }
-    if (isMobileView && folder.value !== "promise" && folder.value !== "memory") {
-      return false;
-    }
+    const isSermon = folder.value === "sermon";
+    const isPrayer = folder.value === "prayer";
+    
+    if (isPrayer && !settings.pastorsMode) return false;
+    if (isSermon && !settings.pastorsMode) return false;
+    
     return true;
   });
 
@@ -1214,7 +1216,31 @@ export default function Verses() {
                   <div
                     id={`verse-${v.verse}`}
                     key={v.verse}
-                    className={`min-w-0 overflow-hidden rounded-[1.6rem] border p-4 transition duration-700 md:p-5 ${
+                    onTouchStart={(e) => {
+                      e.currentTarget.dataset.touchStartX = e.changedTouches[0].screenX;
+                      e.currentTarget.dataset.touchStartY = e.changedTouches[0].screenY;
+                    }}
+                    onTouchEnd={(e) => {
+                      const startX = parseFloat(e.currentTarget.dataset.touchStartX);
+                      const startY = parseFloat(e.currentTarget.dataset.touchStartY);
+                      const endX = e.changedTouches[0].screenX;
+                      const endY = e.changedTouches[0].screenY;
+                      
+                      // Check if it's mostly a horizontal swipe (prevent accidental swipe while scrolling)
+                      if (Math.abs(startX - endX) > 40 && Math.abs(startY - endY) < 40) {
+                        if (startX - endX > 40) {
+                          // Swiped Left - Show Note & Prayer
+                          setSwipedVerseId(swipedVerseId === v.verse ? null : v.verse);
+                        } else if (endX - startX > 40) {
+                          // Swiped Right - Toggle Favorite with correct animation
+                          toggleFavorite(verseItem);
+                          setSwipedVerseId(null);
+                          setFavoriteAnimation({ id: v.verse, type: favorited ? 'remove' : 'add' });
+                          setTimeout(() => setFavoriteAnimation(null), 1000);
+                        }
+                      }
+                    }}
+                    className={`relative min-w-0 overflow-hidden rounded-[1.6rem] border p-4 transition duration-700 md:p-5 ${
                       playingVerseId === v.verse 
                         ? "border-fuchsia-500/50 bg-[#110011] shadow-[0_0_20px_rgba(217,70,239,0.1)]" 
                         : "border-white/10 bg-[#000000] hover:border-zinc-600/25 hover:bg-[#0a0a0a]"
@@ -1230,6 +1256,60 @@ export default function Verses() {
                       onClick={() => openVerse(v)}
                       className="block min-w-0 w-full overflow-hidden text-left"
                     >
+                      {/* Note & Prayer Swipe Overlay */}
+                      <div 
+                        className={`absolute inset-0 z-20 flex items-center justify-end gap-3 bg-gradient-to-l from-[#000000] via-[#000000]/90 to-transparent pr-4 pl-12 transition-all duration-300 ease-out md:hidden ${
+                          swipedVerseId === v.verse ? "translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"
+                        }`}
+                        onClick={(e) => { e.stopPropagation(); setSwipedVerseId(null); }}
+                      >
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleNote(verseItem); setSwipedVerseId(null); }}
+                          className="flex flex-col items-center justify-center h-14 w-14 rounded-full bg-zinc-800/90 text-white shadow-xl transition active:scale-95"
+                        >
+                          <svg className="h-5 w-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          <span className="text-[10px] font-bold">{t.note}</span>
+                        </button>
+                        
+                        {settings.pastorsMode && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handlePrayer(verseItem); setSwipedVerseId(null); }}
+                            className="flex flex-col items-center justify-center h-14 w-14 rounded-full bg-emerald-500/20 text-emerald-400 shadow-xl transition active:scale-95"
+                          >
+                            <svg className="h-5 w-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                            <span className="text-[10px] font-bold">{["en", "ta-en"].includes(settings.language) ? "Prayer" : "ஜெபம்"}</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Favorite Animation Overlay */}
+                      {favoriteAnimation?.id === v.verse && (
+                        <div className={`absolute inset-0 z-10 flex items-center justify-start gap-3 bg-gradient-to-r ${
+                          favoriteAnimation.type === 'add' ? 'from-rose-500/90 via-rose-500/40' : 'from-zinc-800/90 via-zinc-800/40'
+                        } to-transparent pl-8 transition-all duration-300 animate-fade-in-out`}>
+                          {favoriteAnimation.type === 'add' ? (
+                            <>
+                              <svg className="h-8 w-8 text-white drop-shadow-md animate-bounce" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                              </svg>
+                              <span className="text-sm font-bold text-white drop-shadow-md tracking-wider uppercase">Favorited</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg className="h-8 w-8 text-white/70 drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                <line x1="4" y1="4" x2="20" y2="20" strokeWidth="2" stroke="currentColor" />
+                              </svg>
+                              <span className="text-sm font-bold text-white/70 drop-shadow-md tracking-wider uppercase">Removed</span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                      
                       {isBilingual && englishVerseText ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                           <div className="min-w-0 md:pr-4 md:border-r md:border-white/10">
@@ -1265,7 +1345,7 @@ export default function Verses() {
                     <div className="mt-4 flex flex-wrap justify-center gap-2 md:mt-5 md:border-t md:border-white/5 md:pt-4">
                       <button
                         onClick={() => toggleFavorite(verseItem)}
-                        className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                        className={`hidden md:inline-block rounded-full px-3 py-1.5 text-xs font-semibold ${
                           favorited
                             ? "bg-rose-400 text-slate-950"
                             : "border border-white/10 bg-white/5 text-stone-200"
@@ -1286,7 +1366,7 @@ export default function Verses() {
                       </button>
                       <button
                         onClick={() => handleNote(verseItem)}
-                        className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                        className={`hidden md:inline-block rounded-full px-3 py-1.5 text-xs font-semibold ${
                           note
                             ? "bg-zinc-600 text-slate-950"
                             : "border border-white/10 bg-white/5 text-stone-200"
@@ -1297,7 +1377,7 @@ export default function Verses() {
                       {settings.pastorsMode && (
                         <button
                           onClick={() => handlePrayer(verseItem)}
-                          className={`hidden rounded-full px-3 py-1.5 text-xs font-semibold md:inline-block ${
+                          className={`hidden md:inline-block rounded-full px-3 py-1.5 text-xs font-semibold ${
                             prayer
                               ? "bg-emerald-400 text-slate-950"
                               : "border border-white/10 bg-white/5 text-stone-200"
@@ -1306,7 +1386,7 @@ export default function Verses() {
                           {["en", "ta-en"].includes(settings.language) ? "Prayer" : "ஜெபம்"}
                         </button>
                       )}
-                      {settings.pastorsMode && (
+                      {settings.presentationMode && (
                         <button
                           onClick={() => handleAddToSermon(verseItem)}
                           className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-stone-200 md:inline-block"
@@ -1593,7 +1673,7 @@ export default function Verses() {
                 <button
                   type="button"
                   onClick={submitNoteEditor}
-                  className="rounded-2xl bg-[#000000] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-pink-950/30 transition hover:brightness-105"
+                  className="rounded-2xl bg-yellow-500 px-5 py-3 text-sm font-bold text-slate-950 shadow-[0_0_15px_rgba(234,179,8,0.3)] transition hover:bg-yellow-400 active:scale-95"
                 >
                   {t.save}
                 </button>
@@ -1676,7 +1756,7 @@ export default function Verses() {
                 <button
                   type="button"
                   onClick={submitPrayerEditor}
-                  className="rounded-2xl bg-[#000000] px-5 py-3 text-sm font-semibold text-white shadow-lg"
+                  className="rounded-2xl bg-yellow-500 px-5 py-3 text-sm font-bold text-slate-950 shadow-[0_0_15px_rgba(234,179,8,0.3)] transition hover:bg-yellow-400 active:scale-95"
                 >
                   {t.save}
                 </button>
@@ -1797,7 +1877,7 @@ export default function Verses() {
                 <button
                   type="button"
                   onClick={submitHighlightEditor}
-                  className="rounded-2xl bg-[#000000] px-5 py-3 text-sm font-semibold text-white shadow-lg"
+                  className="rounded-2xl bg-yellow-500 px-5 py-3 text-sm font-bold text-slate-950 shadow-[0_0_15px_rgba(234,179,8,0.3)] transition hover:bg-yellow-400 active:scale-95"
                 >
                   {t.save}
                 </button>
@@ -1906,7 +1986,7 @@ export default function Verses() {
                   await shareVerseCard(shareDesigner.verse, "system");
                   closeShareDesigner();
                 }}
-                className="rounded-2xl bg-[#000000] px-5 py-3 text-sm font-semibold text-white shadow-lg"
+                className="rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md px-5 py-3 text-sm font-semibold text-white shadow-xl hover:bg-white/20 transition-all"
               >
                 Share Image
               </button>
@@ -1916,7 +1996,7 @@ export default function Verses() {
                   await shareVerseCard(shareDesigner.verse, "whatsapp");
                   closeShareDesigner();
                 }}
-                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
+                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10 transition-all"
               >
                 WhatsApp
               </button>
@@ -1926,7 +2006,7 @@ export default function Verses() {
                   await shareVerseCard(shareDesigner.verse, "telegram");
                   closeShareDesigner();
                 }}
-                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
+                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10 transition-all"
               >
                 Telegram
               </button>

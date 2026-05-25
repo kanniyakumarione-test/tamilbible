@@ -529,30 +529,36 @@ export default function Settings() {
                   </Panel>
 
                   <Panel 
-                    title={
-                      <span className="block">
-                        <span className="inline md:hidden">{isTamil ? "போதகர் கருவிகள்" : "Pastor Tools"}</span>
-                        <span className="hidden md:inline">{isTamil ? "போதகர் & திரையிடல் நிலை" : "Pastor & Presenter Mode"}</span>
-                      </span>
-                    } 
-                    subtitle={
-                      <span className="block">
-                        {isTamil ? "பிரசங்கம், ஜெபம் மற்றும் " : "Enable Sermon Builder, Prayer folders, Related Verses"}
-                        <span className="hidden md:inline">{isTamil ? "மேம்பட்ட திரையிடல் கருவிகளை இயக்கு." : ", and Advanced Presentation tools."}</span>
-                        <span className="inline md:hidden">{isTamil ? "கருவிகளை இயக்கு." : "."}</span>
-                      </span>
-                    } 
+                    title={isTamil ? "போதகர் கருவிகள்" : "Pastor Tools"} 
+                    subtitle={isTamil ? "பிரசங்கம், ஜெபம் மற்றும் தொடர்புடைய வசனங்களை இயக்கு." : "Enable Sermon Builder, Prayer folders, and Related Verses."} 
                     isTamil={isTamil}
                   >
                     <label className="flex cursor-pointer items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4 transition hover:bg-white/10">
                       <div className="flex flex-col">
                         <span className="text-sm font-bold text-white block">
-                          <span className="inline md:hidden">{isTamil ? "போதகர் கருவிகளை இயக்கு" : "Enable Pastor Tools"}</span>
-                          <span className="hidden md:inline">{isTamil ? "போதகர் & திரையிடல் நிலையை இயக்கு" : "Enable Pastor & Presenter Mode"}</span>
+                          {isTamil ? "போதகர் கருவிகளை இயக்கு" : "Enable Pastor Tools"}
                         </span>
                       </div>
                       <div className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:ring-offset-2 focus:ring-offset-black" style={{ backgroundColor: draft.pastorsMode ? "#10b981" : "#3f3f46" }} onClick={(e) => { e.preventDefault(); updateDraft({ pastorsMode: !draft.pastorsMode }); }}>
                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${draft.pastorsMode ? "translate-x-6" : "translate-x-1"}`} />
+                      </div>
+                    </label>
+                  </Panel>
+
+                  <Panel 
+                    title={isTamil ? "மேம்பட்ட திரையிடல்" : "Advanced Presentation"} 
+                    subtitle={isTamil ? "இரட்டை திரை மற்றும் லைவ் திரையிடல் கருவிகளை இயக்கு." : "Enable dual-screen live presentation tools for churches."} 
+                    isTamil={isTamil}
+                    className="hidden md:block"
+                  >
+                    <label className="flex cursor-pointer items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4 transition hover:bg-white/10">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-white block">
+                          {isTamil ? "திரையிடல் கருவிகளை இயக்கு" : "Enable Presentation Tools"}
+                        </span>
+                      </div>
+                      <div className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:ring-offset-2 focus:ring-offset-black" style={{ backgroundColor: draft.presentationMode ? "#10b981" : "#3f3f46" }} onClick={(e) => { e.preventDefault(); updateDraft({ presentationMode: !draft.presentationMode }); }}>
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${draft.presentationMode ? "translate-x-6" : "translate-x-1"}`} />
                       </div>
                     </label>
                   </Panel>
