@@ -225,6 +225,10 @@ const uiText = {
     importError: "தரவை ஏற்றுவதில் தோல்வி. கோப்பை சரிபார்க்கவும்.",
     playAudio: "ஆடியோ இயக்கு",
     stopAudio: "ஆடியோ நிறுத்து",
+    syncLiveVerse: "நேரடி வசன ஒத்திசைவு (Live Sync)",
+    bilingualProjection: "இருமொழி காட்சி (Bilingual Projection)",
+    greenScreenMode: "க்ரோமா கீ / க்ரீன் ஸ்கிரீன் (Green Screen)",
+    verticalAlign: "செங்குத்து சீரமைப்பு (Vertical Align)",
   },
   en: {
     home: "Home",
@@ -452,6 +456,10 @@ const uiText = {
     importError: "Failed to import data. Please check the file.",
     playAudio: "Play Audio",
     stopAudio: "Stop Audio",
+    syncLiveVerse: "Sync Live Verse",
+    bilingualProjection: "Bilingual Projection",
+    greenScreenMode: "Chroma Key (Green Screen)",
+    verticalAlign: "Vertical Alignment",
   },
 };
 

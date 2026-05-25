@@ -51,6 +51,7 @@ import {
 } from "../utils/bibleContent";
 import { openReader } from "../utils/openReader";
 import { getBookLabelFromMetadata } from "../utils/bibleData";
+import { pushPresentationSermonState } from "../utils/presentationBackend";
 
 function loadImage(src) {
   return new Promise((resolve, reject) => {
@@ -857,7 +858,21 @@ export default function Verses() {
   };
 
   const openVerse = (verse) => {
-    recordHistory(getVerseItem(verse));
+    const verseItem = getVerseItem(verse);
+    recordHistory(verseItem);
+
+    if (settings.syncLiveVerse) {
+      const pushItem = { ...verseItem };
+      if (settings.presentationBilingual) {
+        const engText = getEnglishVerseText(verse.verse);
+        if (engText) pushItem.text = `${pushItem.text}\n${engText}`;
+      }
+      pushPresentationSermonState({
+        activeItem: pushItem,
+        displayMode: "live",
+      });
+      return;
+    }
 
     if (window.innerWidth < 768) {
       setSelectedVerse(getVerseItem(verse));
@@ -1131,13 +1146,24 @@ export default function Verses() {
                 {chapterData?.verses.map((v) => (
                   <button
                     key={v.verse}
-                    onClick={() =>
-                      openReader(
-                        `/reader/${encodeURIComponent(decodedBook)}/${chapter}/${v.verse}`
-                        ,
-                        navigate
-                      )
-                    }
+                    onClick={() => {
+                      if (settings.syncLiveVerse) {
+                        const pushItem = { ...getVerseItem(v) };
+                        if (settings.presentationBilingual) {
+                          const engText = getEnglishVerseText(v.verse);
+                          if (engText) pushItem.text = `${pushItem.text}\n${engText}`;
+                        }
+                        pushPresentationSermonState({
+                          activeItem: pushItem,
+                          displayMode: "live",
+                        });
+                      } else {
+                        openReader(
+                          `/reader/${encodeURIComponent(decodedBook)}/${chapter}/${v.verse}`,
+                          navigate
+                        );
+                      }
+                    }}
                     className="rounded-xl border border-white/10 bg-white/[0.03] py-2 text-sm text-stone-300 transition hover:bg-white/[0.07]"
                   >
                     {v.verse}

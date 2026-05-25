@@ -257,59 +257,62 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
     letterSpacing: `${settings.presentationLetterSpacing || 0}px`,
   };
 
-  if (displayMode === "black") {
-    return (
-      <div className="relative z-10 flex min-h-screen items-center justify-center bg-black" />
-    );
-  }
+  if (!isStage) {
+    if (displayMode === "black") {
+      return (
+        <div className="relative z-10 flex min-h-screen items-center justify-center bg-black" />
+      );
+    }
 
-  if (displayMode === "logo") {
-    return (
-      <div className="relative z-10 flex min-h-screen items-center justify-center px-8">
-        <div className="rounded-[2rem] border border-white/10 bg-black/35 px-10 py-10 backdrop-blur-md">
-          {settings.presentationShowCustomLogo && settings.stageLogoImage ? (
-            <img
-              src={settings.stageLogoImage}
-              alt="Presentation logo"
-              className="max-h-[45vh] max-w-[70vw] object-contain"
-            />
-          ) : (
-            <div className="text-center">
-              <p className="text-5xl font-bold text-white">{title}</p>
-              <p className="mt-4 text-xl text-stone-300">{subtitle}</p>
-            </div>
-          )}
+    if (displayMode === "logo") {
+      return (
+        <div className="relative z-10 flex min-h-screen items-center justify-center px-8">
+          <div className="rounded-[2rem] border border-white/10 bg-black/35 px-10 py-10 backdrop-blur-md">
+            {settings.presentationShowCustomLogo && settings.stageLogoImage ? (
+              <img
+                src={settings.stageLogoImage}
+                alt="Presentation logo"
+                className="max-h-[45vh] max-w-[70vw] object-contain"
+              />
+            ) : (
+              <div className="text-center">
+                <p className="text-5xl font-bold text-white">{title}</p>
+                <p className="mt-4 text-xl text-stone-300">{subtitle}</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  if (displayMode === "title") {
-    return (
-      <div className="relative z-10 flex min-h-screen items-center justify-center px-8">
-        <div className="max-w-5xl text-center">
-          <p className="text-lg font-semibold uppercase tracking-[0.45em] text-stone-300">
-            Presentation
-          </p>
-          <h1 className="mt-6 text-6xl font-bold text-white md:text-8xl">{title}</h1>
-          <p className="mt-6 text-2xl leading-10 text-stone-200 md:text-3xl">{subtitle}</p>
+    if (displayMode === "title") {
+      return (
+        <div className="relative z-10 flex min-h-screen items-center justify-center px-8">
+          <div className="max-w-5xl text-center">
+            <p className="text-lg font-semibold uppercase tracking-[0.45em] text-stone-300">
+              Presentation
+            </p>
+            <h1 className="mt-6 text-6xl font-bold text-white md:text-8xl">{title}</h1>
+            <p className="mt-6 text-2xl leading-10 text-stone-200 md:text-3xl">{subtitle}</p>
+          </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  if (displayMode === "announcement") {
-    return (
-      <div className="relative z-10 flex min-h-screen items-center justify-center px-8">
-        <div className="max-w-5xl rounded-[2rem] border border-white/10 bg-black/30 px-10 py-12 text-center backdrop-blur-md">
-          <p className="text-lg font-semibold uppercase tracking-[0.45em] text-stone-300">
-            Announcement
-          </p>
-          <h1 className="mt-6 text-5xl font-bold text-white md:text-7xl">{announcementTitle}</h1>
-          <p className="mt-6 text-2xl leading-10 text-stone-200 md:text-3xl">{announcementBody}</p>
+    if (displayMode === "announcement") {
+      return (
+        <div className="relative z-10 flex min-h-screen items-center justify-center px-8">
+          <div className="max-w-5xl rounded-[2rem] border border-white/10 bg-black/30 px-10 py-12 text-center backdrop-blur-md">
+            <p className="text-lg font-semibold uppercase tracking-[0.45em] text-stone-300">
+              Announcement
+            </p>
+            <h1 className="mt-6 text-5xl font-bold text-white md:text-7xl">{announcementTitle}</h1>
+            <p className="mt-6 text-2xl leading-10 text-stone-200 md:text-3xl">{announcementBody}</p>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+
   }
 
   if (isStage) {

@@ -61,20 +61,27 @@ const SelectControl = memo(function SelectControl({ label, value, onChange, opti
   return (
     <label className="block">
       <p className="mb-2 text-sm text-stone-300">{label}</p>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full appearance-none rounded-2xl border border-white/10 bg-black/20 px-4 py-3 pr-10 text-sm text-slate-100 outline-none transition hover:bg-black/30 focus:border-amber-500/40"
+        >
+          {options.map((option) => (
+            <option key={option.value} value={option.value} className="bg-zinc-900 text-slate-200">
+              {option.label}
+            </option>
+          ))}
         </select>
-      </label>
-    );
-  });
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-stone-400">
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+    </label>
+  );
+});
 
 const CheckboxControl = memo(function CheckboxControl({ label, checked, onChange }) {
   return (
@@ -350,6 +357,41 @@ const StatusCard = memo(function StatusCard({ label, value, icon, colorClass }) 
 export default function AdvancedPresentation() {
   const [settings, update] = useAppSettings();
   const libraryData = useLibraryData();
+  const [profileName, setProfileName] = useState("");
+
+  const saveProfile = () => {
+    if (!profileName.trim()) return;
+    const presentationSettings = Object.keys(settings).reduce((acc, key) => {
+      if (
+        key.startsWith("presentation") ||
+        key.startsWith("stage") ||
+        key.startsWith("bg") ||
+        key.startsWith("motion") ||
+        key.startsWith("customGradient") ||
+        key.startsWith("customBackground") ||
+        key.startsWith("cardOpacity")
+      ) {
+        if (key !== "presentationProfiles") {
+          acc[key] = settings[key];
+        }
+      }
+      return acc;
+    }, {});
+
+    const newProfile = { id: Date.now(), name: profileName.trim(), data: presentationSettings };
+    const updatedProfiles = [...(settings.presentationProfiles || []), newProfile];
+    update({ presentationProfiles: updatedProfiles });
+    setProfileName("");
+  };
+
+  const loadProfile = (profile) => {
+    update({ ...profile.data });
+  };
+
+  const deleteProfile = (id) => {
+    const updatedProfiles = (settings.presentationProfiles || []).filter((p) => p.id !== id);
+    update({ presentationProfiles: updatedProfiles });
+  };
   const previewTextRef = useRef(null);
   const previewContainerRef = useRef(null);
   const [previewFontSize, setPreviewFontSize] = useState(
@@ -845,7 +887,7 @@ export default function AdvancedPresentation() {
                 {copiedRemoteUrl ? "Copied" : "Copy Link"}
               </button>
               {remoteNeedsPublicHost ? (
-                <div className="mt-3 space-y-2">
+                <div className="flex flex-col">
                   <p className="rounded-xl border border-zinc-600/20 bg-zinc-700/10 px-3 py-2 text-xs leading-6 text-amber-100">
                     Your phone usually cannot reach "localhost". {candidateOrigins.length > 1 ? "Try selecting a different address above." : "Make sure the backend is running on your LAN."}
                   </p>
@@ -868,6 +910,13 @@ export default function AdvancedPresentation() {
                 label={t.enableMainPresentation}
                 checked={settings.enableMainPresentation}
                 onChange={(value) => updateSettings({ enableMainPresentation: value })}
+              />
+            </div>
+            <div className="mb-4">
+              <CheckboxControl
+                label={t.syncLiveVerse || "Sync Live Verse"}
+                checked={settings.syncLiveVerse || false}
+                onChange={(value) => updateSettings({ syncLiveVerse: value })}
               />
             </div>
             <SelectControl
@@ -894,6 +943,43 @@ export default function AdvancedPresentation() {
             />
           </div>
         </div>
+
+        <AccordionSection title="Configuration Profiles">
+          <div className="flex flex-col gap-6">
+            <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5">
+              <p className="mb-4 text-sm font-semibold text-stone-300">Saved Profiles</p>
+              {settings.presentationProfiles?.length > 0 ? (
+                <div className="flex flex-wrap gap-3">
+                  {settings.presentationProfiles.map((p) => (
+                    <div key={p.id} className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2">
+                      <span className="text-sm font-medium text-white">{p.name}</span>
+                      <button onClick={() => loadProfile(p)} className="ml-2 rounded bg-amber-500/20 px-2 py-1 text-xs font-semibold text-amber-400 hover:bg-amber-500/30">Load</button>
+                      <button onClick={() => deleteProfile(p.id)} className="rounded bg-red-500/20 px-2 py-1 text-xs font-semibold text-red-400 hover:bg-red-500/30">X</button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-stone-500">No saved profiles yet.</p>
+              )}
+              
+              <div className="mt-6 flex items-center gap-3 border-t border-white/10 pt-5">
+                <input
+                  type="text"
+                  placeholder="Profile Name (e.g. Sunday Morning)"
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder-stone-500 outline-none focus:border-amber-500/50"
+                />
+                <button
+                  onClick={saveProfile}
+                  className="whitespace-nowrap rounded-xl bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/15"
+                >
+                  Save Current
+                </button>
+              </div>
+            </div>
+          </div>
+        </AccordionSection>
 
         <AccordionSection title={t.mainPresentationScreenSetup}>
           <div className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
@@ -929,9 +1015,20 @@ export default function AdvancedPresentation() {
                 value={settings.presentationJustify}
                 onChange={(value) => updateSettings({ presentationJustify: value })}
                 options={[
-                  { value: "left", label: t.left },
+                  { value: "left", label: "Left" },
                   { value: "center", label: t.center },
                   { value: "right", label: "Right" },
+                ]}
+              />
+
+              <SelectControl
+                label={t.verticalAlign || "Vertical Alignment"}
+                value={settings.presentationVerticalAlign || "center"}
+                onChange={(value) => updateSettings({ presentationVerticalAlign: value })}
+                options={[
+                  { value: "top", label: "Top" },
+                  { value: "center", label: t.center || "Center" },
+                  { value: "bottom", label: "Bottom" },
                 ]}
               />
 
@@ -950,6 +1047,23 @@ export default function AdvancedPresentation() {
                   className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
                 />
               </label>
+
+              <label className="block mt-4">
+                <p className="mb-2 text-sm text-stone-300">{t.lineSpacing || "Line Spacing"}</p>
+                <input
+                  type="number"
+                  step="0.1"
+                  min={1}
+                  max={3}
+                  value={settings.presentationLineHeight || 1.2}
+                  onChange={(e) =>
+                    updateSettings({
+                      presentationLineHeight: Number(e.target.value) || 1.2,
+                    })
+                  }
+                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
+                />
+              </label>
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
@@ -961,6 +1075,8 @@ export default function AdvancedPresentation() {
               <CheckboxControl label={t.enableBox} checked={settings.presentationBox} onChange={(value) => updateSettings({ presentationBox: value })} />
               <CheckboxControl label={t.enableHeaderBox} checked={settings.presentationHeaderBox} onChange={(value) => updateSettings({ presentationHeaderBox: value })} />
               <CheckboxControl label={t.enableLineWrap} checked={settings.presentationLineWrap} onChange={(value) => updateSettings({ presentationLineWrap: value })} />
+              <CheckboxControl label={t.bilingualProjection || "Bilingual Projection"} checked={settings.presentationBilingual} onChange={(value) => updateSettings({ presentationBilingual: value })} />
+              <CheckboxControl label={t.greenScreenMode || "Chroma Key (Green Screen)"} checked={settings.presentationGreenScreen} onChange={(value) => updateSettings({ presentationGreenScreen: value })} />
               <CheckboxControl label={t.showLyricsInTwoLines} checked={settings.presentationTwoLines} onChange={(value) => updateSettings({ presentationTwoLines: value })} />
               <CheckboxControl label={t.showDateAndTime} checked={settings.presentationShowDateTime} onChange={(value) => updateSettings({ presentationShowDateTime: value })} />
               <CheckboxControl label={t.showVerseviewLogo} checked={settings.presentationShowVerseLogo} onChange={(value) => updateSettings({ presentationShowVerseLogo: value })} />
@@ -1008,8 +1124,38 @@ export default function AdvancedPresentation() {
               <button onClick={() => updateSettings({ stageMessage: "", stageMessageVisible: false })} className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15">{t.clearMessage}</button>
             </div>
 
-            <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-              <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-1">
+            <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+              <div>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">{t.stillBackground}</p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {backgrounds.map((bg, index) => (
+                    <BackgroundTile key={`stage-bg-${bg}`} active={settings.stageStillBackground === index} onClick={() => updateSettings({ stageStillBackground: index })}>
+                      <img src={bg} alt={`Still background ${index + 1}`} className="h-24 w-full object-cover" />
+                    </BackgroundTile>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-5">
+                <div>
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">{t.textColor}</p>
+                  <div className="flex flex-wrap gap-3">
+                    <ColorChip label={t.textOne} value={settings.stageTextColor1} onChange={(stageTextColor1) => updateSettings({ stageTextColor1 })} />
+                    <ColorChip label={t.textTwo} value={settings.stageTextColor2} onChange={(stageTextColor2) => updateSettings({ stageTextColor2 })} />
+                  </div>
+                </div>
+
+                <div>
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">{t.overlayColor}</p>
+                  <ColorChip label={t.overlay} value={settings.stageOverlayColor} onChange={(stageOverlayColor) => updateSettings({ stageOverlayColor })} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </AccordionSection>
+
+        <AccordionSection title="Live Previews">
+          <div className="grid gap-8 lg:grid-cols-2">
                 <div>
                   <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">Main Preview</p>
                   <div className="relative flex h-52 items-center justify-center overflow-hidden rounded-[1.5rem] border border-white/10 bg-black p-4 shadow-inner shadow-black/40">
@@ -1045,7 +1191,7 @@ export default function AdvancedPresentation() {
                             twoLines={settings.presentationTwoLines}
                             style={{
                               fontSize: `${previewFontSize}px`,
-                              lineHeight: settings.presentationTwoLines ? 1.08 : 1.2,
+                              lineHeight: settings.presentationLineHeight || (settings.presentationTwoLines ? 1.08 : 1.2),
                               textAlign: settings.presentationJustify,
                               textTransform: settings.presentationUppercase ? "uppercase" : "none",
                               textShadow: settings.presentationShadow ? "0 2px 10px rgba(0,0,0,0.75)" : "none",
@@ -1167,7 +1313,7 @@ export default function AdvancedPresentation() {
                                   text={previewItem.text}
                                   twoLines={settings.presentationTwoLines}
                                   style={{
-                                    lineHeight: settings.presentationTwoLines ? 1.05 : 1.2,
+                                    lineHeight: settings.presentationLineHeight || (settings.presentationTwoLines ? 1.05 : 1.2),
                                     textAlign: settings.presentationJustify || "center",
                                     textTransform: settings.presentationUppercase ? "uppercase" : "none",
                                     textShadow: settings.presentationShadow ? "0 4px 16px rgba(0,0,0,0.55)" : "none",
@@ -1220,36 +1366,6 @@ export default function AdvancedPresentation() {
                     </div>
                   </div>
                 </div>
-
-                <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-                  <div>
-                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">{t.stillBackground}</p>
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                      {backgrounds.map((bg, index) => (
-                        <BackgroundTile key={`stage-bg-${bg}`} active={settings.stageStillBackground === index} onClick={() => updateSettings({ stageStillBackground: index })}>
-                          <img src={bg} alt={`Still background ${index + 1}`} className="h-24 w-full object-cover" />
-                        </BackgroundTile>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-5">
-                    <div>
-                      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">{t.textColor}</p>
-                      <div className="flex flex-wrap gap-3">
-                        <ColorChip label={t.textOne} value={settings.stageTextColor1} onChange={(stageTextColor1) => updateSettings({ stageTextColor1 })} />
-                        <ColorChip label={t.textTwo} value={settings.stageTextColor2} onChange={(stageTextColor2) => updateSettings({ stageTextColor2 })} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">{t.overlayColor}</p>
-                      <ColorChip label={t.overlay} value={settings.stageOverlayColor} onChange={(stageOverlayColor) => updateSettings({ stageOverlayColor })} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </AccordionSection>
       </div>
