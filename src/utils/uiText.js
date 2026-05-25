@@ -223,6 +223,8 @@ const uiText = {
     importData: "காப்புப்பிரதி ஏற்று",
     importSuccess: "தரவு வெற்றிகரமாக ஏற்றப்பட்டது!",
     importError: "தரவை ஏற்றுவதில் தோல்வி. கோப்பை சரிபார்க்கவும்.",
+    playAudio: "ஆடியோ இயக்கு",
+    stopAudio: "ஆடியோ நிறுத்து",
   },
   en: {
     home: "Home",
@@ -448,10 +450,12 @@ const uiText = {
     importData: "Import Backup",
     importSuccess: "Data imported successfully!",
     importError: "Failed to import data. Please check the file.",
+    playAudio: "Play Audio",
+    stopAudio: "Stop Audio",
   },
 };
 
 export function getUIText(language = "ta") {
-  if (language === "ta-en") return uiText.en;
+  if (language === "ta-en") return uiText.ta;
   return uiText[language] || uiText.ta;
 }

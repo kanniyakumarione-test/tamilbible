@@ -129,6 +129,7 @@ function ChapterNavigator({
   prevLabel,
   nextLabel,
   compact = false,
+  t,
 }) {
   const wrapperClass = compact
     ? "grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3"
@@ -154,7 +155,7 @@ function ChapterNavigator({
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-base text-white sm:h-10 sm:w-10 sm:rounded-2xl sm:text-lg">&larr;</span>
         <span className="min-w-0">
           <span className="block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-stone-500">
-            Previous
+            {t?.prev || "Previous"}
           </span>
           <span className="block truncate text-xs font-semibold text-slate-100 sm:text-sm">{prevLabel}</span>
         </span>
@@ -185,7 +186,7 @@ function ChapterNavigator({
       >
         <span className="min-w-0 flex-1 md:order-1">
           <span className="block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-stone-500">
-            Next
+            {t?.next || "Next"}
           </span>
           <span className="block truncate text-xs font-semibold text-slate-100 sm:text-sm">{nextLabel}</span>
         </span>
@@ -1173,7 +1174,7 @@ export default function Verses() {
                           : "border border-white/10 bg-white/5 text-white hover:bg-white/10"
                       }`}
                     >
-                      {isPlayingAudio ? "Stop Audio" : "Play Audio"}
+                      {isPlayingAudio ? (t?.stopAudio || "Stop Audio") : (t?.playAudio || "Play Audio")}
                     </button>
                     <button
                       onClick={() => toggleBookmark(chapterItem)}
@@ -1198,6 +1199,7 @@ export default function Verses() {
                   hasNext={Boolean(nextChapter)}
                   prevLabel={prevLabel}
                   nextLabel={nextLabel}
+                  t={t}
                 />
               </div>
             </section>
@@ -1452,6 +1454,7 @@ export default function Verses() {
                 prevLabel={prevLabel}
                 nextLabel={nextLabel}
                 compact
+                t={t}
               />
             </div>
 
