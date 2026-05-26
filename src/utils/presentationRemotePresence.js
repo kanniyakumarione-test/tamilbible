@@ -5,6 +5,7 @@ const API_BASE = import.meta.env.VITE_PRESENTATION_API_BASE || "";
 import { getRoomCode } from "./roomCode";
 
 let presenceStreamStarted = false;
+let activePresenceSource = null;
 
 function getApiUrl(path) {
   const url = new URL(`${API_BASE}${path}`, window.location.origin);
@@ -159,9 +160,9 @@ export function startRemotePresenceStream() {
   }
 
   presenceStreamStarted = true;
-  const source = new EventSource(getApiUrl("/api/presentation/stream"));
+  activePresenceSource = new EventSource(getApiUrl("/api/presentation/stream"));
 
-  source.onmessage = (event) => {
+  activePresenceSource.onmessage = (event) => {
     try {
       const message = JSON.parse(event.data);
 
@@ -173,11 +174,20 @@ export function startRemotePresenceStream() {
     }
   };
 
-  source.onerror = () => {
-    source.close();
+  activePresenceSource.onerror = () => {
+    activePresenceSource.close();
     presenceStreamStarted = false;
     window.setTimeout(() => {
       startRemotePresenceStream();
     }, 2500);
   };
+}
+
+export function resetRemotePresenceStream() {
+  if (activePresenceSource) {
+    activePresenceSource.close();
+    activePresenceSource = null;
+  }
+  presenceStreamStarted = false;
+  startRemotePresenceStream();
 }

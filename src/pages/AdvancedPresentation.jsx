@@ -14,12 +14,17 @@ import {
   fetchPresentationServerInfo,
   getCachedPresentationServerInfo,
   getPresentationServerInfoEventName,
+  getPresentationSermonSyncEventName,
+  startPresentationSyncStream,
+  resetPresentationSyncStream,
+  pushPresentationSermonState,
 } from "../utils/presentationBackend";
 import {
   getActiveRemoteDevices,
   getRemotePresenceEventName,
   startRemotePresenceStream,
   syncRemoteDevicesFromBackend,
+  resetRemotePresenceStream,
 } from "../utils/presentationRemotePresence";
 import { getUIText } from "../utils/uiText";
 import MotionBackground from "../components/MotionBackground";
@@ -946,7 +951,16 @@ export default function AdvancedPresentation() {
                       const newCode = generateRoomCode();
                       setRoomCode(newCode);
                       setActiveRoomCode(newCode);
-                      window.location.reload();
+                      resetPresentationSyncStream();
+                      resetRemotePresenceStream();
+                      
+                      // Push our active presentation state to populate the new room instantly
+                      if (libraryData?.sermon) {
+                        pushPresentationSermonState({
+                          ...libraryData.sermon,
+                          updatedAt: Date.now()
+                        });
+                      }
                     }}
                     className="rounded-lg border border-white/10 bg-white/5 p-1.5 text-stone-300 hover:bg-white/10"
                     title="Generate New Room Code"

@@ -5,6 +5,7 @@ const API_BASE = import.meta.env.VITE_PRESENTATION_API_BASE || "";
 import { getRoomCode } from "./roomCode";
 
 let streamStarted = false;
+let activeSource = null;
 let remoteSermonCache = readRemoteSermonCache();
 let serverInfoCache = null;
 
@@ -130,11 +131,11 @@ export function startPresentationSyncStream() {
   streamStarted = true;
 
   const connect = () => {
-    const source = new EventSource(getApiUrl("/api/presentation/stream"));
+    activeSource = new EventSource(getApiUrl("/api/presentation/stream"));
 
-    source.onmessage = handleStreamMessage;
-    source.onerror = () => {
-      source.close();
+    activeSource.onmessage = handleStreamMessage;
+    activeSource.onerror = () => {
+      activeSource.close();
       streamStarted = false;
       window.setTimeout(() => {
         startPresentationSyncStream();
@@ -143,6 +144,15 @@ export function startPresentationSyncStream() {
   };
 
   connect();
+}
+
+export function resetPresentationSyncStream() {
+  if (activeSource) {
+    activeSource.close();
+    activeSource = null;
+  }
+  streamStarted = false;
+  startPresentationSyncStream();
 }
 
 export async function fetchPresentationServerInfo(frontendPort = window.location.port) {
