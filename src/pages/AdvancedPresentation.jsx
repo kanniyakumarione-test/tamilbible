@@ -143,7 +143,7 @@ const ControlPanel = memo(function ControlPanel({ title, subtitle, children, cla
   );
 });
 
-const ConnectedDevicesPanel = memo(function ConnectedDevicesPanel() {
+const ConnectedDevicesPanel = memo(function ConnectedDevicesPanel({ t }) {
   const [remoteDevices, setRemoteDevices] = useState(() => getActiveRemoteDevices());
 
   useEffect(() => {
@@ -175,38 +175,34 @@ const ConnectedDevicesPanel = memo(function ConnectedDevicesPanel() {
   }, []);
 
   return (
-    <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">
-            Connected Devices
-          </p>
-          <p className="mt-2 text-xs leading-6 text-stone-400">
-            Active remotes seen in the last 15 seconds.
-          </p>
-        </div>
-        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-stone-200">
+    <div className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-black/40">
+      <div className="flex items-center justify-between rounded-t-2xl border-b border-white/5 bg-white/5 px-4 py-3">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-200/80">{t?.connectedDevices || "CONNECTED DEVICES"}</p>
+        <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-white/10 px-2 text-xs font-bold text-white">
           {remoteDevices.length}
         </span>
       </div>
+      <div className="p-4">
+        <p className="mb-3 text-[10px] text-stone-400">{t?.activeRemotesPrompt || "Active remotes seen in the last 15 seconds."}</p>
 
-      <div className="mt-4 space-y-3">
-        {remoteDevices.length ? (
-          remoteDevices.map((device) => (
-            <div
-              key={device.id}
-              className="rounded-2xl border border-emerald-400/15 bg-emerald-400/10 px-4 py-3"
-            >
-              <p className="text-sm font-semibold text-white">{device.label}</p>
-              <p className="mt-1 text-xs leading-6 text-emerald-100/80">
-                {device.platform} connected
-              </p>
-            </div>
-          ))
+        {remoteDevices.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-white/10 bg-white/5 p-4 text-center">
+            <p className="text-sm text-stone-500">{t?.noRemoteDevicesConnectedYet || "No remote devices connected yet."}</p>
+          </div>
         ) : (
-          <p className="rounded-2xl border border-dashed border-white/10 px-4 py-4 text-sm text-stone-400">
-            No remote devices connected yet.
-          </p>
+          <div className="mt-4 space-y-3">
+            {remoteDevices.map((device) => (
+              <div
+                key={device.id}
+                className="rounded-2xl border border-emerald-400/15 bg-emerald-400/10 px-4 py-3"
+              >
+                <p className="text-sm font-semibold text-white">{device.label}</p>
+                <p className="mt-1 text-xs leading-6 text-emerald-100/80">
+                  {device.platform} connected
+                </p>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -694,7 +690,7 @@ export default function AdvancedPresentation() {
               }
               className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-black shadow-lg shadow-white/20 transition hover:bg-stone-200"
             >
-              Open Main Display
+              {t.openMainDisplay || "Open Main Display"}
             </button>
             <button
               type="button"
@@ -707,45 +703,48 @@ export default function AdvancedPresentation() {
               }
               className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
             >
-              Open Stage Display
+              {t.openStageDisplay || "Open Stage Display"}
             </button>
             <Link
               to="/presentation-remote"
               className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
             >
-              Open Phone Remote
+              {t.openPhoneRemote || "Open Phone Remote"}
             </Link>
             <Link
               to="/sermon-control"
               className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
             >
-              Open Sermon Control
+              {t.openSermonControl || "Open Sermon Control"}
             </Link>
           </div>
         </section>
 
         <section className="rounded-[1.8rem] border border-white/10 bg-[#000000] p-5 shadow-xl shadow-black/20">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="mb-6 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-stone-400">
-                Live Queue
-              </p>
-              <h2 className="mt-2 text-2xl font-bold text-white">
-                {activeItem
-                  ? `${activeItem.bookTamil} ${activeItem.chapter}:${activeItem.verse}`
-                  : "No active verse"}
+              <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">{t.liveQueue || "LIVE QUEUE"}</p>
+              <h2 className="mt-1 text-2xl font-bold text-white">
+                {activeItem ? `${activeItem.bookTamil} ${activeItem.chapter}:${activeItem.verse}` : (t.noActiveVerse || "No active verse")}
               </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-300">
-                The display windows below update live from this sermon queue. Pick which verse should show right now, then open the main or stage screen in a separate window.
-              </p>
             </div>
-            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-stone-300">
+            <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white">
               {queue.length} queued
-            </div>
+            </span>
           </div>
 
-          <div className="mt-5 space-y-3">
-            {queue.length ? (
+          <p className="mb-6 text-xs leading-5 text-stone-400">
+            {t.queueDescription || "The display windows below update live from this sermon queue. Pick which verse should show right now, then open the main or stage screen in a separate window."}
+          </p>
+
+          <div className="space-y-3">
+            {queue.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-6 text-center">
+                <p className="text-sm text-stone-500">
+                  {t.queueEmptyPrompt || "Add verses from the chapter screen using the 'Sermon' button, then control them here."}
+                </p>
+              </div>
+            ) : (
               queue.slice(0, 6).map((item) => (
                 <div
                   key={item.id}
@@ -783,10 +782,6 @@ export default function AdvancedPresentation() {
                   </div>
                 </div>
               ))
-            ) : (
-              <p className="rounded-[1.4rem] border border-dashed border-white/10 px-4 py-5 text-sm text-stone-400">
-                Add verses from the chapter screen using the `Sermon` button, then control them here.
-              </p>
             )}
           </div>
         </section>
@@ -797,7 +792,7 @@ export default function AdvancedPresentation() {
             <div className="flex flex-col space-y-6">
               <div className="grid gap-5 sm:grid-cols-2">
                 <label className="block">
-                  <p className="mb-2 text-sm text-stone-300">Title Slide Title</p>
+                  <p className="mb-2 text-sm text-stone-300">{t.titleSlideTitle || "Title Slide Title"}</p>
                   <input
                     type="text"
                     value={settings.presentationTitle}
@@ -807,7 +802,7 @@ export default function AdvancedPresentation() {
                 </label>
 
                 <label className="block">
-                  <p className="mb-2 text-sm text-stone-300">Title Slide Subtitle</p>
+                  <p className="mb-2 text-sm text-stone-300">{t.titleSlideSubtitle || "Title Slide Subtitle"}</p>
                   <input
                     type="text"
                     value={settings.presentationSubtitle}
@@ -819,7 +814,7 @@ export default function AdvancedPresentation() {
 
               <div className="grid gap-5 sm:grid-cols-2">
                 <label className="block">
-                  <p className="mb-2 text-sm text-stone-300">Announcement Title</p>
+                  <p className="mb-2 text-sm text-stone-300">{t.announcementTitle || "Announcement Title"}</p>
                   <input
                     type="text"
                     value={settings.presentationAnnouncementTitle}
@@ -829,7 +824,7 @@ export default function AdvancedPresentation() {
                 </label>
 
                 <label className="block">
-                  <p className="mb-2 text-sm text-stone-300">Announcement Body</p>
+                  <p className="mb-2 text-sm text-stone-300">{t.announcementBody || "Announcement Body"}</p>
                   <textarea
                     value={settings.presentationAnnouncementBody}
                     onChange={(e) => updateSettings({ presentationAnnouncementBody: e.target.value })}
@@ -858,42 +853,44 @@ export default function AdvancedPresentation() {
               </div>
 
               <div>
-                <p className="mb-2 text-sm text-stone-300">Quick Display Modes</p>
+                <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">
+                  {t.quickDisplayModes || "Quick Display Modes"}
+                </p>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => setSermonDisplayMode("live")}
                     className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${displayMode === "live" ? "bg-white text-black shadow-lg shadow-white/20" : "bg-white/10 text-white hover:bg-white/15"}`}
                   >
-                    Live
+                    {t.liveBtn || "Live"}
                   </button>
                   <button
                     type="button"
                     onClick={() => setSermonDisplayMode("title")}
                     className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${displayMode === "title" ? "bg-white text-black shadow-lg shadow-white/20" : "bg-white/10 text-white hover:bg-white/15"}`}
                   >
-                    Title
+                    {t.title || "Title"}
                   </button>
                   <button
                     type="button"
                     onClick={() => setSermonDisplayMode("logo")}
                     className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${displayMode === "logo" ? "bg-white text-black shadow-lg shadow-white/20" : "bg-white/10 text-white hover:bg-white/15"}`}
                   >
-                    Logo
+                    {t.logo || "Logo"}
                   </button>
                   <button
                     type="button"
                     onClick={() => setSermonDisplayMode("announcement")}
                     className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${displayMode === "announcement" ? "bg-white text-black shadow-lg shadow-white/20" : "bg-white/10 text-white hover:bg-white/15"}`}
                   >
-                    Announcement
+                    {t.announcement || "Announcement"}
                   </button>
                   <button
                     type="button"
                     onClick={() => setSermonDisplayMode("black")}
                     className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${displayMode === "black" ? "bg-white text-black shadow-lg shadow-white/20" : "bg-white/10 text-white hover:bg-white/15"}`}
                   >
-                    Black
+                    {t.black || "Black"}
                   </button>
                 </div>
               </div>
@@ -903,7 +900,7 @@ export default function AdvancedPresentation() {
             <div className="flex flex-col h-full">
               <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center h-full">
                 <div className="flex items-center justify-center gap-2">
-                  <p className="text-sm font-semibold text-white">Phone Remote QR</p>
+                  <p className="text-sm font-semibold text-white">{t.phoneRemote || "Phone Remote QR"}</p>
                   {!serverInfo ? (
                     <span className="inline-flex items-center rounded-full bg-red-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-400 ring-1 ring-inset ring-red-400/20">
                       Backend Offline
@@ -924,7 +921,7 @@ export default function AdvancedPresentation() {
                 {candidateOrigins.length > 1 && isLocalOnlyHost(window.location.hostname) ? (
                   <div className="mt-3">
                     <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-stone-500">
-                      Switch Network Address
+                      {t.switchNetwork || "Switch Network Address"}
                     </p>
                     <select
                       value={selectedOriginIndex}
@@ -942,7 +939,7 @@ export default function AdvancedPresentation() {
                 
                 <div className="mt-4 flex items-center justify-between rounded-xl bg-black/40 px-3 py-2 border border-white/5">
                   <div className="text-left">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500">Room Code</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500">{t.roomCode || "Room Code"}</p>
                     <p className="text-sm font-bold text-white tracking-widest">{activeRoomCode}</p>
                   </div>
                   <button
@@ -988,13 +985,17 @@ export default function AdvancedPresentation() {
                       Your phone usually cannot reach "localhost". {candidateOrigins.length > 1 ? "Try selecting a different address above." : "Make sure the backend is running on your LAN."}
                     </p>
                   </div>
+                ) : /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/.test(new URL(remoteUrl).hostname) ? (
+                  <p className="mt-3 text-xs leading-6 text-stone-500">
+                    {t.sameWifiMessage || "Make sure your phone is on the same Wi-Fi network to use this address."}
+                  </p>
                 ) : (
                   <p className="mt-3 text-xs leading-6 text-stone-500">
-                    Make sure your phone is on the same Wi-Fi network to use this address.
+                    {t.scanToControl || "Scan this code to control the presentation from your phone."}
                   </p>
                 )}
 
-                <ConnectedDevicesPanel />
+                <ConnectedDevicesPanel t={t} />
               </div>
             </div>
           </div>
@@ -1041,10 +1042,10 @@ export default function AdvancedPresentation() {
           </div>
         </div>
 
-        <AccordionSection title="Configuration Profiles">
+        <AccordionSection title={t.configurationProfiles || "Configuration Profiles"}>
           <div className="flex flex-col gap-6">
             <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5">
-              <p className="mb-4 text-sm font-semibold text-stone-300">Saved Profiles</p>
+              <p className="mb-4 text-sm font-semibold text-stone-300">{t.savedProfiles || "Saved Profiles"}</p>
               {settings.presentationProfiles?.length > 0 ? (
                 <div className="flex flex-wrap gap-3">
                   {settings.presentationProfiles.map((p) => (
@@ -1056,13 +1057,13 @@ export default function AdvancedPresentation() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-stone-500">No saved profiles yet.</p>
+                <p className="text-sm text-stone-500">{t.noSavedProfiles || "No saved profiles yet."}</p>
               )}
               
               <div className="mt-6 flex items-center gap-3 border-t border-white/10 pt-5">
                 <input
                   type="text"
-                  placeholder="Profile Name (e.g. Sunday Morning)"
+                  placeholder={t.profileNamePlaceholder || "Profile Name (e.g. Sunday Morning)"}
                   value={profileName}
                   onChange={(e) => setProfileName(e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder-stone-500 outline-none focus:border-amber-500/50"
@@ -1071,14 +1072,14 @@ export default function AdvancedPresentation() {
                   onClick={saveProfile}
                   className="whitespace-nowrap rounded-xl bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/15"
                 >
-                  Save Current
+                  {t.saveCurrent || "Save Current"}
                 </button>
               </div>
             </div>
           </div>
         </AccordionSection>
 
-        <AccordionSection title={t.mainPresentationScreenSetup}>
+        <AccordionSection title={t.mainPresentationScreenSetup || "Main Presentation Screen Setup"}>
           <div className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
             <div className="space-y-5">
               <SelectControl
@@ -1130,7 +1131,7 @@ export default function AdvancedPresentation() {
               />
 
               <label className="block">
-                <p className="mb-2 text-sm text-stone-300">Letter Spacing</p>
+                <p className="mb-2 text-sm text-stone-300">{t.letterSpacing || "Letter Spacing"}</p>
                 <input
                   type="number"
                   min={0}
@@ -1182,7 +1183,7 @@ export default function AdvancedPresentation() {
           </div>
         </AccordionSection>
 
-        <AccordionSection title={t.stageviewScreenSetup}>
+        <AccordionSection title={t.stageviewScreenSetup || "Stageview Screen Setup"}>
           <div className="space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
               <SelectControl
@@ -1251,10 +1252,10 @@ export default function AdvancedPresentation() {
           </div>
         </AccordionSection>
 
-        <AccordionSection title="Live Previews">
+        <AccordionSection title={t.livePreviews || "Live Previews"}>
           <div className="space-y-8">
             <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">Main Preview</p>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">{t.mainPreview || "Main Preview"}</p>
               <div className="relative flex h-52 items-center justify-center overflow-hidden rounded-[1.5rem] border border-white/10 bg-black p-4 shadow-inner shadow-black/40">
                 <SmoothBackground
                   background={settings.presentationGreenScreen ? "#00b140" : settings.background}
@@ -1330,7 +1331,7 @@ export default function AdvancedPresentation() {
             </div>
 
             <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">Stage Preview</p>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">{t.stagePreview || "Stage Preview"}</p>
               <div
                 className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-black"
                 style={{ background: stageBackground, backgroundSize: "cover", backgroundPosition: "center" }}
