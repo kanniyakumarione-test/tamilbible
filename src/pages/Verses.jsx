@@ -878,6 +878,12 @@ export default function Verses() {
         activeItem: pushItem,
         displayMode: "live",
       });
+      
+      setSermonSuccess(`Live Sync: ${verseItem.bookTamil} ${chapter}:${verse.verse} projected`);
+      window.setTimeout(() => {
+        setSermonSuccess("");
+      }, 2200);
+      
       return;
     }
 
