@@ -22,7 +22,7 @@ function log(message, level = "INFO") {
   console.log(`[${timestamp}] [${level}] ${message}`);
 }
 
-const defaultState = {
+const defaultRoomState = {
   sermon: {
     queue: [],
     activeItem: null,
@@ -40,7 +40,7 @@ function ensureStateDir() {
 
 function normalizeSermon(sermon) {
   return {
-    ...defaultState.sermon,
+    ...defaultRoomState.sermon,
     ...(sermon || {}),
     queue: Array.isArray(sermon?.queue) ? sermon.queue : [],
     updatedAt: Number(sermon?.updatedAt) || Date.now(),
@@ -68,24 +68,36 @@ function loadState() {
   ensureStateDir();
 
   if (!existsSync(stateFile)) {
-    writeFileSync(stateFile, JSON.stringify(defaultState, null, 2));
-    return structuredClone(defaultState);
+    writeFileSync(stateFile, JSON.stringify({}, null, 2));
+    return {};
   }
 
   try {
     const parsed = JSON.parse(readFileSync(stateFile, "utf8"));
-    return {
-      sermon: normalizeSermon(parsed?.sermon),
-      presence: normalizePresence(parsed?.presence),
-    };
+    const normalized = {};
+    for (const [room, roomState] of Object.entries(parsed || {})) {
+      normalized[room] = {
+        sermon: normalizeSermon(roomState?.sermon),
+        presence: normalizePresence(roomState?.presence),
+      };
+    }
+    return normalized;
   } catch {
-    writeFileSync(stateFile, JSON.stringify(defaultState, null, 2));
-    return structuredClone(defaultState);
+    writeFileSync(stateFile, JSON.stringify({}, null, 2));
+    return {};
   }
 }
 
-let state = loadState();
-const clients = new Set();
+let state = loadState(); // Map of roomCode -> roomState
+const clients = new Set(); // Set of { res, roomCode }
+
+function getRoomState(roomCode) {
+  if (!roomCode) return structuredClone(defaultRoomState);
+  if (!state[roomCode]) {
+    state[roomCode] = structuredClone(defaultRoomState);
+  }
+  return state[roomCode];
+}
 
 async function persistState() {
   ensureStateDir();
@@ -116,21 +128,26 @@ function sendSseEvent(client, type, payload) {
   client.write(`data: ${JSON.stringify({ type, payload })}\n\n`);
 }
 
-function broadcast(type, payload) {
+function broadcast(roomCode, type, payload) {
+  if (!roomCode) return;
   for (const client of clients) {
-    sendSseEvent(client, type, payload);
+    if (client.roomCode === roomCode) {
+      sendSseEvent(client.res, type, payload);
+    }
   }
 }
 
-function prunePresence(now = Date.now()) {
-  const nextPresence = normalizePresence(state.presence).filter(
+function prunePresence(roomCode, now = Date.now()) {
+  if (!roomCode) return [];
+  const roomState = getRoomState(roomCode);
+  const nextPresence = normalizePresence(roomState.presence).filter(
     (device) => now - (device.lastSeenAt || 0) <= presenceStaleAfterMs
   );
 
-  if (nextPresence.length !== state.presence.length) {
-    state = { ...state, presence: nextPresence };
+  if (nextPresence.length !== roomState.presence.length) {
+    state[roomCode] = { ...roomState, presence: nextPresence };
     persistState().catch(() => {});
-    broadcast("presence", nextPresence);
+    broadcast(roomCode, "presence", nextPresence);
   }
 
   return nextPresence;
@@ -246,6 +263,8 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  const roomCode = url.searchParams.get("room") || "default";
+
   if (url.pathname === "/api/presentation/stream" && req.method === "GET") {
     res.writeHead(200, {
       "Content-Type": "text/event-stream; charset=utf-8",
@@ -255,9 +274,12 @@ const server = http.createServer(async (req, res) => {
     });
 
     res.write("\n");
-    clients.add(res);
-    sendSseEvent(res, "sermon", normalizeSermon(state.sermon));
-    sendSseEvent(res, "presence", prunePresence());
+    const clientRecord = { res, roomCode };
+    clients.add(clientRecord);
+    
+    const roomState = getRoomState(roomCode);
+    sendSseEvent(res, "sermon", normalizeSermon(roomState.sermon));
+    sendSseEvent(res, "presence", prunePresence(roomCode));
 
     const keepAliveId = setInterval(() => {
       res.write(": keep-alive\n\n");
@@ -265,13 +287,14 @@ const server = http.createServer(async (req, res) => {
 
     req.on("close", () => {
       clearInterval(keepAliveId);
-      clients.delete(res);
+      clients.delete(clientRecord);
     });
     return;
   }
 
   if (url.pathname === "/api/presentation/state" && req.method === "GET") {
-    sendJson(res, 200, { sermon: normalizeSermon(state.sermon) });
+    const roomState = getRoomState(roomCode);
+    sendJson(res, 200, { sermon: normalizeSermon(roomState.sermon) });
     return;
   }
 
@@ -279,15 +302,16 @@ const server = http.createServer(async (req, res) => {
     try {
       const body = await parseBody(req);
       const nextSermon = normalizeSermon(body?.sermon);
-      const currentUpdatedAt = Number(state.sermon?.updatedAt) || 0;
+      const roomState = getRoomState(roomCode);
+      const currentUpdatedAt = Number(roomState.sermon?.updatedAt) || 0;
 
       if (nextSermon.updatedAt >= currentUpdatedAt) {
-        state = { ...state, sermon: nextSermon };
+        state[roomCode] = { ...roomState, sermon: nextSermon };
         await persistState();
-        broadcast("sermon", nextSermon);
+        broadcast(roomCode, "sermon", nextSermon);
       }
 
-      sendJson(res, 200, { sermon: normalizeSermon(state.sermon) });
+      sendJson(res, 200, { sermon: normalizeSermon(state[roomCode].sermon) });
     } catch (error) {
       sendJson(res, 400, { error: error.message });
     }
@@ -295,7 +319,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (url.pathname === "/api/presentation/presence" && req.method === "GET") {
-    sendJson(res, 200, { devices: prunePresence() });
+    sendJson(res, 200, { devices: prunePresence(roomCode) });
     return;
   }
 
@@ -319,11 +343,12 @@ const server = http.createServer(async (req, res) => {
         lastSeenAt: now,
       };
 
-      const currentPresence = prunePresence(now).filter((entry) => entry.id !== normalizedDevice.id);
+      const roomState = getRoomState(roomCode);
+      const currentPresence = prunePresence(roomCode, now).filter((entry) => entry.id !== normalizedDevice.id);
       const nextPresence = [normalizedDevice, ...currentPresence];
-      state = { ...state, presence: nextPresence };
+      state[roomCode] = { ...roomState, presence: nextPresence };
       await persistState();
-      broadcast("presence", nextPresence);
+      broadcast(roomCode, "presence", nextPresence);
       sendJson(res, 200, { devices: nextPresence });
     } catch (error) {
       sendJson(res, 400, { error: error.message });
@@ -333,10 +358,11 @@ const server = http.createServer(async (req, res) => {
 
   if (url.pathname.startsWith("/api/presentation/presence/") && req.method === "DELETE") {
     const deviceId = decodeURIComponent(url.pathname.slice("/api/presentation/presence/".length));
-    const nextPresence = prunePresence().filter((device) => device.id !== deviceId);
-    state = { ...state, presence: nextPresence };
+    const roomState = getRoomState(roomCode);
+    const nextPresence = prunePresence(roomCode).filter((device) => device.id !== deviceId);
+    state[roomCode] = { ...roomState, presence: nextPresence };
     await persistState();
-    broadcast("presence", nextPresence);
+    broadcast(roomCode, "presence", nextPresence);
     sendJson(res, 200, { devices: nextPresence });
     return;
   }
@@ -351,7 +377,10 @@ const server = http.createServer(async (req, res) => {
 });
 
 setInterval(() => {
-  prunePresence();
+  const now = Date.now();
+  for (const roomCode of Object.keys(state)) {
+    prunePresence(roomCode, now);
+  }
 }, 5000);
 
 server.listen(port, host, () => {

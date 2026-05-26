@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 import useLibraryData from "../hooks/useLibraryData";
 import {
@@ -6,12 +6,16 @@ import {
   setActiveSermonItem,
 } from "../utils/libraryData";
 import { openReader } from "../utils/openReader";
+import { openPresentationWindow } from "../utils/screens";
+import useAppSettings from "../hooks/useAppSettings";
 
 export default function SermonControl() {
   const navigate = useNavigate();
+  const location = useLocation();
   const libraryData = useLibraryData();
   const queue = libraryData.sermon.queue || [];
   const activeId = libraryData.sermon.activeItem?.id;
+  const [settings] = useAppSettings();
 
   return (
     <div className="app-shell app-page pb-6 pt-4 md:pt-6">
@@ -27,21 +31,28 @@ export default function SermonControl() {
             Manage the projector queue, switch the active verse, and open the full-screen sermon display.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              to="/sermon-mode"
-              className="rounded-2xl bg-[#000000] px-5 py-3 text-sm font-semibold text-white shadow-lg"
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={() => openPresentationWindow("/presentation/main", settings.mainPresentationScreen, "tamil-bible-presentation-main")}
+              className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-black shadow-lg shadow-white/20 transition hover:bg-stone-200"
             >
-              Open Display
-            </Link>
+              Open Main Display
+            </button>
+            <button
+              type="button"
+              onClick={() => openPresentationWindow("/presentation/stage", settings.stagePresentationScreen, "tamil-bible-presentation-stage")}
+              className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              Open Stage Display
+            </button>
             {libraryData.sermon.activeItem ? (
               <button
                 type="button"
                 onClick={() =>
                   openReader(
                     `/reader/${encodeURIComponent(libraryData.sermon.activeItem.bookEnglish)}/${libraryData.sermon.activeItem.chapter}/${libraryData.sermon.activeItem.verse}`,
-                    navigate
+                    navigate,
+                    { state: { returnTo: location.pathname } }
                   )
                 }
                 className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
@@ -81,7 +92,7 @@ export default function SermonControl() {
                       <p className="text-base font-semibold text-white">
                         {item.bookTamil} {item.chapter}:{item.verse}
                       </p>
-                      <p className="mt-2 line-clamp-3 text-sm leading-7 text-stone-300">
+                      <p className="mt-2 line-clamp-3 text-sm leading-7 text-stone-300 whitespace-pre-wrap">
                         {item.text}
                       </p>
                     </div>

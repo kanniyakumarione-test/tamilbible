@@ -2,11 +2,14 @@ const STORAGE_KEY = "appPresentationRemotePresence";
 const EVENT_NAME = "app-presentation-remote-presence";
 const STALE_AFTER_MS = 15000;
 const API_BASE = import.meta.env.VITE_PRESENTATION_API_BASE || "";
+import { getRoomCode } from "./roomCode";
 
 let presenceStreamStarted = false;
 
 function getApiUrl(path) {
-  return `${API_BASE}${path}`;
+  const url = new URL(`${API_BASE}${path}`, window.location.origin);
+  url.searchParams.set("room", getRoomCode());
+  return url.toString();
 }
 
 function emitChange(devices) {

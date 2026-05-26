@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import booksList from "../data/Books.json";
 
 import {
@@ -18,6 +18,7 @@ import {
   loadBibleBooks,
   NEW_TESTAMENT_START_INDEX,
 } from "../utils/bibleData";
+import { getReaderFontFamily } from "../utils/appearance";
 
 const TAMIL_KEYBOARD_ROWS = [
   ["அ", "ஆ", "இ", "ஈ", "உ", "ஊ", "எ", "ஏ", "ஐ", "ஒ", "ஓ", "ஔ"],
@@ -246,6 +247,7 @@ function PopupFilterSelect({ label, value, options, onChange }) {
 export default function Search() {
   const RESULTS_PER_PAGE = 10;
   const navigate = useNavigate();
+  const location = useLocation();
   const [settings] = useAppSettings();
   const t = getUIText(settings.language);
   const keyboardLabels = {
@@ -260,15 +262,46 @@ export default function Search() {
   const showTamilKeyboard = !isEnglishLanguage(settings.language);
   const searchInputRef = useRef(null);
   const keyboardRef = useRef(null);
-  const [query, setQuery] = useState("");
-  const [submittedQuery, setSubmittedQuery] = useState("");
+  const [query, setQuery] = useState(() => sessionStorage.getItem("search_query") || "");
+  const [submittedQuery, setSubmittedQuery] = useState(() => sessionStorage.getItem("search_submittedQuery") || "");
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
-  const [versePage, setVersePage] = useState(1);
+  const [versePage, setVersePage] = useState(() => Number(sessionStorage.getItem("search_versePage")) || 1);
   const [verseResults, setVerseResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [testamentFilter, setTestamentFilter] = useState("all");
-  const [bookFilter, setBookFilter] = useState("all");
-  const [exactWordOnly, setExactWordOnly] = useState(false);
+  const [testamentFilter, setTestamentFilter] = useState(() => sessionStorage.getItem("search_testamentFilter") || "all");
+  const [bookFilter, setBookFilter] = useState(() => sessionStorage.getItem("search_bookFilter") || "all");
+  const [exactWordOnly, setExactWordOnly] = useState(() => sessionStorage.getItem("search_exactWordOnly") === "true");
+  const [selectedVerse, setSelectedVerse] = useState(null);
+
+  useEffect(() => {
+    sessionStorage.setItem("search_query", query);
+    sessionStorage.setItem("search_submittedQuery", submittedQuery);
+    sessionStorage.setItem("search_versePage", versePage);
+    sessionStorage.setItem("search_testamentFilter", testamentFilter);
+    sessionStorage.setItem("search_bookFilter", bookFilter);
+    sessionStorage.setItem("search_exactWordOnly", exactWordOnly);
+  }, [query, submittedQuery, versePage, testamentFilter, bookFilter, exactWordOnly]);
+
+  const tamilFontFamily = getReaderFontFamily(settings, "ta");
+
+  const getMobilePopupVerseStyle = (text) => {
+    const length = text?.length || 0;
+
+    if (length > 320) {
+      return { fontSize: "14px", lineHeight: 1.42, fontFamily: tamilFontFamily };
+    }
+    if (length > 220) {
+      return { fontSize: "15px", lineHeight: 1.46, fontFamily: tamilFontFamily };
+    }
+    if (length > 140) {
+      return { fontSize: "16px", lineHeight: 1.5, fontFamily: tamilFontFamily };
+    }
+    return {
+      fontSize: `${Math.min(Math.max(settings.fontSize - 10, 15), 18)}px`,
+      lineHeight: 1.52,
+      fontFamily: tamilFontFamily,
+    };
+  };
 
   const bookOptions = useMemo(
     () =>
@@ -692,9 +725,13 @@ export default function Search() {
             {!visibleIsSearching && paginatedVerseResults.map((r, i) => (
               <button
                 key={`${r.englishBook}-${r.chapter}-${r.verse}-${visibleStart + i}`}
-                onClick={() =>
-                  openReader(`/reader/${encodeURIComponent(r.englishBook)}/${r.chapter}/${r.verse}`, navigate)
-                }
+                onClick={() => {
+                  if (typeof window !== "undefined" && window.innerWidth < 768) {
+                    setSelectedVerse(r);
+                  } else {
+                    openReader(`/reader/${encodeURIComponent(r.englishBook)}/${r.chapter}/${r.verse}`, navigate, { state: { returnTo: location.pathname + location.search } })
+                  }
+                }}
                 className="group relative overflow-hidden rounded-[2rem] border border-white/5 bg-[#000000] p-6 text-left shadow-lg backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-zinc-700/30 hover:shadow-[0_20px_40px_rgba(255, 255, 255,0.15)]"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-zinc-800/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
@@ -758,6 +795,39 @@ export default function Search() {
             </div>
           )}
         </section>
+
+        {selectedVerse && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 px-4 backdrop-blur-md md:hidden">
+            <div className="absolute inset-0" onClick={() => setSelectedVerse(null)} />
+            <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#000000] p-8 shadow-2xl animate-in zoom-in-95 fade-in duration-300">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 text-left">Verse Preview</p>
+                  <h3 className="mt-4 inline-flex items-center rounded-full bg-white/5 px-4 py-1.5 text-sm font-bold text-white ring-1 ring-white/10">
+                    {selectedVerse.book} {selectedVerse.chapter}:{selectedVerse.verse}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedVerse(null)}
+                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-white transition hover:bg-white/10"
+                >
+                  X
+                </button>
+              </div>
+              
+              <div className="mt-4">
+                <p 
+                  className="font-bold text-left text-white break-words"
+                  style={getMobilePopupVerseStyle(selectedVerse.text)}
+                >
+                  "{selectedVerse.text}"
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

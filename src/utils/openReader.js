@@ -1,6 +1,6 @@
-export function openReader(path, navigate) {
+export function openReader(path, navigate, options) {
   if (typeof window === "undefined") {
-    navigate(path);
+    navigate(path, options);
     return;
   }
 
@@ -10,5 +10,5 @@ export function openReader(path, navigate) {
     fullscreenTarget.requestFullscreen().catch(() => {});
   }
 
-  navigate(path);
+  navigate(path, options);
 }

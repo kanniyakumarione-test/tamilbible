@@ -26,6 +26,7 @@ import MotionBackground from "../components/MotionBackground";
 import { getPresentationFontFamily, getCustomGradientString } from "../utils/appearance";
 import { getSiteUrl } from "../utils/siteUrl";
 import { optimizeImage } from "../utils/imageOptimization";
+import { getRoomCode, generateRoomCode, setRoomCode } from "../utils/roomCode";
 
 const backgrounds = [
   "/bg/bg1.jpg",
@@ -68,7 +69,7 @@ const SelectControl = memo(function SelectControl({ label, value, onChange, opti
           className="w-full appearance-none rounded-2xl border border-white/10 bg-black/20 px-4 py-3 pr-10 text-sm text-slate-100 outline-none transition hover:bg-black/30 focus:border-amber-500/40"
         >
           {options.map((option) => (
-            <option key={option.value} value={option.value} className="bg-zinc-900 text-slate-200">
+            <option key={option.value} value={option.value} className="bg-white text-black">
               {option.label}
             </option>
           ))}
@@ -243,7 +244,7 @@ async function getPresentationScreens() {
 }
 
 async function openPresentationWindow(path, targetScreenValue, windowName) {
-  const features = ["noopener=yes", "noreferrer=yes"];
+  const features = ["noopener=yes", "noreferrer=yes", "popup=yes"];
 
   if ("getScreenDetails" in window) {
     try {
@@ -320,7 +321,38 @@ function splitIntoPresentationLines(text = "", lineCount = 2) {
   return lines.filter(Boolean);
 }
 
-function PresentationPreviewText({ text, style, twoLines = false }) {
+import { getFontCss, FONT_FAMILY_OPTIONS, TAMIL_FONT_OPTIONS } from "../utils/appearance";
+
+function PresentationPreviewText({ text, style, twoLines = false, settings }) {
+  if (text?.includes("\n")) {
+    const parts = text.split("\n");
+    return (
+      <div className="flex flex-col gap-[0.8em]">
+        {parts.map((part, index) => {
+          const lineStyle = { ...style, margin: 0 };
+          
+          if (parts.length === 2 && settings) {
+            if (index === 0) {
+              lineStyle.fontFamily = getFontCss(settings.tamilFontFamily, TAMIL_FONT_OPTIONS);
+            } else {
+              lineStyle.fontFamily = getFontCss(settings.fontFamily, FONT_FAMILY_OPTIONS);
+            }
+          }
+
+          return (
+            <p
+              key={index}
+              className={`font-bold ${twoLines ? "text-center" : ""}`}
+              style={lineStyle}
+            >
+              {part}
+            </p>
+          );
+        })}
+      </div>
+    );
+  }
+
   const lines = twoLines ? splitIntoPresentationLines(text, 2) : [text];
 
   return (
@@ -434,9 +466,12 @@ export default function AdvancedPresentation() {
     ? candidateOrigins[selectedOriginIndex] || null
     : window.location.origin;
 
-  const remoteUrl = remoteOrigin
+  const baseRemoteUrl = remoteOrigin
     ? `${remoteOrigin}/presentation-remote`
     : `${window.location.origin}/presentation-remote`;
+  
+  const [activeRoomCode, setActiveRoomCode] = useState(getRoomCode());
+  const remoteUrl = `${baseRemoteUrl}?room=${activeRoomCode}`;
   const remoteNeedsPublicHost = !remoteOrigin || isLocalOnlyHost(new URL(remoteUrl).hostname);
   const [copiedRemoteUrl, setCopiedRemoteUrl] = useState(false);
 
@@ -552,8 +587,8 @@ export default function AdvancedPresentation() {
       const textEl = previewTextRef.current;
       if (!container || !textEl) return;
 
-      const max = Math.min(settings.presentationMaxFontSize || 80, 80);
-      const min = 18;
+      const max = Math.min((settings.presentationMaxFontSize || 80) * 0.5, 42);
+      const min = 14;
 
       // binary search for best font size
       let lo = min;
@@ -652,7 +687,7 @@ export default function AdvancedPresentation() {
                   "tamil-bible-presentation-main"
                 )
               }
-              className="rounded-2xl bg-[#000000] px-5 py-3 text-sm font-semibold text-white shadow-lg"
+              className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-black shadow-lg shadow-white/20 transition hover:bg-stone-200"
             >
               Open Main Display
             </button>
@@ -752,153 +787,201 @@ export default function AdvancedPresentation() {
         </section>
 
         <section className="rounded-[1.8rem] border border-white/10 bg-[#000000] p-5 shadow-xl shadow-black/20">
-          <div className="grid gap-5 lg:grid-cols-[1fr,1fr,0.9fr]">
-            <label className="block">
-              <p className="mb-2 text-sm text-stone-300">Title Slide Title</p>
-              <input
-                type="text"
-                value={settings.presentationTitle}
-                onChange={(e) => updateSettings({ presentationTitle: e.target.value })}
-                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
-              />
-            </label>
+          <div className="grid gap-8 lg:grid-cols-[2fr,0.9fr]">
+            {/* Left Side: Inputs and Quick Display Modes */}
+            <div className="flex flex-col space-y-6">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <label className="block">
+                  <p className="mb-2 text-sm text-stone-300">Title Slide Title</p>
+                  <input
+                    type="text"
+                    value={settings.presentationTitle}
+                    onChange={(e) => updateSettings({ presentationTitle: e.target.value })}
+                    className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
+                  />
+                </label>
 
-            <label className="block">
-              <p className="mb-2 text-sm text-stone-300">Title Slide Subtitle</p>
-              <input
-                type="text"
-                value={settings.presentationSubtitle}
-                onChange={(e) => updateSettings({ presentationSubtitle: e.target.value })}
-                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
-              />
-            </label>
+                <label className="block">
+                  <p className="mb-2 text-sm text-stone-300">Title Slide Subtitle</p>
+                  <input
+                    type="text"
+                    value={settings.presentationSubtitle}
+                    onChange={(e) => updateSettings({ presentationSubtitle: e.target.value })}
+                    className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
+                  />
+                </label>
+              </div>
 
-            <div>
-              <p className="mb-2 text-sm text-stone-300">Quick Display Modes</p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSermonDisplayMode("live")}
-                  className="rounded-xl bg-[#000000] px-4 py-2.5 text-sm font-semibold text-white"
-                >
-                  Live
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSermonDisplayMode("title")}
-                  className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15"
-                >
-                  Title
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSermonDisplayMode("logo")}
-                  className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15"
-                >
-                  Logo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSermonDisplayMode("announcement")}
-                  className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15"
-                >
-                  Announcement
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSermonDisplayMode("black")}
-                  className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15"
-                >
-                  Black
-                </button>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <label className="block">
+                  <p className="mb-2 text-sm text-stone-300">Announcement Title</p>
+                  <input
+                    type="text"
+                    value={settings.presentationAnnouncementTitle}
+                    onChange={(e) => updateSettings({ presentationAnnouncementTitle: e.target.value })}
+                    className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
+                  />
+                </label>
+
+                <label className="block">
+                  <p className="mb-2 text-sm text-stone-300">Announcement Body</p>
+                  <textarea
+                    value={settings.presentationAnnouncementBody}
+                    onChange={(e) => updateSettings({ presentationAnnouncementBody: e.target.value })}
+                    rows={3}
+                    className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
+                  />
+                </label>
+              </div>
+
+              <div>
+                <p className="mb-2 text-sm text-stone-300">{t.logoImage || "Logo Image"}</p>
+                <div className="flex h-36 items-center justify-center rounded-[1.5rem] border border-white/10 bg-black/40 p-4">
+                  {settings.stageLogoImage ? (
+                    <img src={settings.stageLogoImage} alt="Presentation logo" className="max-h-full max-w-full object-contain" />
+                  ) : (
+                    <span className="text-sm text-stone-500">{t.uploadLogo || "Upload Logo"}</span>
+                  )}
+                </div>
+                <div className="mt-3 flex gap-3">
+                  <button type="button" onClick={() => logoInputRef.current?.click()} className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15">{t.uploadLogo || "Upload Logo"}</button>
+                  {settings.stageLogoImage ? (
+                    <button type="button" onClick={() => updateSettings({ stageLogoImage: null, presentationShowCustomLogo: false })} className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15">{t.removeLogo || "Remove Logo"}</button>
+                  ) : null}
+                </div>
+                <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+              </div>
+
+              <div>
+                <p className="mb-2 text-sm text-stone-300">Quick Display Modes</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSermonDisplayMode("live")}
+                    className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${displayMode === "live" ? "bg-white text-black shadow-lg shadow-white/20" : "bg-white/10 text-white hover:bg-white/15"}`}
+                  >
+                    Live
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSermonDisplayMode("title")}
+                    className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${displayMode === "title" ? "bg-white text-black shadow-lg shadow-white/20" : "bg-white/10 text-white hover:bg-white/15"}`}
+                  >
+                    Title
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSermonDisplayMode("logo")}
+                    className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${displayMode === "logo" ? "bg-white text-black shadow-lg shadow-white/20" : "bg-white/10 text-white hover:bg-white/15"}`}
+                  >
+                    Logo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSermonDisplayMode("announcement")}
+                    className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${displayMode === "announcement" ? "bg-white text-black shadow-lg shadow-white/20" : "bg-white/10 text-white hover:bg-white/15"}`}
+                  >
+                    Announcement
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSermonDisplayMode("black")}
+                    className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${displayMode === "black" ? "bg-white text-black shadow-lg shadow-white/20" : "bg-white/10 text-white hover:bg-white/15"}`}
+                  >
+                    Black
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="mt-5 grid gap-5 lg:grid-cols-[1fr,1fr,0.9fr]">
-            <label className="block">
-              <p className="mb-2 text-sm text-stone-300">Announcement Title</p>
-              <input
-                type="text"
-                value={settings.presentationAnnouncementTitle}
-                onChange={(e) => updateSettings({ presentationAnnouncementTitle: e.target.value })}
-                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
-              />
-            </label>
+            {/* Right Side: QR Code */}
+            <div className="flex flex-col h-full">
+              <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center h-full">
+                <div className="flex items-center justify-center gap-2">
+                  <p className="text-sm font-semibold text-white">Phone Remote QR</p>
+                  {!serverInfo ? (
+                    <span className="inline-flex items-center rounded-full bg-red-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-400 ring-1 ring-inset ring-red-400/20">
+                      Backend Offline
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 ring-1 ring-inset ring-emerald-400/20">
+                      Live
+                    </span>
+                  )}
+                </div>
 
-            <label className="block">
-              <p className="mb-2 text-sm text-stone-300">Announcement Body</p>
-              <textarea
-                value={settings.presentationAnnouncementBody}
-                onChange={(e) => updateSettings({ presentationAnnouncementBody: e.target.value })}
-                rows={3}
-                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
-              />
-            </label>
-
-            <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center">
-              <div className="flex items-center justify-center gap-2">
-                <p className="text-sm font-semibold text-white">Phone Remote QR</p>
                 {!serverInfo ? (
-                  <span className="inline-flex items-center rounded-full bg-red-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-400 ring-1 ring-inset ring-red-400/20">
-                    Backend Offline
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 ring-1 ring-inset ring-emerald-400/20">
-                    Live
-                  </span>
-                )}
-              </div>
-
-              {!serverInfo ? (
-                <p className="mt-2 text-[10px] text-stone-400">
-                  Run <code>npm run backend</code> to enable network discovery.
-                </p>
-              ) : null}
-
-              {candidateOrigins.length > 1 && isLocalOnlyHost(window.location.hostname) ? (
-                <div className="mt-3">
-                  <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-stone-500">
-                    Switch Network Address
+                  <p className="mt-2 text-[10px] text-stone-400">
+                    Run <code>npm run backend</code> to enable network discovery.
                   </p>
-                  <select
-                    value={selectedOriginIndex}
-                    onChange={(e) => setSelectedOriginIndex(Number(e.target.value))}
-                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-stone-200 outline-none"
+                ) : null}
+
+                {candidateOrigins.length > 1 && isLocalOnlyHost(window.location.hostname) ? (
+                  <div className="mt-3">
+                    <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-stone-500">
+                      Switch Network Address
+                    </p>
+                    <select
+                      value={selectedOriginIndex}
+                      onChange={(e) => setSelectedOriginIndex(Number(e.target.value))}
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-stone-200 outline-none"
+                    >
+                      {candidateOrigins.map((origin, idx) => (
+                        <option key={origin} value={idx} className="bg-white text-black">
+                          {new URL(origin).hostname} ({idx === 0 ? "Default" : "Mirror"})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null}
+                
+                <div className="mt-4 flex items-center justify-between rounded-xl bg-black/40 px-3 py-2 border border-white/5">
+                  <div className="text-left">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500">Room Code</p>
+                    <p className="text-sm font-bold text-white tracking-widest">{activeRoomCode}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newCode = generateRoomCode();
+                      setRoomCode(newCode);
+                      setActiveRoomCode(newCode);
+                      window.location.reload();
+                    }}
+                    className="rounded-lg border border-white/10 bg-white/5 p-1.5 text-stone-300 hover:bg-white/10"
+                    title="Generate New Room Code"
                   >
-                    {candidateOrigins.map((origin, idx) => (
-                      <option key={origin} value={idx}>
-                        {new URL(origin).hostname} ({idx === 0 ? "Default" : "Mirror"})
-                      </option>
-                    ))}
-                  </select>
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
                 </div>
-              ) : null}
 
-              <div className="mx-auto mt-4 flex h-40 w-40 items-center justify-center rounded-2xl bg-white p-3">
-                <QRCode value={remoteUrl} size={136} bgColor="#ffffff" fgColor="#000000" level="M" />
-              </div>
-              <p className="mt-3 break-all text-xs leading-6 text-stone-400">{remoteUrl}</p>
-              <button
-                type="button"
-                onClick={handleCopyRemoteUrl}
-                className="mt-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10"
-              >
-                {copiedRemoteUrl ? "Copied" : "Copy Link"}
-              </button>
-              {remoteNeedsPublicHost ? (
-                <div className="flex flex-col">
-                  <p className="rounded-xl border border-zinc-600/20 bg-zinc-700/10 px-3 py-2 text-xs leading-6 text-amber-100">
-                    Your phone usually cannot reach "localhost". {candidateOrigins.length > 1 ? "Try selecting a different address above." : "Make sure the backend is running on your LAN."}
+                <div className="mx-auto mt-4 flex h-40 w-40 items-center justify-center rounded-2xl bg-white p-3">
+                  <QRCode value={remoteUrl} size={136} bgColor="#ffffff" fgColor="#000000" level="M" />
+                </div>
+                <p className="mt-3 break-all text-xs leading-6 text-stone-400">{remoteUrl}</p>
+                <button
+                  type="button"
+                  onClick={handleCopyRemoteUrl}
+                  className="mt-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10"
+                >
+                  {copiedRemoteUrl ? "Copied" : "Copy Link"}
+                </button>
+                {remoteNeedsPublicHost ? (
+                  <div className="flex flex-col">
+                    <p className="rounded-xl border border-zinc-600/20 bg-zinc-700/10 px-3 py-2 text-xs leading-6 text-amber-100">
+                      Your phone usually cannot reach "localhost". {candidateOrigins.length > 1 ? "Try selecting a different address above." : "Make sure the backend is running on your LAN."}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-xs leading-6 text-stone-500">
+                    Make sure your phone is on the same Wi-Fi network to use this address.
                   </p>
-                </div>
-              ) : (
-                <p className="mt-3 text-xs leading-6 text-stone-500">
-                  Make sure your phone is on the same Wi-Fi network to use this address.
-                </p>
-              )}
+                )}
 
-              <ConnectedDevicesPanel />
+                <ConnectedDevicesPanel />
+              </div>
             </div>
           </div>
         </section>
@@ -1155,109 +1238,91 @@ export default function AdvancedPresentation() {
         </AccordionSection>
 
         <AccordionSection title="Live Previews">
-          <div className="grid gap-8 lg:grid-cols-2">
-                <div>
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">Main Preview</p>
-                  <div className="relative flex h-52 items-center justify-center overflow-hidden rounded-[1.5rem] border border-white/10 bg-black p-4 shadow-inner shadow-black/40">
-                    <SmoothBackground
-                      background={settings.background}
-                      bgType={settings.bgType}
-                      customBackground={settings.customBackground}
-                      motionVariant={settings.motionBackground}
-                    />
-                    <div
-                      className={`relative z-10 w-full rounded-2xl px-5 py-4 text-center ${settings.presentationBox ? "backdrop-blur-sm" : ""}`}
-                      style={{
-                        background: settings.presentationBox ? "rgba(0,0,0,0.45)" : "transparent",
-                        boxShadow: settings.presentationBorder ? "0 0 0 1px rgba(255,255,255,0.2) inset" : "none",
-                        maxWidth: settings.presentationPreset === "horizontal" ? "100%" : "26rem",
-                      }}
+          <div className="space-y-8">
+            <div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">Main Preview</p>
+              <div className="relative flex h-52 items-center justify-center overflow-hidden rounded-[1.5rem] border border-white/10 bg-black p-4 shadow-inner shadow-black/40">
+                <SmoothBackground
+                  background={settings.presentationGreenScreen ? "#00b140" : settings.background}
+                  bgType={settings.presentationGreenScreen ? "gradient" : settings.bgType}
+                  customBackground={settings.customBackground}
+                  motionVariant={settings.motionBackground}
+                />
+                <div
+                  className={`relative z-10 flex w-full flex-1 min-h-0 flex-col justify-center rounded-2xl px-5 py-4 text-center ${settings.presentationBox ? "backdrop-blur-sm" : ""}`}
+                  style={{
+                    background: settings.presentationBox ? "rgba(0,0,0,0.45)" : "transparent",
+                    boxShadow: settings.presentationBorder ? "0 0 0 1px rgba(255,255,255,0.2) inset" : "none",
+                    maxWidth: settings.presentationPreset === "horizontal" ? "100%" : "55rem",
+                    height: "100%",
+                  }}
+                >
+                  {settings.showReference && (
+                    <p
+                      className={`mb-2 text-xs font-bold uppercase tracking-[0.24em] text-white/90 ${
+                        settings.presentationHeaderBox
+                          ? "inline-flex rounded-full border border-white/10 bg-black/25 px-3 py-1.5"
+                          : ""
+                      }`}
+                      style={{ flexShrink: 0 }}
                     >
-                      {settings.showReference && (
-                        <p
-                          className={`mb-2 text-xs font-bold uppercase tracking-[0.24em] text-white/90 ${
-                            settings.presentationHeaderBox
-                              ? "inline-flex rounded-full border border-white/10 bg-black/25 px-3 py-1.5"
-                              : ""
-                          }`}
-                        >
-                          {previewReference}
-                        </p>
-                      )}
-                      <div ref={previewContainerRef} style={{ width: "100%", height: "100%" }}>
-                        <div ref={previewTextRef}>
-                          <PresentationPreviewText
-                            text={previewItem.text}
-                            twoLines={settings.presentationTwoLines}
-                            style={{
-                              fontSize: `${previewFontSize}px`,
-                              lineHeight: settings.presentationLineHeight || (settings.presentationTwoLines ? 1.08 : 1.2),
-                              textAlign: settings.presentationJustify,
-                              textTransform: settings.presentationUppercase ? "uppercase" : "none",
-                              textShadow: settings.presentationShadow ? "0 2px 10px rgba(0,0,0,0.75)" : "none",
-                              WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
-                              whiteSpace: settings.presentationLineWrap === false ? "nowrap" : "normal",
-                              overflowWrap: "normal",
-                              wordBreak: "normal",
-                              letterSpacing: `${settings.presentationLetterSpacing || 0}px`,
-                              color: "#ffffff",
-                              fontFamily: presentationFont,
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap justify-end gap-2">
-                        {settings.presentationShowDateTime ? (
-                          <div className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
-                            Date / Time
-                          </div>
-                        ) : null}
-                        {settings.presentationShowVerseLogo ? (
-                          <div className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
-                            Tamil Bible Premium
-                          </div>
-                        ) : null}
-                      </div>
+                      {previewReference}
+                    </p>
+                  )}
+                  <div 
+                    ref={previewContainerRef} 
+                    className={`flex flex-1 flex-col overflow-hidden w-full min-h-0 ${
+                      settings.presentationVerticalAlign === "top" ? "justify-start pt-2" :
+                      settings.presentationVerticalAlign === "bottom" ? "justify-end pb-2" : "justify-center"
+                    }`}
+                  >
+                    <div ref={previewTextRef}>
+                      <PresentationPreviewText
+                        text={previewItem.text}
+                        twoLines={settings.presentationTwoLines}
+                        settings={settings}
+                        style={{
+                          fontSize: `${previewFontSize}px`,
+                          lineHeight: settings.presentationLineHeight || (settings.presentationTwoLines ? 1.08 : 1.2),
+                          textAlign: settings.presentationJustify,
+                          textTransform: settings.presentationUppercase ? "uppercase" : "none",
+                          textShadow: settings.presentationShadow ? "0 2px 10px rgba(0,0,0,0.75)" : "none",
+                          WebkitTextStroke: settings.presentationOutline ? "1px rgba(0,0,0,0.8)" : "0px",
+                          whiteSpace: settings.presentationLineWrap === false ? "nowrap" : "normal",
+                          overflowWrap: "normal",
+                          wordBreak: "normal",
+                          letterSpacing: `${settings.presentationLetterSpacing || 0}px`,
+                          color: "#ffffff",
+                          fontFamily: presentationFont,
+                        }}
+                      />
                     </div>
                   </div>
-                </div>
 
-                <div>
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">{t.backgroundImage}</p>
-                  <div className="relative h-44 overflow-hidden rounded-[1.5rem] border border-white/10 bg-black" style={{ background: previewBackground, backgroundImage: settings.bgType === "motion" ? undefined : previewBackground, backgroundSize: "cover", backgroundPosition: "center" }}>
-                    {settings.bgType === "motion" ? <MotionBackground variant={settings.motionBackground} /> : null}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">{t.logoImage}</p>
-                  <div className="flex h-44 items-center justify-center rounded-[1.5rem] border border-white/10 bg-black/70 p-4">
-                    {settings.stageLogoImage ? (
-                      <img src={settings.stageLogoImage} alt="Stage logo" className="max-h-full max-w-full object-contain" />
-                    ) : (
-                      <span className="text-sm text-stone-500">{t.uploadLogo}</span>
-                    )}
-                  </div>
-                  <div className="mt-3 flex gap-3">
-                    <button onClick={() => logoInputRef.current?.click()} className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15">{t.uploadLogo}</button>
-                    {settings.stageLogoImage ? (
-                      <button onClick={() => updateSettings({ stageLogoImage: null, presentationShowCustomLogo: false })} className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15">{t.removeLogo}</button>
+                  <div className="mt-3 flex flex-wrap justify-end gap-2">
+                    {settings.presentationShowDateTime ? (
+                      <div className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
+                        Date / Time
+                      </div>
+                    ) : null}
+                    {settings.presentationShowVerseLogo ? (
+                      <div className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
+                        Tamil Bible Premium
+                      </div>
                     ) : null}
                   </div>
-                  <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
                 </div>
               </div>
+            </div>
 
-              <div className="space-y-5">
-                <div>
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">Stage Preview</p>
-                  <div
-                    className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-black"
-                    style={{ background: stageBackground, backgroundSize: "cover", backgroundPosition: "center" }}
-                  >
-                    <div
-                      className="grid min-h-72 gap-4 p-4"
+            <div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">Stage Preview</p>
+              <div
+                className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-black"
+                style={{ background: stageBackground, backgroundSize: "cover", backgroundPosition: "center" }}
+              >
+                <div
+                  className="grid min-h-72 gap-4 p-4"
                       style={{
                         background: settings.stageGreenScreen
                           ? "transparent"
@@ -1312,6 +1377,7 @@ export default function AdvancedPresentation() {
                                 <PresentationPreviewText
                                   text={previewItem.text}
                                   twoLines={settings.presentationTwoLines}
+                                  settings={settings}
                                   style={{
                                     lineHeight: settings.presentationLineHeight || (settings.presentationTwoLines ? 1.05 : 1.2),
                                     textAlign: settings.presentationJustify || "center",
@@ -1328,6 +1394,14 @@ export default function AdvancedPresentation() {
                                 />
                               </div>
                             </div>
+                            {settings.stagePreset !== "horizontal" && settings.stageMessage ? (
+                              <div className={`mt-4 rounded-2xl border px-4 py-3 text-center ${settings.stageMessageVisible ? 'animate-pulse border-white/10 bg-red-500/20' : 'border-white/10 bg-white/5 opacity-70'}`}>
+                                {!settings.stageMessageVisible && (
+                                  <span className="mb-1 block text-[9px] font-bold uppercase tracking-widest text-stone-400">Draft (Not Live)</span>
+                                )}
+                                <p className={`text-sm font-bold ${settings.stageMessageVisible ? 'text-red-200' : 'text-stone-300'}`}>{settings.stageMessage}</p>
+                              </div>
+                            ) : null}
                           </>
                         )}
                       </div>
@@ -1366,6 +1440,7 @@ export default function AdvancedPresentation() {
                     </div>
                   </div>
                 </div>
+
           </div>
         </AccordionSection>
       </div>

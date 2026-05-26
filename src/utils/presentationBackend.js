@@ -2,13 +2,16 @@ const SERMON_EVENT_NAME = "app-presentation-sermon-sync";
 const SERVER_INFO_EVENT_NAME = "app-presentation-server-info";
 const REMOTE_STATE_KEY = "appRemotePresentationState";
 const API_BASE = import.meta.env.VITE_PRESENTATION_API_BASE || "";
+import { getRoomCode } from "./roomCode";
 
 let streamStarted = false;
 let remoteSermonCache = readRemoteSermonCache();
 let serverInfoCache = null;
 
 function getApiUrl(path) {
-  return `${API_BASE}${path}`;
+  const url = new URL(`${API_BASE}${path}`, window.location.origin);
+  url.searchParams.set("room", getRoomCode());
+  return url.toString();
 }
 
 function emit(name, detail) {

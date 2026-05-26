@@ -768,7 +768,14 @@ export default function Verses() {
   };
 
   const handleAddToSermon = (item) => {
-    addSermonQueueItem(item);
+    let pushItem = { ...item };
+    if (isBilingual && !pushItem.text.includes('\n')) {
+      const engText = getEnglishVerseText(item.verse);
+      if (engText) {
+        pushItem.text = `${pushItem.text}\n${engText}`;
+      }
+    }
+    addSermonQueueItem(pushItem);
     setSermonSuccess(`${item.bookTamil} ${item.chapter}:${item.verse} added to Sermon mode`);
     window.setTimeout(() => {
       setSermonSuccess("");
@@ -863,7 +870,7 @@ export default function Verses() {
 
     if (settings.syncLiveVerse) {
       const pushItem = { ...verseItem };
-      if (settings.presentationBilingual) {
+      if (isBilingual) {
         const engText = getEnglishVerseText(verse.verse);
         if (engText) pushItem.text = `${pushItem.text}\n${engText}`;
       }
@@ -879,7 +886,7 @@ export default function Verses() {
       return;
     }
 
-    openReader(`/reader/${encodeURIComponent(decodedBook)}/${chapter}/${verse.verse}`, navigate);
+    openReader(`/reader/${encodeURIComponent(decodedBook)}/${chapter}/${verse.verse}`, navigate, { state: { returnTo: location.pathname + location.search } });
   };
 
   const toggleAutoScroll = (direction) => {
@@ -1149,7 +1156,7 @@ export default function Verses() {
                     onClick={() => {
                       if (settings.syncLiveVerse) {
                         const pushItem = { ...getVerseItem(v) };
-                        if (settings.presentationBilingual) {
+                        if (isBilingual) {
                           const engText = getEnglishVerseText(v.verse);
                           if (engText) pushItem.text = `${pushItem.text}\n${engText}`;
                         }
@@ -1160,7 +1167,8 @@ export default function Verses() {
                       } else {
                         openReader(
                           `/reader/${encodeURIComponent(decodedBook)}/${chapter}/${v.verse}`,
-                          navigate
+                          navigate,
+                          { state: { returnTo: location.pathname + location.search } }
                         );
                       }
                     }}

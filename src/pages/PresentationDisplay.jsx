@@ -5,7 +5,7 @@ import useAppSettings from "../hooks/useAppSettings";
 import useLibraryData from "../hooks/useLibraryData";
 import { setSermonDisplayMode } from "../utils/libraryData";
 import MotionBackground from "../components/MotionBackground";
-import { getPresentationFontFamily, getCustomGradientString } from "../utils/appearance";
+import { getPresentationFontFamily, getCustomGradientString, getFontCss, TAMIL_FONT_OPTIONS, FONT_FAMILY_OPTIONS } from "../utils/appearance";
 
 const backgrounds = [
   "/bg/bg1.jpg",
@@ -23,6 +23,10 @@ function getReaderBackground(settings) {
     "linear-gradient(to right, #0f2027, #203a43, #2c5364)",
     "linear-gradient(to right, #000428, #004e92)",
   ];
+
+  if (settings.presentationGreenScreen) {
+    return "#00b140";
+  }
 
   if (settings.bgType === "motion") {
     return "#000000";
@@ -100,16 +104,39 @@ function splitIntoPresentationLines(text = "", lineCount = 2) {
   return lines.filter(Boolean);
 }
 
-function PresentationText({ text, style, className = "", twoLines = false, innerRef }) {
-  const lines = twoLines ? splitIntoPresentationLines(text, 2) : [text];
+function PresentationText({ text, style, className = "", twoLines = false, innerRef, isBilingual, settings }) {
+  let lines;
+  if (text.includes('\n')) {
+    lines = text.split('\n');
+  } else {
+    lines = twoLines ? splitIntoPresentationLines(text, 2) : [text];
+  }
+
+  const getLineStyle = (index) => {
+    const baseMargin = { marginTop: index > 0 ? "0.8em" : 0, marginBottom: 0 };
+    if (!isBilingual || lines.length !== 2) return { ...style, ...baseMargin };
+    
+    if (index === 0) {
+      return { 
+        ...style, 
+        ...baseMargin,
+        fontFamily: getFontCss(settings?.tamilFontFamily, TAMIL_FONT_OPTIONS)
+      };
+    } else {
+      return { 
+        ...style, 
+        ...baseMargin,
+        fontFamily: getFontCss(settings?.fontFamily, FONT_FAMILY_OPTIONS)
+      };
+    }
+  };
 
   return (
     <div className={className} ref={innerRef}>
       {lines.map((line, index) => (
         <p
           key={`${line}-${index}`}
-          className={index > 0 ? "mt-[0.22em]" : ""}
-          style={{ ...style, margin: 0 }}
+          style={getLineStyle(index)}
         >
           {line}
         </p>
@@ -118,7 +145,7 @@ function PresentationText({ text, style, className = "", twoLines = false, inner
   );
 }
 
-function FitTextContainer({ text, baseStyle, className, maxFontSize, minFontSize, twoLines }) {
+function FitTextContainer({ text, baseStyle, className, maxFontSize, minFontSize, twoLines, isBilingual, settings }) {
   const containerRef = useRef(null);
   const textRef = useRef(null);
   const [dynamicFontSize, setDynamicFontSize] = useState(maxFontSize);
@@ -172,7 +199,10 @@ function FitTextContainer({ text, baseStyle, className, maxFontSize, minFontSize
 
   return (
     <div 
-      className="flex-1 min-h-0 flex flex-col justify-center overflow-hidden w-full h-full" 
+      className={`flex-1 min-h-0 flex flex-col ${
+        settings?.presentationVerticalAlign === "top" ? "justify-start pt-8" :
+        settings?.presentationVerticalAlign === "bottom" ? "justify-end pb-8" : "justify-center"
+      } overflow-hidden w-full h-full`}
       ref={containerRef}
       style={{ fontSize: `${dynamicFontSize}px` }}
     >
@@ -182,6 +212,8 @@ function FitTextContainer({ text, baseStyle, className, maxFontSize, minFontSize
         className={className}
         style={baseStyle}
         twoLines={twoLines}
+        isBilingual={isBilingual}
+        settings={settings}
       />
     </div>
   );
@@ -223,8 +255,11 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
   const announcementTitle = settings.presentationAnnouncementTitle || "Welcome";
   const announcementBody = settings.presentationAnnouncementBody || "Service will begin shortly.";
   const presentationFont = getPresentationFontFamily(settings);
+  const isBilingual = settings.language === "ta-en";
   const liveReference = activeItem
-    ? `${activeItem.bookTamil} ${activeItem.chapter}:${activeItem.verse}`
+    ? isBilingual && activeItem.bookEnglish && activeItem.bookEnglish !== activeItem.bookTamil
+      ? `${activeItem.bookTamil} / ${activeItem.bookEnglish} ${activeItem.chapter}:${activeItem.verse}`
+      : `${activeItem.bookTamil || activeItem.bookEnglish} ${activeItem.chapter}:${activeItem.verse}`
     : null;
   const mainMaxFont = Math.max(Math.min(settings.presentationMaxFontSize || 90, 72), 28);
   const mainTextStyle = {
@@ -374,6 +409,8 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
                   maxFontSize={stageMaxFont}
                   minFontSize={18}
                   twoLines={settings.presentationTwoLines}
+                  isBilingual={isBilingual}
+                  settings={settings}
                 />
               </div>
             </>
@@ -388,6 +425,12 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
               <div className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-white/85">
                 Tamil Bible Premium
               </div>
+            </div>
+          ) : null}
+
+          {settings.stagePreset !== "horizontal" && settings.stageMessageVisible && settings.stageMessage ? (
+            <div className="mt-8 flex-shrink-0 animate-pulse rounded-3xl border border-white/10 bg-red-500/20 px-10 py-6 text-center">
+              <p className="text-3xl font-bold text-red-200">{settings.stageMessage}</p>
             </div>
           ) : null}
         </div>
@@ -413,7 +456,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
                   <p className="shrink-0 text-xl font-bold text-white">
                     {nextItem.bookTamil} {nextItem.chapter}:{nextItem.verse}
                   </p>
-                  <p className="mt-4 min-h-0 flex-1 overflow-hidden text-ellipsis text-lg leading-9 text-stone-200">
+                  <p className="mt-4 min-h-0 flex-1 overflow-hidden text-ellipsis whitespace-pre-wrap text-lg leading-9 text-stone-200">
                     {nextItem.text}
                   </p>
                 </div>
@@ -494,6 +537,8 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
                 maxFontSize={mainMaxFont}
                 minFontSize={20}
                 twoLines={settings.presentationTwoLines}
+                isBilingual={isBilingual}
+                settings={settings}
               />
             </div>
           </>
@@ -668,7 +713,7 @@ export default function PresentationDisplay() {
             : "background 220ms ease-in-out",
       }}
     >
-      {visibleState.displayMode !== "black" && !isStage && settings.bgType === "motion" ? (
+      {visibleState.displayMode !== "black" && !isStage && settings.bgType === "motion" && !settings.presentationGreenScreen ? (
         <MotionBackground variant={settings.motionBackground} />
       ) : null}
       {visibleState.displayMode !== "black" ? (

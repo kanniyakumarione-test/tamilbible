@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState, useMemo } from "react";
 
 import useAppSettings from "../hooks/useAppSettings";
@@ -21,6 +21,7 @@ import { getBookLabelFromMetadata } from "../utils/bibleData";
 export default function Reader() {
   const { book, chapter, verse } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const decodedBook = decodeURIComponent(book);
   const chapterPath = `/${encodeURIComponent(decodedBook)}/${chapter}`;
 
@@ -139,7 +140,7 @@ export default function Reader() {
 
       if (!active && hadFullscreenRef.current) {
         navigatedRef.current = true;
-        navigate(chapterPath, { replace: true });
+        navigate(location.state?.returnTo || chapterPath, { replace: true });
       }
     };
 
@@ -176,16 +177,16 @@ export default function Reader() {
         document
           .exitFullscreen?.()
           .then(() => {
-            navigate(chapterPath, { replace: true });
+            navigate(location.state?.returnTo || chapterPath, { replace: true });
           })
           .catch(() => {
-            navigate(chapterPath, { replace: true });
+            navigate(location.state?.returnTo || chapterPath, { replace: true });
           });
 
         return;
       }
 
-      navigate(chapterPath, { replace: true });
+      navigate(location.state?.returnTo || chapterPath, { replace: true });
     };
 
     const changeVerse = (newIndex) => {
@@ -199,6 +200,7 @@ export default function Reader() {
       verseChangeTimeoutRef.current = window.setTimeout(() => {
         navigate(`/reader/${encodeURIComponent(decodedBook)}/${chapter}/${nextVerse.verse}`, {
           replace: true,
+          state: location.state,
         });
         setFade(true);
         verseChangeTimeoutRef.current = null;

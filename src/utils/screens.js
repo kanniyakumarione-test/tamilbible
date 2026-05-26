@@ -32,3 +32,29 @@ export async function getPresentationScreens() {
     },
   ];
 }
+
+export async function openPresentationWindow(path, targetScreenValue, windowName) {
+  const features = ["noopener=yes", "noreferrer=yes", "popup=yes"];
+
+  if ("getScreenDetails" in window) {
+    try {
+      const details = await window.getScreenDetails();
+      const detectedScreens = details.screens?.length ? details.screens : [details.currentScreen];
+      const targetScreen =
+        detectedScreens.find(
+          (screen, index) => getScreenValue(screen, index) === targetScreenValue
+        ) || details.currentScreen;
+
+      if (targetScreen) {
+        features.push(`left=${targetScreen.availLeft ?? targetScreen.left ?? 0}`);
+        features.push(`top=${targetScreen.availTop ?? targetScreen.top ?? 0}`);
+        features.push(`width=${targetScreen.availWidth ?? targetScreen.width ?? 1280}`);
+        features.push(`height=${targetScreen.availHeight ?? targetScreen.height ?? 720}`);
+      }
+    } catch {
+      // Fall back to a normal popup when screen placement is not permitted.
+    }
+  }
+
+  window.open(path, windowName, features.join(","));
+}

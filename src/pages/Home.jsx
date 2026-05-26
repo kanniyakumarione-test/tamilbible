@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import useAppSettings from "../hooks/useAppSettings";
 import useLibraryData from "../hooks/useLibraryData";
@@ -44,6 +44,7 @@ function StatCard({ label, value, sublabel, icon }) {
 
 export default function Home() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [settings] = useAppSettings();
   const libraryData = useLibraryData();
   const { canInstall, isInstalled, installInstructions, promptInstall } = useInstallPrompt();
@@ -237,7 +238,7 @@ export default function Home() {
                   if (typeof window !== "undefined" && window.innerWidth < 768) {
                     setVerseOfDayPopupOpen(true);
                   } else if (verseOfTheDay) {
-                    openReader(`/reader/${encodeURIComponent(verseOfTheDay.bookEnglish)}/${verseOfTheDay.chapter}/${verseOfTheDay.verse}`, navigate);
+                    openReader(`/reader/${encodeURIComponent(verseOfTheDay.bookEnglish)}/${verseOfTheDay.chapter}/${verseOfTheDay.verse}`, navigate, { state: { returnTo: location.pathname + location.search } });
                   }
                 }}
                 disabled={!verseOfTheDay}
