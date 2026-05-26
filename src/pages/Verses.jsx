@@ -1288,9 +1288,11 @@ export default function Verses() {
                         : undefined,
                     }}
                   >
-                    <button 
+                    <div 
                       onClick={() => openVerse(v)}
-                      className="block min-w-0 w-full overflow-hidden text-left"
+                      role="button"
+                      tabIndex={0}
+                      className="block min-w-0 w-full overflow-hidden text-left cursor-pointer"
                     >
                       {/* Note & Prayer Swipe Overlay */}
                       <div 
@@ -1376,7 +1378,7 @@ export default function Verses() {
                           ) : null}
                         </div>
                       )}
-                    </button>
+                    </div>
 
                     <div className="mt-4 flex flex-wrap justify-center gap-2 md:mt-5 md:border-t md:border-white/5 md:pt-4">
                       <button
@@ -1613,22 +1615,17 @@ export default function Verses() {
               </p>
             ) : null}
 
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setCrossReferencesViewer(selectedVerse)}
-                className="w-full rounded-2xl border border-fuchsia-500/30 bg-fuchsia-500/10 px-4 py-3 text-sm font-semibold text-fuchsia-100 shadow-lg"
-              >
-                {["en", "ta-en"].includes(settings.language) ? "Related" : "தொடர்பு"}
-              </button>
-              <button
-                type="button"
-                onClick={() => openShareDesigner(selectedVerse)}
-                className="w-full rounded-2xl bg-[#000000] px-4 py-3 text-sm font-semibold text-white shadow-lg"
-              >
-                {t.share}
-              </button>
-            </div>
+            {settings.pastorsMode && (
+              <div className="mt-5">
+                <button
+                  type="button"
+                  onClick={() => setCrossReferencesViewer(selectedVerse)}
+                  className="w-full rounded-2xl border border-fuchsia-500/30 bg-fuchsia-500/10 px-4 py-3 text-sm font-semibold text-fuchsia-100 shadow-lg"
+                >
+                  {["en", "ta-en"].includes(settings.language) ? "Related" : "தொடர்பு"}
+                </button>
+              </div>
+            )}
                 </>
               );
             })()}
