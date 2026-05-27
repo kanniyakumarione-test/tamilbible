@@ -798,6 +798,18 @@ html.lenis body {
   }
 }
 
+@keyframes marquee {
+  0% { transform: translateX(100vw); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+  animation: marquee 25s linear infinite;
+  display: inline-flex;
+  white-space: nowrap;
+  will-change: transform;
+}
+
 /* Ensure no horizontal overflow on any page */
 .app-shell,
 .app-page,
@@ -815,6 +827,151 @@ html.lenis body {
   }
 }
 
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes zoomInFade {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideLeftFade {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideRightFade {
+  from { opacity: 0; transform: translateX(-40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideDownFade {
+  from { opacity: 0; transform: translateY(-40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes zoomOutFade {
+  from { opacity: 0; transform: scale(1.05); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes blurIn {
+  from { opacity: 0; filter: blur(10px); }
+  to { opacity: 1; filter: blur(0); }
+}
+
+@keyframes bounceInFade {
+  0% { opacity: 0; transform: scale(0.9) translateY(20px); }
+  60% { opacity: 1; transform: scale(1.02) translateY(-5px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes flipXFade {
+  from { opacity: 0; transform: perspective(600px) rotateX(90deg); }
+  to { opacity: 1; transform: perspective(600px) rotateX(0deg); }
+}
+
+@keyframes flipYFade {
+  from { opacity: 0; transform: perspective(600px) rotateY(90deg); }
+  to { opacity: 1; transform: perspective(600px) rotateY(0deg); }
+}
+
+@keyframes swingIn {
+  0% { opacity: 0; transform: rotateX(-100deg); transform-origin: top; }
+  60% { opacity: 1; transform: rotateX(20deg); transform-origin: top; }
+  100% { opacity: 1; transform: rotateX(0deg); transform-origin: top; }
+}
+
+@keyframes spinIn {
+  from { opacity: 0; transform: rotate(-180deg) scale(0.5); }
+  to { opacity: 1; transform: rotate(0) scale(1); }
+}
+
+@keyframes focusIn {
+  from { opacity: 0; transform: scale(1.1); filter: blur(12px); }
+  to { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+@keyframes dropBounce {
+  0% { opacity: 0; transform: translateY(-80px); }
+  60% { opacity: 1; transform: translateY(15px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
 .animate-fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
+  animation: fadeIn 0.4s ease-in-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUpFade 0.4s ease-out forwards;
+}
+
+.animate-zoom-in {
+  animation: zoomInFade 0.4s ease-out forwards;
+}
+
+.animate-slide-left {
+  animation: slideLeftFade 0.4s ease-out forwards;
+}
+
+.animate-slide-right {
+  animation: slideRightFade 0.4s ease-out forwards;
+}
+
+.animate-slide-down {
+  animation: slideDownFade 0.4s ease-out forwards;
+}
+
+.animate-zoom-out {
+  animation: zoomOutFade 0.4s ease-out forwards;
+}
+
+.animate-blur-in {
+  animation: blurIn 0.5s ease-out forwards;
+}
+
+.animate-bounce-in {
+  animation: bounceInFade 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.animate-flip-x {
+  animation: flipXFade 0.5s ease-out forwards;
+}
+
+.animate-flip-y {
+  animation: flipYFade 0.5s ease-out forwards;
+}
+
+.animate-swing-in {
+  animation: swingIn 0.6s ease-out forwards;
+}
+
+.animate-spin-in {
+  animation: spinIn 0.5s ease-out forwards;
+}
+
+.animate-focus-in {
+  animation: focusIn 0.6s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+}
+
+.animate-drop-bounce {
+  animation: dropBounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.animate-none {
+  animation: none;
 }

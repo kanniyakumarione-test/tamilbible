@@ -41,7 +41,7 @@ export async function optimizeImage(source) {
     
     // Draw and compress
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL("image/jpeg", COMPRESSION_QUALITY);
+    return canvas.toDataURL("image/webp", COMPRESSION_QUALITY);
   } finally {
     if (source instanceof File || source instanceof Blob) {
       URL.revokeObjectURL(fileUrl);

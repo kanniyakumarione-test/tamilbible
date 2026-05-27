@@ -92,7 +92,7 @@ export default function SermonControl() {
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
                       <p className="text-base font-semibold text-white">
-                        {item.bookTamil} {item.chapter}:{item.verse}
+                        {item.isSong ? item.bookTamil : `${item.bookTamil} ${item.chapter}:${item.verse}`}
                       </p>
                       <p className="mt-2 line-clamp-3 text-sm leading-7 text-stone-300 whitespace-pre-wrap">
                         {item.text}

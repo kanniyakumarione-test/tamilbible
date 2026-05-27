@@ -38,6 +38,8 @@ function normalizeSermon(sermon) {
     queue: Array.isArray(sermon?.queue) ? sermon.queue : [],
     activeItem: sermon?.activeItem || null,
     displayMode: sermon?.displayMode || "live",
+    timerTarget: Number(sermon?.timerTarget) || null,
+    tickerText: typeof sermon?.tickerText === 'string' ? sermon.tickerText : "",
     updatedAt: Number(sermon?.updatedAt) || Date.now(),
   };
 }

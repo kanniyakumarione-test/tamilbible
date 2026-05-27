@@ -76,6 +76,16 @@ function NavGlyph({ active, variant }) {
     );
   }
 
+  if (variant === "music") {
+    return (
+      <svg viewBox="0 0 24 24" className={`h-5 w-5 transition-colors ${strokeClass} ${fillClass}`} fill="currentColor" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M9 18V5l12-2v13" />
+        <circle cx="6" cy="18" r="3" />
+        <circle cx="18" cy="16" r="3" />
+      </svg>
+    );
+  }
+
   return (
     <svg viewBox="0 0 24 24" className={`h-5 w-5 transition-colors ${strokeClass} ${fillClass}`} fill="currentColor" stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="4" y="5" width="7" height="6" rx="1.9" fill={active ? "currentColor" : "none"} className={active ? "opacity-20" : ""} />

@@ -45,6 +45,7 @@ export const defaultLibraryData = {
     displayMode: "live",
     updatedAt: null,
   },
+  savedSongs: [],
 };
 
 async function getChapterIndex() {
@@ -124,6 +125,7 @@ function normalizeLibraryData(stored) {
     bookmarks: stored?.bookmarks || [],
     favorites: stored?.favorites || [],
     history: stored?.history || [],
+    savedSongs: stored?.savedSongs || [],
   };
 }
 
@@ -435,13 +437,30 @@ export function setActiveSermonItem(item) {
   return next;
 }
 
-export function setSermonDisplayMode(displayMode) {
+export function setSermonDisplayMode(displayMode, timerTarget = null) {
   const data = getLibraryData();
   const next = {
     ...data,
     sermon: {
       ...data.sermon,
       displayMode,
+      timerTarget,
+      updatedAt: Date.now(),
+    },
+  };
+
+  saveLibraryData(next);
+  void pushPresentationSermonState(next.sermon);
+  return next;
+}
+
+export function setSermonTickerText(tickerText) {
+  const data = getLibraryData();
+  const next = {
+    ...data,
+    sermon: {
+      ...data.sermon,
+      tickerText,
       updatedAt: Date.now(),
     },
   };
@@ -464,6 +483,31 @@ export function removeSermonQueueItem(itemId) {
   const activeItem =
     data.sermon.activeItem?.id === itemId ? queue[0] || null : data.sermon.activeItem;
   return setSermonQueue(queue, activeItem);
+}
+
+export function addSavedSong(songData) {
+  const data = getLibraryData();
+  const existingIndex = data.savedSongs.findIndex((s) => s.id === songData.id);
+  if (existingIndex >= 0) {
+    data.savedSongs[existingIndex] = { ...data.savedSongs[existingIndex], ...songData, updatedAt: Date.now() };
+  } else {
+    data.savedSongs.push({ ...songData, updatedAt: Date.now() });
+  }
+  saveLibraryData(data);
+}
+
+export function removeSavedSong(id) {
+  const data = getLibraryData();
+  data.savedSongs = data.savedSongs.filter((song) => song.id !== id);
+  saveLibraryData(data);
+}
+
+export function importSavedSongs(songsArray) {
+  if (!Array.isArray(songsArray)) return false;
+  const data = getLibraryData();
+  data.savedSongs = songsArray;
+  saveLibraryData(data);
+  return true;
 }
 
 export function showNextSermonItem() {

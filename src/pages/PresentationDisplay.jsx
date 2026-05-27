@@ -249,7 +249,53 @@ function ClockBadge({ compact = false }) {
   );
 }
 
-function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
+function CountdownTimer({ targetTime, title, subtitle }) {
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  useEffect(() => {
+    if (!targetTime) return;
+    const calc = () => {
+      const now = Date.now();
+      const diff = Math.max(0, targetTime - now);
+      setTimeLeft(diff);
+    };
+    calc();
+    const id = window.setInterval(calc, 200);
+    return () => window.clearInterval(id);
+  }, [targetTime]);
+
+  const totalSeconds = Math.floor(timeLeft / 1000);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  
+  return (
+    <div className="relative z-10 flex min-h-screen items-center justify-center px-8">
+      <div className="text-center">
+        {title && <p className="mb-6 text-2xl md:text-3xl font-semibold uppercase tracking-[0.45em] text-stone-300">{title}</p>}
+        <div className="font-mono text-[8rem] md:text-[14rem] font-bold leading-none tracking-tighter text-white tabular-nums drop-shadow-2xl">
+          {m.toString().padStart(2, '0')}:{s.toString().padStart(2, '0')}
+        </div>
+        {subtitle && <p className="mt-8 text-2xl md:text-4xl text-stone-200">{subtitle}</p>}
+      </div>
+    </div>
+  );
+}
+
+function StageClock() {
+  const [time, setTime] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  
+  return (
+    <div className="absolute top-6 right-8 text-4xl font-mono font-bold text-amber-400 bg-black/50 px-4 py-2 rounded-xl backdrop-blur-sm border border-white/10">
+      {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+    </div>
+  );
+}
+
+function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode, timerTarget }) {
   const title = settings.presentationTitle || "Tamil Bible Premium";
   const subtitle = settings.presentationSubtitle || "Live Scripture Display";
   const announcementTitle = settings.presentationAnnouncementTitle || "Welcome";
@@ -257,9 +303,11 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
   const presentationFont = getPresentationFontFamily(settings);
   const isBilingual = settings.language === "ta-en";
   const liveReference = activeItem
-    ? isBilingual && activeItem.bookEnglish && activeItem.bookEnglish !== activeItem.bookTamil
-      ? `${activeItem.bookTamil} / ${activeItem.bookEnglish} ${activeItem.chapter}:${activeItem.verse}`
-      : `${activeItem.bookTamil || activeItem.bookEnglish} ${activeItem.chapter}:${activeItem.verse}`
+    ? activeItem.isSong 
+      ? null
+      : isBilingual && activeItem.bookEnglish && activeItem.bookEnglish !== activeItem.bookTamil
+        ? `${activeItem.bookTamil} / ${activeItem.bookEnglish} ${activeItem.chapter}:${activeItem.verse}`
+        : `${activeItem.bookTamil || activeItem.bookEnglish} ${activeItem.chapter}:${activeItem.verse}`
     : null;
   const mainMaxFont = Math.max(Math.min(settings.presentationMaxFontSize || 90, 72), 28);
   const mainTextStyle = {
@@ -300,21 +348,25 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
     }
 
     if (displayMode === "logo") {
+      if (settings.presentationShowCustomLogo && settings.stageLogoImage) {
+        return (
+          <div className="relative z-50 flex h-screen w-screen items-center justify-center bg-black">
+            <img
+              src={settings.stageLogoImage}
+              alt="Presentation logo"
+              className="h-full w-full object-contain"
+            />
+          </div>
+        );
+      }
+
       return (
         <div className="relative z-10 flex min-h-screen items-center justify-center px-8">
-          <div className="rounded-[2rem] border border-white/10 bg-black/35 px-10 py-10 backdrop-blur-md">
-            {settings.presentationShowCustomLogo && settings.stageLogoImage ? (
-              <img
-                src={settings.stageLogoImage}
-                alt="Presentation logo"
-                className="max-h-[45vh] max-w-[70vw] object-contain"
-              />
-            ) : (
-              <div className="text-center">
-                <p className="text-5xl font-bold text-white">{title}</p>
-                <p className="mt-4 text-xl text-stone-300">{subtitle}</p>
-              </div>
-            )}
+          <div className="rounded-[2rem] border border-white/10 bg-black/35 px-16 py-12 backdrop-blur-md">
+            <div className="text-center">
+              <p className="text-5xl font-bold text-white">{title}</p>
+              <p className="mt-4 text-xl text-stone-300">{subtitle}</p>
+            </div>
           </div>
         </div>
       );
@@ -348,6 +400,20 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
       );
     }
 
+    if (displayMode === "timer") {
+      return (
+        <CountdownTimer 
+          targetTime={timerTarget} 
+          title={settings.presentationAnnouncementTitle || "Service begins in"} 
+          subtitle={settings.presentationAnnouncementBody || "Please silence your mobile phones."} 
+        />
+      );
+    }
+
+    if (displayMode === "clear") {
+      return null;
+    }
+
   }
 
   if (isStage) {
@@ -364,7 +430,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
         }}
       >
         <div
-          className={`flex h-full min-h-0 flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-black/25 px-8 py-10 backdrop-blur-md ${
+          className={`flex h-full min-h-0 flex-col overflow-hidden px-8 py-10 ${
             settings.stageWindowView ? "justify-start" : "justify-center"
           }`}
           style={{
@@ -388,19 +454,25 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
             </div>
           ) : null}
           {activeItem ? (
-            <>
+            <div key={activeItem.id} className={`flex-1 flex flex-col min-h-0 ${
+              settings.presentationTransition === false ? "animate-none" :
+              settings.presentationTransition === true ? "animate-fade-in" :
+              `animate-${settings.presentationTransition || "fade-in"}`
+            }`}>
               <p
                 className="hidden text-lg font-semibold uppercase tracking-[0.35em]"
                 style={{ color: settings.stageTextColor2 || "#f8fafc" }}
               >
 
               </p>
-              <p
-                className="text-4xl font-bold shrink-0"
-                style={{ color: settings.stageTextColor2 || "#f8fafc" }}
-              >
-                {liveReference}
-              </p>
+              {liveReference && (
+                <p
+                  className="text-4xl font-bold shrink-0"
+                  style={{ color: settings.stageTextColor2 || "#f8fafc" }}
+                >
+                  {liveReference}
+                </p>
+              )}
               <div className="mt-8 flex-1 min-h-0 flex flex-col">
                 <FitTextContainer
                   text={activeItem.text}
@@ -413,7 +485,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
                   settings={settings}
                 />
               </div>
-            </>
+            </div>
           ) : (
             <p className="text-4xl font-bold text-white">
               Add a verse to the sermon queue to start the stage screen.
@@ -454,7 +526,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
               {nextItem ? (
                 <div className="flex min-h-0 flex-col overflow-hidden">
                   <p className="shrink-0 text-xl font-bold text-white">
-                    {nextItem.bookTamil} {nextItem.chapter}:{nextItem.verse}
+                    {nextItem.isSong ? nextItem.bookTamil : `${nextItem.bookTamil} ${nextItem.chapter}:${nextItem.verse}`}
                   </p>
                   <p className="mt-4 min-h-0 flex-1 overflow-hidden text-ellipsis whitespace-pre-wrap text-lg leading-9 text-stone-200">
                     {nextItem.text}
@@ -496,18 +568,24 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
         }}
       >
         {activeItem ? (
-          <>
+          <div key={activeItem.id} className={`flex-1 flex flex-col min-h-0 w-full ${
+            settings.presentationTransition === false ? "animate-none" :
+            settings.presentationTransition === true ? "animate-fade-in" :
+            `animate-${settings.presentationTransition || "fade-in"}`
+          }`}>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
-                <div
-                  className={`inline-flex max-w-full items-center rounded-full px-4 py-2 ${
-                    settings.presentationHeaderBox ? "border border-white/10 bg-black/25" : ""
-                  }`}
-                >
-                  <p className="truncate text-3xl font-bold text-white">
-                    {liveReference}
-                  </p>
-                </div>
+                {liveReference && (
+                  <div
+                    className={`inline-flex max-w-full items-center rounded-full px-4 py-2 ${
+                      settings.presentationHeaderBox ? "border border-white/10 bg-black/25" : ""
+                    }`}
+                  >
+                    <p className="truncate text-3xl font-bold text-white">
+                      {liveReference}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
@@ -518,13 +596,11 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
                   </div>
                 ) : null}
                 {settings.presentationShowCustomLogo && settings.stageLogoImage ? (
-                  <div className="flex h-14 w-20 items-center justify-center rounded-2xl border border-white/10 bg-black/25 p-2">
-                    <img
-                      src={settings.stageLogoImage}
-                      alt="Presentation logo"
-                      className="max-h-full max-w-full object-contain"
-                    />
-                  </div>
+                  <img
+                    src={settings.stageLogoImage}
+                    alt="Presentation logo"
+                    className="h-14 w-auto object-contain drop-shadow-lg"
+                  />
                 ) : null}
               </div>
             </div>
@@ -541,7 +617,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode }) {
                 settings={settings}
               />
             </div>
-          </>
+          </div>
         ) : (
           <div className="py-16 text-center">
             <p className="text-4xl font-bold text-white">No active sermon verse yet.</p>
@@ -575,30 +651,38 @@ export default function PresentationDisplay() {
   const overlayColor = settings.stageOverlayColor || "#000000";
   const overlayOpacity = settings.presentationOverlayOpacity ?? 0.72;
   const displayMode = libraryData.sermon.displayMode || "live";
-  const transitionKey = `${mode}:${displayMode}:${activeItem?.id || "none"}:${nextItem?.id || "none"}`;
+  const timerTarget = libraryData.sermon.timerTarget || null;
+  const tickerText = libraryData.sermon.tickerText || "";
+  const transitionKey = `${mode}:${displayMode}:${activeItem?.id || "none"}:${nextItem?.id || "none"}:${timerTarget || "none"}:${tickerText}`;
   const [renderState, setRenderState] = useState({
     activeItem,
     nextItem,
     displayMode,
+    timerTarget,
+    tickerText,
     transitionKey,
   });
   const [isFading, setIsFading] = useState(false);
   const transitionTimerRef = useRef(null);
   const fadeFrameRef = useRef(null);
   const visibleState =
-    settings.presentationTransition === false
+    settings.presentationTransition === false || settings.presentationTransition === "none"
       ? {
           activeItem,
           nextItem,
           displayMode,
+          timerTarget,
+          tickerText,
         }
       : {
           activeItem: renderState.activeItem,
           nextItem: renderState.nextItem,
           displayMode: renderState.displayMode,
+          timerTarget: renderState.timerTarget,
+          tickerText: renderState.tickerText,
         };
   const effectiveIsFading =
-    settings.presentationTransition === false ? false : isFading;
+    settings.presentationTransition === false || settings.presentationTransition === "none" ? false : isFading;
 
   useEffect(() => {
     const displayElement = displayRef.current;
@@ -623,7 +707,15 @@ export default function PresentationDisplay() {
       return undefined;
     }
 
-    if (settings.presentationTransition === false) {
+    if (settings.presentationTransition === false || settings.presentationTransition === "none") {
+      setRenderState({
+        activeItem,
+        nextItem,
+        displayMode,
+        timerTarget,
+        tickerText,
+        transitionKey,
+      });
       return undefined;
     }
 
@@ -641,6 +733,8 @@ export default function PresentationDisplay() {
         activeItem,
         nextItem,
         displayMode,
+        timerTarget,
+        tickerText,
         transitionKey,
       });
       setIsFading(false);
@@ -661,6 +755,8 @@ export default function PresentationDisplay() {
     activeItem,
     nextItem,
     displayMode,
+    timerTarget,
+    tickerText,
     transitionKey,
     renderState.transitionKey,
     settings.presentationTransition,
@@ -704,26 +800,24 @@ export default function PresentationDisplay() {
       ref={displayRef}
       className="relative flex h-screen w-screen flex-col overflow-hidden text-white"
       style={{
-        background: visibleState.displayMode === "black" ? "#000000" : background,
+        background: displayMode === "black" ? "#000000" : background,
         backgroundSize: "cover",
         backgroundPosition: "center",
         transition:
-          settings.presentationTransition === false
+          settings.presentationTransition === false || settings.presentationTransition === "none"
             ? "none"
             : "background 220ms ease-in-out",
       }}
     >
-      {visibleState.displayMode !== "black" && !isStage && settings.bgType === "motion" && !settings.presentationGreenScreen ? (
+      {displayMode !== "black" && !isStage && settings.bgType === "motion" && !settings.presentationGreenScreen ? (
         <MotionBackground variant={settings.motionBackground} />
       ) : null}
-      {visibleState.displayMode !== "black" ? (
+      {displayMode !== "black" ? (
         <div
-          className={`absolute inset-0 transition-opacity duration-200 ease-in-out ${
-            effectiveIsFading ? "opacity-0" : "opacity-100"
-          }`}
+          className="absolute inset-0"
           style={{
             transitionDuration:
-              settings.presentationTransition === false ? "0ms" : undefined,
+              settings.presentationTransition === false || settings.presentationTransition === "none" ? "0ms" : undefined,
             background: isStage
               ? `linear-gradient(180deg, ${overlayColor}${Math.round((overlayOpacity * 0.45) * 255).toString(16).padStart(2, "0")}, ${overlayColor}${Math.round(overlayOpacity * 255).toString(16).padStart(2, "0")})`
               : `linear-gradient(180deg, rgba(7,17,31,${Math.max(overlayOpacity - 0.38, 0.12)}), rgba(7,17,31,${overlayOpacity}))`,
@@ -733,20 +827,19 @@ export default function PresentationDisplay() {
 
       {isEnabled ? (
         <div
-          className={`relative z-10 flex flex-1 min-h-0 w-full flex-col transition-opacity duration-200 ease-in-out ${
-            effectiveIsFading ? "opacity-0" : "opacity-100"
-          }`}
+          className="relative z-10 flex flex-1 min-h-0 w-full flex-col"
           style={{
             transitionDuration:
-              settings.presentationTransition === false ? "0ms" : undefined,
+              settings.presentationTransition === false || settings.presentationTransition === "none" ? "0ms" : undefined,
           }}
         >
           <DisplayBody
             isStage={isStage}
             settings={settings}
-            activeItem={visibleState.activeItem}
-            nextItem={visibleState.nextItem}
-            displayMode={visibleState.displayMode}
+            activeItem={activeItem}
+            nextItem={nextItem}
+            displayMode={displayMode}
+            timerTarget={timerTarget}
           />
         </div>
       ) : (
@@ -764,6 +857,20 @@ export default function PresentationDisplay() {
           </div>
         </div>
       )}
+
+      {/* Scrolling Ticker (Marquee) */}
+      {!isStage && visibleState.tickerText ? (
+        <div className="absolute bottom-0 left-0 right-0 z-50 flex items-center bg-black/60 backdrop-blur-lg border-t border-white/10 h-16 md:h-20 overflow-hidden">
+          <div className="whitespace-nowrap animate-marquee">
+            <span className="text-2xl md:text-3xl font-bold text-white tracking-wide drop-shadow-md">
+              {visibleState.tickerText}
+            </span>
+            <span className="text-2xl md:text-3xl font-bold text-white tracking-wide drop-shadow-md ml-[100vw]">
+              {visibleState.tickerText}
+            </span>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

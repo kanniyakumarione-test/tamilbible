@@ -1,6 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { QRCode } from "react-qr-code";
+import toast from "react-hot-toast";
 
 import useAppSettings from "../hooks/useAppSettings";
 import useLibraryData from "../hooks/useLibraryData";
@@ -9,6 +10,10 @@ import {
   removeSermonQueueItem,
   setActiveSermonItem,
   setSermonDisplayMode,
+  setSermonTickerText,
+  addSavedSong,
+  removeSavedSong,
+  importSavedSongs,
 } from "../utils/libraryData";
 import {
   fetchPresentationServerInfo,
@@ -64,28 +69,68 @@ function AccordionSection({ title, defaultOpen = true, children }) {
 }
 
 const SelectControl = memo(function SelectControl({ label, value, onChange, options }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = options.find((o) => o.value === value) || options[0];
+
   return (
-    <label className="block">
-      <p className="mb-2 text-sm text-stone-300">{label}</p>
-      <div className="relative">
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full appearance-none rounded-2xl border border-white/10 bg-black/20 px-4 py-3 pr-10 text-sm text-slate-100 outline-none transition hover:bg-black/30 focus:border-amber-500/40"
-        >
-          {options.map((option) => (
-            <option key={option.value} value={option.value} className="bg-white text-black">
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-stone-400">
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
-          </svg>
+    <>
+      <div className="block">
+        <p className="mb-1.5 text-xs font-semibold text-stone-400">{label}</p>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsOpen(true)}
+            className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-left text-sm text-slate-100 outline-none transition hover:bg-black/60 focus:border-amber-500/40"
+          >
+            <span className="truncate">{selectedOption?.label || value}</span>
+            <svg className="ml-2 h-4 w-4 shrink-0 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
         </div>
       </div>
-    </label>
+
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="relative z-10 w-full max-w-sm animate-fade-in overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-2xl">
+            <div className="border-b border-white/10 bg-slate-800/50 px-5 py-4">
+              <h3 className="text-base font-bold text-white">{label}</h3>
+            </div>
+            <div 
+              className="max-h-[60vh] overflow-y-auto p-2 custom-scroll overscroll-contain"
+              onWheel={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+            >
+              {options.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    onChange(option.value);
+                    setIsOpen(false);
+                  }}
+                  className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-sm transition ${
+                    value === option.value 
+                      ? "bg-amber-500/20 text-amber-400 font-semibold" 
+                      : "text-stone-300 hover:bg-white/5 hover:text-white"
+                  }`}
+                >
+                  {option.label}
+                  {value === option.value && (
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 });
 
@@ -472,6 +517,83 @@ export default function AdvancedPresentation() {
     : `${window.location.origin}/presentation-remote`;
   
   const [activeRoomCode, setActiveRoomCode] = useState(getRoomCode());
+  const [customTimerMinutes, setCustomTimerMinutes] = useState(5);
+  const [tickerInput, setTickerInput] = useState(libraryData?.sermon?.tickerText || "");
+  
+  // Custom Song State
+  const [songTitle, setSongTitle] = useState("");
+  const [lyricsText, setLyricsText] = useState("");
+  const [songSlides, setSongSlides] = useState([]);
+  
+  const handleProcessLyrics = (textToProcess = lyricsText) => {
+    if (!textToProcess.trim()) return;
+    const stanzas = textToProcess.split(/\n\s*\n/).filter(s => s.trim());
+    setSongSlides(stanzas);
+  };
+
+  const handleSaveSongToLibrary = () => {
+    if (!songTitle.trim() || !lyricsText.trim()) {
+      toast.error("Please enter a title and lyrics to save.");
+      return;
+    }
+    const songId = `song-${Date.now()}`;
+    addSavedSong({ id: songId, title: songTitle.trim(), lyrics: lyricsText.trim() });
+    toast.success("Song saved to library!");
+  };
+
+  const fileInputRef = useRef(null);
+
+  const exportSongLibrary = () => {
+    if (!libraryData?.savedSongs || libraryData.savedSongs.length === 0) {
+      toast.error("Library is empty. Nothing to backup.");
+      return;
+    }
+    const dataStr = JSON.stringify(libraryData.savedSongs, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Worship_Songs_Backup_${new Date().toISOString().split("T")[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("Song Library backup downloaded!");
+  };
+
+  const importSongLibrary = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        if (importSavedSongs(parsed)) {
+          toast.success("Song Library restored successfully!");
+        } else {
+          toast.error("Invalid backup file format.");
+        }
+      } catch (err) {
+        toast.error("Failed to parse backup file.");
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = ""; // Reset input
+  };
+
+  const handleSendToPresentation = (text, index) => {
+    const item = {
+      id: `song-${Date.now()}-${index}`,
+      bookTamil: songTitle.trim(),
+      chapter: "",
+      verse: "",
+      isSong: true,
+      text: text.trim(),
+    };
+    setActiveSermonItem(item);
+    setSermonDisplayMode("live");
+    toast.success("Projected instantly!");
+  };
+
   const remoteUrl = `${baseRemoteUrl}?room=${activeRoomCode}`;
   const remoteNeedsPublicHost = !remoteOrigin || isLocalOnlyHost(new URL(remoteUrl).hostname);
   const [copiedRemoteUrl, setCopiedRemoteUrl] = useState(false);
@@ -528,7 +650,7 @@ export default function AdvancedPresentation() {
 
   const previewItem = activeItem || { text: t.previewVerse, reference: t.previewRef };
   const previewReference = activeItem
-    ? `${activeItem.bookTamil} ${activeItem.chapter}:${activeItem.verse}`
+    ? (activeItem.isSong ? null : `${activeItem.bookTamil} ${activeItem.chapter}:${activeItem.verse}`)
     : t.previewRef;
   const presentationFont = getPresentationFontFamily(settings);
 
@@ -599,7 +721,9 @@ export default function AdvancedPresentation() {
       while (lo <= hi) {
         const mid = Math.floor((lo + hi) / 2);
         textEl.style.fontSize = `${mid}px`;
-        const fits = textEl.scrollHeight <= container.clientHeight && textEl.scrollWidth <= container.clientWidth;
+        const textRect = textEl.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const fits = textRect.height <= containerRect.height && textRect.width <= containerRect.width;
 
         if (fits) {
           best = mid;
@@ -621,7 +745,16 @@ export default function AdvancedPresentation() {
       mounted = false;
       if (rafId) window.cancelAnimationFrame(rafId);
     };
-  }, [activeItem?.text, settings.presentationMaxFontSize, settings.presentationJustify]);
+  }, [
+    activeItem?.text,
+    settings.presentationMaxFontSize,
+    settings.presentationJustify,
+    settings.presentationLineWrap,
+    settings.presentationTwoLines,
+    settings.presentationUppercase,
+    settings.presentationFont,
+    settings.presentationLineHeight,
+  ]);
 
   useEffect(() => {
     let mounted = true;
@@ -642,7 +775,9 @@ export default function AdvancedPresentation() {
       while (lo <= hi) {
         const mid = Math.floor((lo + hi) / 2);
         textEl.style.fontSize = `${mid}px`;
-        const fits = textEl.scrollHeight <= container.clientHeight && textEl.scrollWidth <= container.clientWidth;
+        const textRect = textEl.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const fits = textRect.height <= containerRect.height && textRect.width <= containerRect.width;
 
         if (fits) {
           best = mid;
@@ -662,11 +797,20 @@ export default function AdvancedPresentation() {
       mounted = false;
       if (rafId) window.cancelAnimationFrame(rafId);
     };
-  }, [activeItem?.text, settings.presentationMaxFontSize, settings.presentationJustify]);
+  }, [
+    activeItem?.text,
+    settings.presentationMaxFontSize,
+    settings.presentationJustify,
+    settings.presentationLineWrap,
+    settings.presentationTwoLines,
+    settings.presentationUppercase,
+    settings.presentationFont,
+    settings.presentationLineHeight,
+  ]);
 
   return (
     <div className="hidden px-4 pb-6 pt-4 md:block md:px-6 md:pt-6">
-      <div className="w-full space-y-5">
+      <div className="w-full space-y-3">
         <section className="overflow-hidden rounded-[2rem] border border-white/10  p-5 shadow-2xl shadow-black/30 md:p-7">
           <p className="text-xs font-semibold uppercase tracking-[0.34em] text-stone-400">
             {t.screenSetup}
@@ -725,7 +869,7 @@ export default function AdvancedPresentation() {
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">{t.liveQueue || "LIVE QUEUE"}</p>
               <h2 className="mt-1 text-2xl font-bold text-white">
-                {activeItem ? `${activeItem.bookTamil} ${activeItem.chapter}:${activeItem.verse}` : (t.noActiveVerse || "No active verse")}
+                {activeItem ? (activeItem.isSong ? activeItem.bookTamil : `${activeItem.bookTamil} ${activeItem.chapter}:${activeItem.verse}`) : (t.noActiveVerse || "No active verse")}
               </h2>
             </div>
             <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white">
@@ -757,7 +901,7 @@ export default function AdvancedPresentation() {
                   <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                     <div>
                       <p className="text-base font-semibold text-white">
-                        {item.bookTamil} {item.chapter}:{item.verse}
+                        {item.isSong ? item.bookTamil : `${item.bookTamil} ${item.chapter}:${item.verse}`}
                       </p>
                       <p className="mt-2 line-clamp-2 text-sm leading-7 text-stone-300">
                         {item.text}
@@ -792,51 +936,51 @@ export default function AdvancedPresentation() {
             <div className="flex flex-col space-y-6">
               <div className="grid gap-5 sm:grid-cols-2">
                 <label className="block">
-                  <p className="mb-2 text-sm text-stone-300">{t.titleSlideTitle || "Title Slide Title"}</p>
+                  <p className="mb-1.5 text-xs font-semibold text-stone-400">{t.titleSlideTitle || "Title Slide Title"}</p>
                   <input
                     type="text"
                     value={settings.presentationTitle}
                     onChange={(e) => updateSettings({ presentationTitle: e.target.value })}
-                    className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
+                    className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-slate-100 outline-none transition focus:border-amber-500/40"
                   />
                 </label>
 
                 <label className="block">
-                  <p className="mb-2 text-sm text-stone-300">{t.titleSlideSubtitle || "Title Slide Subtitle"}</p>
+                  <p className="mb-1.5 text-xs font-semibold text-stone-400">{t.titleSlideSubtitle || "Title Slide Subtitle"}</p>
                   <input
                     type="text"
                     value={settings.presentationSubtitle}
                     onChange={(e) => updateSettings({ presentationSubtitle: e.target.value })}
-                    className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
+                    className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-slate-100 outline-none transition focus:border-amber-500/40"
                   />
                 </label>
               </div>
 
               <div className="grid gap-5 sm:grid-cols-2">
                 <label className="block">
-                  <p className="mb-2 text-sm text-stone-300">{t.announcementTitle || "Announcement Title"}</p>
+                  <p className="mb-1.5 text-xs font-semibold text-stone-400">{t.announcementTitle || "Announcement Title"}</p>
                   <input
                     type="text"
                     value={settings.presentationAnnouncementTitle}
                     onChange={(e) => updateSettings({ presentationAnnouncementTitle: e.target.value })}
-                    className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
+                    className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-slate-100 outline-none transition focus:border-amber-500/40"
                   />
                 </label>
 
                 <label className="block">
-                  <p className="mb-2 text-sm text-stone-300">{t.announcementBody || "Announcement Body"}</p>
+                  <p className="mb-1.5 text-xs font-semibold text-stone-400">{t.announcementBody || "Announcement Body"}</p>
                   <textarea
                     value={settings.presentationAnnouncementBody}
                     onChange={(e) => updateSettings({ presentationAnnouncementBody: e.target.value })}
-                    rows={3}
-                    className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
+                    rows={2}
+                    className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-slate-100 outline-none transition focus:border-amber-500/40"
                   />
                 </label>
               </div>
 
               <div>
-                <p className="mb-2 text-sm text-stone-300">{t.logoImage || "Logo Image"}</p>
-                <div className="flex h-36 items-center justify-center rounded-[1.5rem] border border-white/10 bg-black/40 p-4">
+                <p className="mb-1.5 text-xs font-semibold text-stone-400">{t.logoImage || "Logo Image"}</p>
+                <div className="flex h-24 items-center justify-center rounded-[1rem] border border-white/10 bg-black/40 p-4">
                   {settings.stageLogoImage ? (
                     <img src={settings.stageLogoImage} alt="Presentation logo" className="max-h-full max-w-full object-contain" />
                   ) : (
@@ -892,6 +1036,68 @@ export default function AdvancedPresentation() {
                   >
                     {t.black || "Black"}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setSermonDisplayMode("clear")}
+                    className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${displayMode === "clear" ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/30" : "bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30"}`}
+                  >
+                    Clear Text
+                  </button>
+                  
+                  <div className="flex items-center gap-1 rounded-xl bg-amber-500/10 p-1 pl-3">
+                    <input 
+                      type="number" 
+                      value={customTimerMinutes} 
+                      onChange={(e) => setCustomTimerMinutes(Number(e.target.value))}
+                      className="w-8 bg-transparent text-amber-400 font-bold outline-none text-center"
+                      min={1}
+                      max={99}
+                    />
+                    <span className="text-amber-500/50 text-xs font-semibold mr-1">m</span>
+                    <button
+                      type="button"
+                      onClick={() => setSermonDisplayMode("timer", Date.now() + customTimerMinutes * 60000 + 1000)}
+                      className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${displayMode === "timer" ? "bg-amber-400 text-black shadow-lg shadow-amber-400/30" : "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"}`}
+                    >
+                      Start Timer
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 border-t border-white/10 pt-6">
+                <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">
+                  Scrolling Ticker (Marquee)
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={tickerInput}
+                    onChange={(e) => setTickerInput(e.target.value)}
+                    placeholder="Enter announcement (e.g., Youth Meeting Friday 6PM)"
+                    className="flex-1 rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white placeholder-stone-500 outline-none focus:border-amber-500/50"
+                  />
+                  {libraryData?.sermon?.tickerText ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSermonTickerText("");
+                      }}
+                      className="rounded-xl bg-red-500/20 px-5 py-3 text-sm font-semibold text-red-400 transition hover:bg-red-500/30"
+                    >
+                      Stop
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (tickerInput.trim()) setSermonTickerText(tickerInput.trim());
+                      }}
+                      className="rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-black transition hover:bg-amber-400 whitespace-nowrap"
+                    >
+                      Show Ticker
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -1001,7 +1207,155 @@ export default function AdvancedPresentation() {
           </div>
         </section>
 
-        <div className="grid gap-5 md:grid-cols-2">
+        {/* Custom Song Builder Panel */}
+        <section className="mt-8 rounded-[1.6rem] border border-white/10 bg-[#000000] p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold uppercase tracking-widest text-white">
+              Custom Song / Slides
+            </h2>
+          </div>
+          
+          <div className="flex flex-col xl:flex-row gap-8">
+            {/* Left Column: Saved Songs Library */}
+            <div className="w-full xl:w-1/3 flex flex-col border-r border-white/10 xl:pr-8">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-sm font-bold uppercase tracking-widest text-stone-400">Library</h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={exportSongLibrary}
+                    title="Backup Library to File"
+                    className="rounded bg-white/5 p-1.5 text-stone-400 hover:bg-white/10 hover:text-white transition"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Restore Library from File"
+                    className="rounded bg-white/5 p-1.5 text-stone-400 hover:bg-white/10 hover:text-white transition"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                  </button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept=".json"
+                    onChange={importSongLibrary}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+              <div className="flex-1 min-h-[250px] max-h-[400px] overflow-y-auto custom-scroll pr-2 flex flex-col gap-2">
+                {libraryData?.savedSongs?.length > 0 ? (
+                  libraryData.savedSongs.map((song) => (
+                    <div key={song.id} className="group relative rounded-xl border border-white/5 bg-white/5 p-3 transition hover:border-amber-500/50">
+                      <p className="font-bold text-white truncate pr-8">{song.title}</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSongTitle(song.title);
+                          setLyricsText(song.lyrics);
+                          handleProcessLyrics(song.lyrics);
+                          toast.success("Song loaded!");
+                        }}
+                        className="mt-2 w-full rounded-lg bg-white/10 py-1.5 text-xs font-bold uppercase tracking-wider text-stone-300 hover:bg-amber-500 hover:text-black transition"
+                      >
+                        Load Song
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeSavedSong(song.id)}
+                        className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="m-auto text-center text-stone-500">
+                    <p className="text-xs">No saved songs yet.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Middle Column: Editor */}
+            <div className="w-full xl:w-1/3 flex flex-col">
+              <h3 className="mb-4 text-sm font-bold uppercase tracking-widest text-stone-400">Editor</h3>
+              <input
+                type="text"
+                placeholder="Song Title (e.g. How Great is Our God)"
+                value={songTitle}
+                onChange={(e) => setSongTitle(e.target.value)}
+                className="mb-4 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-stone-500 outline-none focus:border-amber-500/50"
+              />
+              <textarea
+                placeholder="Paste lyrics here...&#10;Separate stanzas with a blank line to automatically split slides."
+                value={lyricsText}
+                onChange={(e) => setLyricsText(e.target.value)}
+                onWheel={(e) => e.stopPropagation()}
+                rows={8}
+                className="w-full flex-1 resize-y rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-stone-500 outline-none focus:border-amber-500/50 scrollbar-none"
+              ></textarea>
+              <div className="mt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleProcessLyrics()}
+                  className="flex-1 rounded-xl bg-amber-500 px-4 py-3 text-sm font-bold text-black transition hover:bg-amber-400"
+                >
+                  Generate Slides
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveSongToLibrary}
+                  className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-400 transition hover:bg-emerald-500/20"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+            
+            {/* Right Column: Slides */}
+            <div className="w-full xl:w-1/3 flex flex-col">
+              <h3 className="mb-4 text-sm font-bold uppercase tracking-widest text-stone-400">Generated Slides</h3>
+              <div 
+                className="flex-1 flex flex-col min-h-[250px] max-h-[400px] overflow-y-auto custom-scroll pr-2 gap-3"
+                onWheel={(e) => e.stopPropagation()}
+              >
+                {songSlides.length === 0 ? (
+                  <div className="m-auto text-center text-stone-500">
+                    <p className="text-sm">No slides generated yet.</p>
+                  </div>
+                ) : (
+                  songSlides.map((slide, index) => (
+                    <div key={index} className="group relative rounded-xl border border-white/5 bg-white/5 p-4 transition hover:border-amber-500/30">
+                      <div className="absolute left-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-[10px] font-bold text-stone-400">
+                        {index + 1}
+                      </div>
+                      <p className="pl-6 whitespace-pre-wrap text-sm text-stone-300">
+                        {slide}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleSendToPresentation(slide, index)}
+                        className="absolute right-3 top-3 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white opacity-0 transition group-hover:opacity-100 hover:bg-white/20"
+                      >
+                        Project
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="grid gap-5 md:grid-cols-2 mt-8">
           <div className="rounded-[1.6rem] border border-white/10 bg-[#000000] p-4">
             <div className="mb-4">
               <CheckboxControl
@@ -1081,7 +1435,7 @@ export default function AdvancedPresentation() {
 
         <AccordionSection title={t.mainPresentationScreenSetup || "Main Presentation Screen Setup"}>
           <div className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="space-y-5">
+            <div className="flex flex-col gap-4">
               <SelectControl
                 label={t.presets}
                 value={settings.presentationPreset}
@@ -1092,80 +1446,107 @@ export default function AdvancedPresentation() {
                 ]}
               />
 
-              <label className="block">
-                <p className="mb-2 text-sm text-stone-300">{t.maximumFontSize}</p>
-                <input
-                  type="number"
-                  min={30}
-                  max={180}
-                  value={settings.presentationMaxFontSize}
-                  onChange={(e) =>
-                    updateSettings({
-                      presentationMaxFontSize: Number(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
-                />
-              </label>
-
               <SelectControl
-                label={t.textAlign}
-                value={settings.presentationJustify}
-                onChange={(value) => updateSettings({ presentationJustify: value })}
+                label="Slide Transition"
+                value={settings.presentationTransition || "fade-in"}
+                onChange={(value) => updateSettings({ presentationTransition: value })}
                 options={[
-                  { value: "left", label: "Left" },
-                  { value: "center", label: t.center },
-                  { value: "right", label: "Right" },
+                  { value: "fade-in", label: "Smooth Fade" },
+                  { value: "slide-up", label: "Slide Up" },
+                  { value: "slide-down", label: "Slide Down" },
+                  { value: "slide-left", label: "Slide Left" },
+                  { value: "slide-right", label: "Slide Right" },
+                  { value: "zoom-in", label: "Zoom In" },
+                  { value: "zoom-out", label: "Zoom Out" },
+                  { value: "blur-in", label: "Blur In" },
+                  { value: "bounce-in", label: "Bounce Pop" },
+                  { value: "flip-x", label: "Flip Horizontal" },
+                  { value: "flip-y", label: "Flip Vertical" },
+                  { value: "swing-in", label: "Swing Drop" },
+                  { value: "spin-in", label: "Spin & Fade" },
+                  { value: "focus-in", label: "Focus In" },
+                  { value: "drop-bounce", label: "Drop Bounce" },
+                  { value: "none", label: "None (Instant)" },
                 ]}
               />
 
-              <SelectControl
-                label={t.verticalAlign || "Vertical Alignment"}
-                value={settings.presentationVerticalAlign || "center"}
-                onChange={(value) => updateSettings({ presentationVerticalAlign: value })}
-                options={[
-                  { value: "top", label: "Top" },
-                  { value: "center", label: t.center || "Center" },
-                  { value: "bottom", label: "Bottom" },
-                ]}
-              />
-
-              <label className="block">
-                <p className="mb-2 text-sm text-stone-300">{t.letterSpacing || "Letter Spacing"}</p>
-                <input
-                  type="number"
-                  min={0}
-                  max={12}
-                  value={settings.presentationLetterSpacing || 0}
-                  onChange={(e) =>
-                    updateSettings({
-                      presentationLetterSpacing: Number(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
+              <div className="grid gap-4 sm:grid-cols-2">
+                <SelectControl
+                  label={t.textAlign}
+                  value={settings.presentationJustify}
+                  onChange={(value) => updateSettings({ presentationJustify: value })}
+                  options={[
+                    { value: "left", label: "Left" },
+                    { value: "center", label: t.center },
+                    { value: "right", label: "Right" },
+                  ]}
                 />
-              </label>
 
-              <label className="block mt-4">
-                <p className="mb-2 text-sm text-stone-300">{t.lineSpacing || "Line Spacing"}</p>
-                <input
-                  type="number"
-                  step="0.1"
-                  min={1}
-                  max={3}
-                  value={settings.presentationLineHeight || 1.2}
-                  onChange={(e) =>
-                    updateSettings({
-                      presentationLineHeight: Number(e.target.value) || 1.2,
-                    })
-                  }
-                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
+                <SelectControl
+                  label={t.verticalAlign || "Vertical Alignment"}
+                  value={settings.presentationVerticalAlign || "center"}
+                  onChange={(value) => updateSettings({ presentationVerticalAlign: value })}
+                  options={[
+                    { value: "top", label: "Top" },
+                    { value: "center", label: t.center || "Center" },
+                    { value: "bottom", label: "Bottom" },
+                  ]}
                 />
-              </label>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <label className="block">
+                  <p className="mb-1.5 text-xs font-semibold text-stone-400">{t.maximumFontSize}</p>
+                  <input
+                    type="number"
+                    min={30}
+                    max={180}
+                    value={settings.presentationMaxFontSize}
+                    onChange={(e) =>
+                      updateSettings({
+                        presentationMaxFontSize: Number(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-slate-100 outline-none transition focus:border-amber-500/40"
+                  />
+                </label>
+
+                <label className="block">
+                  <p className="mb-1.5 text-xs font-semibold text-stone-400">{t.letterSpacing || "Letter Spacing"}</p>
+                  <input
+                    type="number"
+                    min={0}
+                    max={12}
+                    value={settings.presentationLetterSpacing || 0}
+                    onChange={(e) =>
+                      updateSettings({
+                        presentationLetterSpacing: Number(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-slate-100 outline-none transition focus:border-amber-500/40"
+                  />
+                </label>
+
+                <label className="block">
+                  <p className="mb-1.5 text-xs font-semibold text-stone-400">{t.lineSpacing || "Line Spacing"}</p>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min={1}
+                    max={3}
+                    value={settings.presentationLineHeight || 1.2}
+                    onChange={(e) =>
+                      updateSettings({
+                        presentationLineHeight: Number(e.target.value) || 1.2,
+                      })
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-slate-100 outline-none transition focus:border-amber-500/40"
+                  />
+                </label>
+              </div>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
-              <CheckboxControl label={t.enableTransition} checked={settings.presentationTransition} onChange={(value) => updateSettings({ presentationTransition: value })} />
+            <div className="grid gap-3 content-start md:grid-cols-2">
               <CheckboxControl label={t.enableOutline} checked={settings.presentationOutline} onChange={(value) => updateSettings({ presentationOutline: value })} />
               <CheckboxControl label={t.enableShadow} checked={settings.presentationShadow} onChange={(value) => updateSettings({ presentationShadow: value })} />
               <CheckboxControl label={t.enableUppercase} checked={settings.presentationUppercase} onChange={(value) => updateSettings({ presentationUppercase: value })} />
@@ -1184,7 +1565,7 @@ export default function AdvancedPresentation() {
         </AccordionSection>
 
         <AccordionSection title={t.stageviewScreenSetup || "Stageview Screen Setup"}>
-          <div className="space-y-5">
+          <div className="flex flex-col gap-4">
             <div className="grid gap-4 md:grid-cols-2">
               <SelectControl
                 label={t.presets}
@@ -1197,8 +1578,8 @@ export default function AdvancedPresentation() {
               />
 
               <div>
-                <p className="mb-2 text-sm text-stone-300">{t.stageScreenStyle}</p>
-                <div className="grid gap-3 md:grid-cols-2">
+                <p className="mb-1.5 text-xs font-semibold text-stone-400">{t.stageScreenStyle}</p>
+                <div className="grid gap-3 content-start md:grid-cols-2">
                   <CheckboxControl label={t.greenScreen} checked={settings.stageGreenScreen} onChange={(value) => updateSettings({ stageGreenScreen: value })} />
                   <CheckboxControl label={t.windowView} checked={settings.stageWindowView} onChange={(value) => updateSettings({ stageWindowView: value })} />
                   <CheckboxControl label={t.smallWindow} checked={settings.stageSmallWindow} onChange={(value) => updateSettings({ stageSmallWindow: value })} />
@@ -1208,12 +1589,12 @@ export default function AdvancedPresentation() {
             </div>
 
             <label className="block">
-              <p className="mb-2 text-sm text-stone-300">{t.message}</p>
+              <p className="mb-1.5 text-xs font-semibold text-stone-400">{t.message}</p>
               <textarea
                 value={settings.stageMessage}
                 onChange={(e) => updateSettings({ stageMessage: e.target.value })}
-                rows={3}
-                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-zinc-600/40"
+                rows={2}
+                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-slate-100 outline-none transition focus:border-amber-500/40"
               />
             </label>
 
@@ -1228,13 +1609,13 @@ export default function AdvancedPresentation() {
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {backgrounds.map((bg, index) => (
                     <BackgroundTile key={`stage-bg-${bg}`} active={settings.stageStillBackground === index} onClick={() => updateSettings({ stageStillBackground: index })}>
-                      <img src={bg} alt={`Still background ${index + 1}`} className="h-24 w-full object-cover" />
+                      <img src={bg} alt={`Still background ${index + 1}`} className="h-16 w-full object-cover" />
                     </BackgroundTile>
                   ))}
                 </div>
               </div>
 
-              <div className="space-y-5">
+              <div className="space-y-3">
                 <div>
                   <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">{t.textColor}</p>
                   <div className="flex flex-wrap gap-3">
@@ -1272,7 +1653,7 @@ export default function AdvancedPresentation() {
                     height: "100%",
                   }}
                 >
-                  {settings.showReference && (
+                  {settings.showReference && previewReference && (
                     <p
                       className={`mb-2 text-xs font-bold uppercase tracking-[0.24em] text-white/90 ${
                         settings.presentationHeaderBox
@@ -1291,13 +1672,12 @@ export default function AdvancedPresentation() {
                       settings.presentationVerticalAlign === "bottom" ? "justify-end pb-2" : "justify-center"
                     }`}
                   >
-                    <div ref={previewTextRef}>
+                    <div ref={previewTextRef} className="shrink-0" style={{ fontSize: `${previewFontSize}px` }}>
                       <PresentationPreviewText
                         text={previewItem.text}
                         twoLines={settings.presentationTwoLines}
                         settings={settings}
                         style={{
-                          fontSize: `${previewFontSize}px`,
                           lineHeight: settings.presentationLineHeight || (settings.presentationTwoLines ? 1.08 : 1.2),
                           textAlign: settings.presentationJustify,
                           textTransform: settings.presentationUppercase ? "uppercase" : "none",
@@ -1312,7 +1692,22 @@ export default function AdvancedPresentation() {
                         }}
                       />
                     </div>
-                  </div>
+                    {/* Ticker Text Preview */}
+                  {libraryData?.sermon?.tickerText ? (
+                    <div className="absolute bottom-0 left-0 right-0 z-50 h-[10%] min-h-[1.5rem] overflow-hidden rounded-b-2xl bg-gradient-to-t from-black/80 to-transparent">
+                      <div className="flex h-full items-center bg-black/40 px-4 backdrop-blur-md">
+                        <div className="animate-marquee whitespace-nowrap">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-white">
+                            {libraryData.sermon.tickerText}
+                          </span>
+                          <span className="ml-8 text-[10px] font-bold uppercase tracking-widest text-white">
+                            {libraryData.sermon.tickerText}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
 
                   <div className="mt-3 flex flex-wrap justify-end gap-2">
                     {settings.presentationShowDateTime ? (
@@ -1348,8 +1743,8 @@ export default function AdvancedPresentation() {
                       }}
                     >
                       <div
-                        className={`rounded-[1.25rem] border border-white/10 bg-black/25 p-4 backdrop-blur-sm ${
-                          settings.stageWindowView ? "flex flex-col justify-start" : ""
+                        className={`flex h-full min-h-0 flex-col overflow-hidden p-4 ${
+                          settings.stageWindowView ? "justify-start" : "justify-center"
                         }`}
                       >
                         {displayMode === "title" ? (
@@ -1381,13 +1776,15 @@ export default function AdvancedPresentation() {
                           </div>
                         ) : (
                           <>
-                            <p
-                              className="text-sm font-bold"
-                              style={{ color: settings.stageTextColor2 || "#f8fafc" }}
-                            >
-                              {previewReference}
-                            </p>
-                            <div ref={stagePreviewContainerRef} style={{ width: "100%", height: "100%" }}>
+                            {previewReference && (
+                              <p
+                                className="text-sm font-bold"
+                                style={{ color: settings.stageTextColor2 || "#f8fafc" }}
+                              >
+                                {previewReference}
+                              </p>
+                            )}
+                            <div ref={stagePreviewContainerRef} className="flex-1 min-h-0 w-full flex flex-col justify-center">
                               <div ref={stagePreviewTextRef} className="mt-4" style={{ fontSize: `${stagePreviewFontSize}px` }}>
                                 <PresentationPreviewText
                                   text={previewItem.text}
@@ -1442,7 +1839,7 @@ export default function AdvancedPresentation() {
                             {nextItem ? (
                               <>
                                 <p className="mt-3 text-sm font-bold text-white">
-                                  {nextItem.bookTamil} {nextItem.chapter}:{nextItem.verse}
+                                  {nextItem.isSong ? nextItem.bookTamil : `${nextItem.bookTamil} ${nextItem.chapter}:${nextItem.verse}`}
                                 </p>
                                 <p className="mt-2 text-sm leading-6 text-stone-200">{nextItem.text}</p>
                               </>

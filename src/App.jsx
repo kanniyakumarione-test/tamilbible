@@ -22,6 +22,7 @@ const Search = lazy(() => import("./pages/Search"));
 const Reader = lazy(() => import("./pages/Reader"));
 const Settings = lazy(() => import("./pages/Settings"));
 const AdvancedPresentation = lazy(() => import("./pages/AdvancedPresentation"));
+const Songs = lazy(() => import("./pages/Songs"));
 const Library = lazy(() => import("./pages/Library"));
 const SermonMode = lazy(() => import("./pages/SermonMode"));
 const SermonControl = lazy(() => import("./pages/SermonControl"));
@@ -88,6 +89,7 @@ function Layout() {
               <Route path="/settings" element={<Settings />} />
               <Route path="/library" element={<Library />} />
               <Route path="/advanced-presentation" element={<AdvancedPresentation />} />
+              <Route path="/songs" element={<Songs />} />
               <Route path="/presentation/:mode" element={<PresentationDisplay />} />
               <Route path="/presentation-remote" element={<PresentationRemote />} />
               <Route path="/sermon-mode" element={<SermonMode />} />
