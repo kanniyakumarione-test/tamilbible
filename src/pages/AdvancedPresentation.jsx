@@ -6,6 +6,18 @@ import toast from "react-hot-toast";
 import useAppSettings from "../hooks/useAppSettings";
 import useLibraryData from "../hooks/useLibraryData";
 import SmoothBackground from "../components/SmoothBackground";
+
+const TAMIL_KEYBOARD_ROWS = [
+  ["அ", "ஆ", "இ", "ஈ", "உ", "ஊ", "எ", "ஏ", "ஐ", "ஒ", "ஓ", "ஔ"],
+  ["க", "ங", "ச", "ஞ", "ட", "ண", "த", "ந", "ப", "ம", "ய", "ர", "ல", "வ", "ழ", "ள", "ற", "ன"],
+  ["ஜ", "ஷ", "ஸ", "ஹ", "க்ஷ", "ஶ"],
+];
+
+const TAMIL_SYMBOL_ROWS = [
+  ["ஃ", "ா", "ி", "ீ", "ு", "ூ"],
+  ["ெ", "ே", "ை", "ொ", "ோ", "ௌ", "்"],
+];
+
 import {
   removeSermonQueueItem,
   setActiveSermonItem,
@@ -24,6 +36,7 @@ import {
   resetPresentationSyncStream,
   pushPresentationSermonState,
 } from "../utils/presentationBackend";
+import { matchTamilTextQuery, tamilToTanglish, consonantKey, normalizeRoman } from "../utils/bookSearch";
 import {
   getActiveRemoteDevices,
   getRemotePresenceEventName,
@@ -65,6 +78,40 @@ function AccordionSection({ title, defaultOpen = true, children }) {
       </summary>
       <div className="p-5">{children}</div>
     </details>
+  );
+}
+
+function PreviewCountdownTimer({ targetTime, title, subtitle }) {
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  useEffect(() => {
+    if (!targetTime) return;
+    const calc = () => {
+      const now = Date.now();
+      const diff = Math.max(0, targetTime - now);
+      setTimeLeft(diff);
+    };
+    calc();
+    const id = window.setInterval(calc, 200);
+    return () => window.clearInterval(id);
+  }, [targetTime]);
+
+  const totalSeconds = Math.floor(timeLeft / 1000);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  
+  return (
+    <div className="relative z-10 flex h-full w-full flex-col items-center justify-center rounded-2xl px-5 py-4 text-center">
+      <p className="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-stone-300">
+        {title || "Service begins in"}
+      </p>
+      <div className="text-7xl font-black tracking-tight text-white tabular-nums drop-shadow-lg">
+        {m.toString().padStart(2, '0')}:{s.toString().padStart(2, '0')}
+      </div>
+      <p className="mt-3 text-sm text-stone-400">
+        {subtitle || "Please silence your mobile phones."}
+      </p>
+    </div>
   );
 }
 
@@ -134,9 +181,9 @@ const SelectControl = memo(function SelectControl({ label, value, onChange, opti
   );
 });
 
-const CheckboxControl = memo(function CheckboxControl({ label, checked, onChange }) {
+const CheckboxControl = memo(function CheckboxControl({ label, checked, onChange, tooltip }) {
   return (
-    <label className="flex items-center gap-3 text-sm text-stone-200">
+    <label className="flex items-center gap-3 text-sm text-stone-200" title={tooltip}>
       <input
         type="checkbox"
         checked={checked}
@@ -524,12 +571,158 @@ export default function AdvancedPresentation() {
   const [songTitle, setSongTitle] = useState("");
   const [lyricsText, setLyricsText] = useState("");
   const [songSlides, setSongSlides] = useState([]);
+  const [syncFolderHandle, setSyncFolderHandle] = useState(null);
+  const [songSearchQuery, setSongSearchQuery] = useState("");
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const searchInputRef = useRef(null);
+  const keyboardRef = useRef(null);
+
+  useEffect(() => {
+    if (!isKeyboardOpen) return undefined;
+    const handlePointerDown = (event) => {
+      if (
+        searchInputRef.current?.contains(event.target) ||
+        keyboardRef.current?.contains(event.target) ||
+        event.target.closest('.keyboard-toggle-btn')
+      ) return;
+      setIsKeyboardOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [isKeyboardOpen]);
+
+  const insertTamilText = (text) => {
+    const input = searchInputRef.current;
+    if (!input) {
+      setSongSearchQuery((current) => current + text);
+      return;
+    }
+    const selectionStart = input.selectionStart ?? songSearchQuery.length;
+    const selectionEnd = input.selectionEnd ?? songSearchQuery.length;
+    
+    const newValue = `${songSearchQuery.slice(0, selectionStart)}${text}${songSearchQuery.slice(selectionEnd)}`;
+    setSongSearchQuery(newValue);
+    
+    window.requestAnimationFrame(() => {
+      input.focus({ preventScroll: true });
+      input.setSelectionRange(selectionStart + text.length, selectionStart + text.length);
+    });
+  };
+
+  const removeTamilText = () => {
+    const input = searchInputRef.current;
+    if (!input) {
+      setSongSearchQuery((current) => current.slice(0, -1));
+      return;
+    }
+    const selectionStart = input.selectionStart ?? songSearchQuery.length;
+    const selectionEnd = input.selectionEnd ?? songSearchQuery.length;
+    
+    let newValue = songSearchQuery;
+    let newCursor = selectionStart;
+    
+    if (selectionStart !== selectionEnd) {
+      newValue = `${songSearchQuery.slice(0, selectionStart)}${songSearchQuery.slice(selectionEnd)}`;
+    } else if (selectionStart > 0) {
+      newValue = `${songSearchQuery.slice(0, selectionStart - 1)}${songSearchQuery.slice(selectionEnd)}`;
+      newCursor = selectionStart - 1;
+    }
+    
+    setSongSearchQuery(newValue);
+    window.requestAnimationFrame(() => {
+      input.focus({ preventScroll: true });
+      input.setSelectionRange(newCursor, newCursor);
+    });
+  };
+
+  const filteredSongs = useMemo(() => {
+    if (!libraryData?.savedSongs) return [];
+    if (!songSearchQuery || !songSearchQuery.trim()) return libraryData.savedSongs;
+    
+    const query = songSearchQuery.toLowerCase().trim();
+    const queryRoman = normalizeRoman(query);
+    const queryConsonants = consonantKey(query);
+
+    return libraryData.savedSongs.filter(song => {
+      const title = song.title || "";
+      if (matchTamilTextQuery(title, query)) return true;
+      
+      const titleTanglish = tamilToTanglish(title);
+      const titleRoman = normalizeRoman(titleTanglish);
+      if (titleRoman.includes(queryRoman)) return true;
+      
+      if (queryConsonants.length > 1) {
+        const titleConsonants = consonantKey(titleTanglish);
+        if (titleConsonants.includes(queryConsonants)) return true;
+      }
+      
+      return false;
+    });
+  }, [libraryData?.savedSongs, songSearchQuery]);
   
+  const groupedSongs = useMemo(() => {
+    if (!filteredSongs || filteredSongs.length === 0) return [];
+    
+    const sorted = [...filteredSongs].sort((a, b) => {
+      const titleA = (a.title || "").trim();
+      const titleB = (b.title || "").trim();
+      return titleA.localeCompare(titleB, 'ta');
+    });
+
+    const groups = [];
+    let currentGroup = null;
+
+    sorted.forEach(song => {
+      const title = (song.title || "").trim();
+      if (!title) return;
+      
+      let firstChar = title.charAt(0).toUpperCase();
+      
+      if (!currentGroup || currentGroup.letter !== firstChar) {
+        currentGroup = { letter: firstChar, songs: [] };
+        groups.push(currentGroup);
+      }
+      currentGroup.songs.push(song);
+    });
+
+    return groups;
+  }, [filteredSongs]);
+
   const handleProcessLyrics = (textToProcess = lyricsText) => {
     if (!textToProcess.trim()) return;
     const stanzas = textToProcess.split(/\n\s*\n/).filter(s => s.trim());
     setSongSlides(stanzas);
   };
+
+  const handleSelectSyncFolder = async () => {
+    try {
+      const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      setSyncFolderHandle(handle);
+      toast.success("Sync folder connected! Songs will auto-save to 'Worship_Songs_AutoSync.json'");
+    } catch (err) {
+      console.log("Sync folder selection cancelled or failed:", err);
+    }
+  };
+
+  // Auto-sync effect
+  useEffect(() => {
+    const syncToFolder = async () => {
+      if (!syncFolderHandle || !libraryData?.savedSongs) return;
+      try {
+        const fileHandle = await syncFolderHandle.getFileHandle("Worship_Songs_AutoSync.json", { create: true });
+        const writable = await fileHandle.createWritable();
+        await writable.write(JSON.stringify(libraryData.savedSongs, null, 2));
+        await writable.close();
+      } catch (err) {
+        console.error("Auto-sync failed:", err);
+        if (err.name === 'NotAllowedError') {
+          setSyncFolderHandle(null);
+          toast.error("Sync folder permission lost. Please re-select.");
+        }
+      }
+    };
+    syncToFolder();
+  }, [libraryData?.savedSongs, syncFolderHandle]);
 
   const handleSaveSongToLibrary = () => {
     if (!songTitle.trim() || !lyricsText.trim()) {
@@ -597,6 +790,7 @@ export default function AdvancedPresentation() {
   const remoteUrl = `${baseRemoteUrl}?room=${activeRoomCode}`;
   const remoteNeedsPublicHost = !remoteOrigin || isLocalOnlyHost(new URL(remoteUrl).hostname);
   const [copiedRemoteUrl, setCopiedRemoteUrl] = useState(false);
+  const [activePreviewTab, setActivePreviewTab] = useState("main");
 
   useEffect(() => {
     let mounted = true;
@@ -755,6 +949,26 @@ export default function AdvancedPresentation() {
     settings.presentationFont,
     settings.presentationLineHeight,
   ]);
+
+  // Song Slide Hotkeys
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't trigger if user is typing in an input or textarea
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+      
+      // Check for ALT + 1 through 9
+      if (e.altKey && e.key >= "1" && e.key <= "9") {
+        const index = parseInt(e.key, 10) - 1;
+        if (songSlides && index < songSlides.length) {
+          e.preventDefault();
+          handleSendToPresentation(songSlides[index], index);
+        }
+      }
+    };
+    
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [songSlides, handleSendToPresentation]);
 
   useEffect(() => {
     let mounted = true;
@@ -1056,10 +1270,18 @@ export default function AdvancedPresentation() {
                     <span className="text-amber-500/50 text-xs font-semibold mr-1">m</span>
                     <button
                       type="button"
-                      onClick={() => setSermonDisplayMode("timer", Date.now() + customTimerMinutes * 60000 + 1000)}
+                      onClick={() => {
+                        if (displayMode === "timer") {
+                          setSermonDisplayMode("clear");
+                          toast.success("Timer stopped!");
+                        } else {
+                          setSermonDisplayMode("timer", Date.now() + customTimerMinutes * 60000 + 1000);
+                          toast.success(`${customTimerMinutes}-minute timer started!`);
+                        }
+                      }}
                       className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${displayMode === "timer" ? "bg-amber-400 text-black shadow-lg shadow-amber-400/30" : "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"}`}
                     >
-                      Start Timer
+                      {displayMode === "timer" ? "Stop Timer" : "Start Timer"}
                     </button>
                   </div>
                 </div>
@@ -1222,6 +1444,15 @@ export default function AdvancedPresentation() {
                 <h3 className="text-sm font-bold uppercase tracking-widest text-stone-400">Library</h3>
                 <div className="flex gap-2">
                   <button
+                    onClick={handleSelectSyncFolder}
+                    title={syncFolderHandle ? "Auto-Syncing to Folder" : "Select Auto-Sync Folder"}
+                    className={`rounded p-1.5 transition ${syncFolderHandle ? "bg-emerald-500/20 text-emerald-500" : "bg-white/5 text-stone-400 hover:bg-white/10 hover:text-white"}`}
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                    </svg>
+                  </button>
+                  <button
                     onClick={exportSongLibrary}
                     title="Backup Library to File"
                     className="rounded bg-white/5 p-1.5 text-stone-400 hover:bg-white/10 hover:text-white transition"
@@ -1248,45 +1479,143 @@ export default function AdvancedPresentation() {
                   />
                 </div>
               </div>
-              <div className="flex-1 min-h-[250px] max-h-[400px] overflow-y-auto custom-scroll pr-2 flex flex-col gap-2">
-                {libraryData?.savedSongs?.length > 0 ? (
-                  libraryData.savedSongs.map((song) => (
-                    <div key={song.id} className="group relative rounded-xl border border-white/5 bg-white/5 p-3 transition hover:border-amber-500/50">
-                      <p className="font-bold text-white truncate pr-8">{song.title}</p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSongTitle(song.title);
-                          setLyricsText(song.lyrics);
-                          handleProcessLyrics(song.lyrics);
-                          toast.success("Song loaded!");
-                        }}
-                        className="mt-2 w-full rounded-lg bg-white/10 py-1.5 text-xs font-bold uppercase tracking-wider text-stone-300 hover:bg-amber-500 hover:text-black transition"
-                      >
-                        Load Song
+              <div className="mb-4 relative">
+                <div className="relative flex items-center">
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Search songs..."
+                    value={songSearchQuery}
+                    onChange={(e) => setSongSearchQuery(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 pl-4 pr-12 py-2 text-sm text-white placeholder-stone-500 outline-none focus:border-amber-500/50 transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsKeyboardOpen(!isKeyboardOpen)}
+                    title="Tamil Keyboard"
+                    className="keyboard-toggle-btn absolute right-2 flex h-7 w-8 items-center justify-center rounded-lg bg-white/5 text-[11px] font-bold text-stone-400 hover:bg-white/10 hover:text-white transition"
+                  >
+                    ta
+                  </button>
+                </div>
+                
+                {isKeyboardOpen && (
+                  <div
+                    ref={keyboardRef}
+                    onMouseDown={(event) => event.preventDefault()}
+                    className="absolute left-0 top-full mt-2 z-50 w-full overflow-hidden rounded-2xl border border-white/10 bg-black/95 p-3 shadow-2xl backdrop-blur-3xl"
+                  >
+                    <div className="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Tamil Keyboard</span>
+                      <button type="button" onClick={() => setIsKeyboardOpen(false)} className="text-stone-500 hover:text-white">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => removeSavedSong(song.id)}
-                        className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                    </div>
+                    <div className="space-y-1.5">
+                      {TAMIL_KEYBOARD_ROWS.map((row, rowIndex) => (
+                        <div key={`row-${rowIndex}`} className="flex flex-wrap justify-center gap-1">
+                          {row.map((key) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => insertTamilText(key)}
+                              className="flex h-8 w-7 items-center justify-center rounded-lg bg-white/5 text-[13px] text-stone-200 hover:bg-white/10 hover:text-white active:scale-95"
+                            >
+                              {key}
+                            </button>
+                          ))}
+                        </div>
+                      ))}
+                      <div className="pt-2">
+                        {TAMIL_SYMBOL_ROWS.map((row, rowIndex) => (
+                          <div key={`sym-${rowIndex}`} className="flex flex-wrap justify-center gap-1 mb-1.5">
+                            {row.map((key) => (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() => insertTamilText(key)}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-900/40 text-[13px] text-zinc-300 hover:bg-sky-900/60 hover:text-white active:scale-95"
+                              >
+                                {key}
+                              </button>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-center gap-2 pt-1">
+                        <button type="button" onClick={() => insertTamilText(" ")} className="flex h-8 w-20 items-center justify-center rounded-lg bg-white/5 text-xs text-stone-300 hover:bg-white/10">Space</button>
+                        <button type="button" onClick={removeTamilText} className="flex h-8 w-16 items-center justify-center rounded-lg bg-white/5 text-xs text-stone-300 hover:bg-white/10">&larr;</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div 
+                className="flex-1 min-h-[250px] max-h-[400px] overflow-y-auto custom-scroll pr-2 flex flex-col gap-2 relative"
+                onWheel={(e) => e.stopPropagation()}
+              >
+                {groupedSongs?.length > 0 ? (
+                  groupedSongs.map((group) => (
+                    <div key={group.letter} className="mb-4 last:mb-0">
+                      <div className="sticky top-0 z-10 mb-2 bg-[#000000]/80 backdrop-blur-md pb-1 pt-1 -mx-2 px-2">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 text-xs font-extrabold text-amber-500 ring-1 ring-amber-500/30">
+                          {group.letter}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {group.songs.map((song) => (
+                          <div 
+                            key={song.id}
+                            onClick={() => {
+                              setSongTitle(song.title);
+                              setLyricsText(song.lyrics);
+                              handleProcessLyrics(song.lyrics);
+                              toast.success("Song loaded!");
+                            }}
+                            className="group relative rounded-xl border border-white/5 bg-white/5 p-3 text-left transition hover:cursor-pointer hover:border-amber-500/50 hover:bg-white/10"
+                          >
+                            <p className="font-bold text-white truncate pr-8">{song.title}</p>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeSavedSong(song.id);
+                              }}
+                              className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))
                 ) : (
                   <div className="m-auto text-center text-stone-500">
-                    <p className="text-xs">No saved songs yet.</p>
+                    <p className="text-xs">{songSearchQuery ? "No matching songs found." : "No saved songs yet."}</p>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Middle Column: Editor */}
-            <div className="w-full xl:w-1/3 flex flex-col">
-              <h3 className="mb-4 text-sm font-bold uppercase tracking-widest text-stone-400">Editor</h3>
+            <div className="w-full xl:w-1/3 flex flex-col xl:border-r border-white/10 xl:pr-8">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-sm font-bold uppercase tracking-widest text-stone-400">Editor</h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSongTitle("");
+                    setLyricsText("");
+                    setSongSlides([]);
+                  }}
+                  className="rounded bg-white/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-stone-400 hover:bg-white/10 hover:text-white transition"
+                >
+                  New Song
+                </button>
+              </div>
               <input
                 type="text"
                 placeholder="Song Title (e.g. How Great is Our God)"
@@ -1334,8 +1663,8 @@ export default function AdvancedPresentation() {
                 ) : (
                   songSlides.map((slide, index) => (
                     <div key={index} className="group relative rounded-xl border border-white/5 bg-white/5 p-4 transition hover:border-amber-500/30">
-                      <div className="absolute left-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-[10px] font-bold text-stone-400">
-                        {index + 1}
+                      <div className="absolute left-2 top-2 flex h-5 items-center justify-center rounded-full bg-black/50 px-2 text-[9px] font-bold tracking-wider text-stone-400">
+                        ALT + {index + 1}
                       </div>
                       <p className="pl-6 whitespace-pre-wrap text-sm text-stone-300">
                         {slide}
@@ -1581,8 +1910,8 @@ export default function AdvancedPresentation() {
                 <p className="mb-1.5 text-xs font-semibold text-stone-400">{t.stageScreenStyle}</p>
                 <div className="grid gap-3 content-start md:grid-cols-2">
                   <CheckboxControl label={t.greenScreen} checked={settings.stageGreenScreen} onChange={(value) => updateSettings({ stageGreenScreen: value })} />
-                  <CheckboxControl label={t.windowView} checked={settings.stageWindowView} onChange={(value) => updateSettings({ stageWindowView: value })} />
-                  <CheckboxControl label={t.smallWindow} checked={settings.stageSmallWindow} onChange={(value) => updateSettings({ stageSmallWindow: value })} />
+                  <CheckboxControl label={t.windowView} checked={settings.stageWindowView} onChange={(value) => updateSettings({ stageWindowView: value })} tooltip="Pins lyrics to the top of the screen instead of vertically centering them" />
+                  <CheckboxControl label={t.smallWindow} checked={settings.stageSmallWindow} onChange={(value) => updateSettings({ stageSmallWindow: value })} tooltip="Restricts the max width of the text block for ultra-wide stage displays" />
                   <CheckboxControl label={t.showDateAndTime} checked={settings.stageShowDateTime} onChange={(value) => updateSettings({ stageShowDateTime: value })} />
                 </div>
               </div>
@@ -1634,51 +1963,140 @@ export default function AdvancedPresentation() {
         </AccordionSection>
 
         <AccordionSection title={t.livePreviews || "Live Previews"}>
-          <div className="space-y-8">
-            <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">{t.mainPreview || "Main Preview"}</p>
-              <div className="relative flex h-52 items-center justify-center overflow-hidden rounded-[1.5rem] border border-white/10 bg-black p-4 shadow-inner shadow-black/40">
+          <div className="space-y-4">
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setActivePreviewTab("main")}
+                className={`rounded-xl px-5 py-2.5 text-xs font-bold uppercase tracking-wider transition ${
+                  activePreviewTab === "main" ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" : "bg-black/40 text-stone-400 border border-white/10 hover:bg-black/60"
+                }`}
+              >
+                {t.mainPreview || "Main Preview"}
+              </button>
+              <button
+                onClick={() => setActivePreviewTab("stage")}
+                className={`rounded-xl px-5 py-2.5 text-xs font-bold uppercase tracking-wider transition ${
+                  activePreviewTab === "stage" ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" : "bg-black/40 text-stone-400 border border-white/10 hover:bg-black/60"
+                }`}
+              >
+                {t.stagePreview || "Stage Preview"}
+              </button>
+            </div>
+
+            {activePreviewTab === "main" ? (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="relative flex h-72 w-full items-center justify-center overflow-hidden rounded-[1.5rem] border border-white/10 bg-black p-4 shadow-inner shadow-black/40">
                 <SmoothBackground
-                  background={settings.presentationGreenScreen ? "#00b140" : settings.background}
-                  bgType={settings.presentationGreenScreen ? "gradient" : settings.bgType}
+                  background={displayMode === "black" || (displayMode === "logo" && settings.presentationShowCustomLogo && settings.stageLogoImage) ? "#000000" : settings.presentationGreenScreen ? "#00b140" : settings.background}
+                  bgType={displayMode === "black" || (displayMode === "logo" && settings.presentationShowCustomLogo && settings.stageLogoImage) ? "solid" : settings.presentationGreenScreen ? "gradient" : settings.bgType}
                   customBackground={settings.customBackground}
                   motionVariant={settings.motionBackground}
                 />
-                <div
-                  className={`relative z-10 flex w-full flex-1 min-h-0 flex-col justify-center rounded-2xl px-5 py-4 text-center ${settings.presentationBox ? "backdrop-blur-sm" : ""}`}
-                  style={{
-                    background: settings.presentationBox ? "rgba(0,0,0,0.45)" : "transparent",
-                    boxShadow: settings.presentationBorder ? "0 0 0 1px rgba(255,255,255,0.2) inset" : "none",
-                    maxWidth: settings.presentationPreset === "horizontal" ? "100%" : "55rem",
-                    height: "100%",
-                  }}
-                >
-                  {settings.showReference && previewReference && (
-                    <p
-                      className={`mb-2 text-xs font-bold uppercase tracking-[0.24em] text-white/90 ${
-                        settings.presentationHeaderBox
-                          ? "inline-flex rounded-full border border-white/10 bg-black/25 px-3 py-1.5"
-                          : ""
-                      }`}
-                      style={{ flexShrink: 0 }}
-                    >
-                      {previewReference}
-                    </p>
-                  )}
-                  <div 
-                    ref={previewContainerRef} 
-                    className={`flex flex-1 flex-col overflow-hidden w-full min-h-0 ${
-                      settings.presentationVerticalAlign === "top" ? "justify-start pt-2" :
-                      settings.presentationVerticalAlign === "bottom" ? "justify-end pb-2" : "justify-center"
-                    }`}
+                {displayMode === "logo" && settings.presentationShowCustomLogo && settings.stageLogoImage ? (
+                  <div className="relative z-50 flex h-full w-full items-center justify-center bg-black">
+                    <img
+                      src={settings.stageLogoImage}
+                      alt="Presentation logo"
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
+                ) : displayMode === "black" ? (
+                  <div className="relative z-50 flex h-full w-full items-center justify-center bg-black">
+                    <p className="text-sm font-semibold uppercase tracking-[0.28em] text-stone-500">Black Screen</p>
+                  </div>
+                ) : displayMode === "timer" ? (
+                  <PreviewCountdownTimer 
+                    targetTime={libraryData?.sermon?.timerTarget} 
+                    title={settings.presentationAnnouncementTitle}
+                    subtitle={settings.presentationAnnouncementBody}
+                  />
+                ) : displayMode === "title" || displayMode === "announcement" || (!settings.presentationShowCustomLogo && displayMode === "logo") ? (
+                  <div
+                    className={`relative z-10 flex h-full w-full flex-col items-center justify-center rounded-2xl px-5 py-4 text-center ${settings.presentationBox ? "backdrop-blur-md" : ""}`}
+                    style={{
+                      background: settings.presentationBox ? "rgba(0,0,0,0.35)" : "transparent",
+                      boxShadow: settings.presentationBox ? "0 0 0 1px rgba(255,255,255,0.1) inset" : "none",
+                      maxWidth: "35rem",
+                    }}
                   >
-                    <div ref={previewTextRef} className="shrink-0" style={{ fontSize: `${previewFontSize}px` }}>
-                      <PresentationPreviewText
-                        text={previewItem.text}
-                        twoLines={settings.presentationTwoLines}
-                        settings={settings}
-                        style={{
-                          lineHeight: settings.presentationLineHeight || (settings.presentationTwoLines ? 1.08 : 1.2),
+                    {displayMode === "title" || displayMode === "logo" ? (
+                      <>
+                        <p className="text-3xl font-bold text-white">{settings.presentationTitle}</p>
+                        <p className="mt-2 text-sm text-stone-300">{settings.presentationSubtitle}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-3xl font-bold text-white">{settings.presentationAnnouncementTitle}</p>
+                        <p className="mt-2 text-sm text-stone-300">{settings.presentationAnnouncementBody}</p>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    className={`relative z-10 flex w-full flex-1 min-h-0 flex-col justify-center rounded-2xl px-5 py-4 text-center ${settings.presentationBox ? "backdrop-blur-sm" : ""}`}
+                    style={{
+                      background: settings.presentationBox ? "rgba(0,0,0,0.45)" : "transparent",
+                      boxShadow: settings.presentationBorder ? "0 0 0 1px rgba(255,255,255,0.2) inset" : "none",
+                      maxWidth: settings.presentationPreset === "horizontal" ? "100%" : "55rem",
+                      height: "100%",
+                    }}
+                  >
+                    <div className="flex w-full items-start justify-between gap-4">
+                      <div>
+                        {settings.showReference && previewReference && (
+                          <p
+                            className={`mb-2 text-xs font-bold uppercase tracking-[0.24em] text-white/90 ${
+                              settings.presentationHeaderBox
+                                ? "inline-flex rounded-full border border-white/10 bg-black/25 px-3 py-1.5"
+                                : ""
+                            }`}
+                            style={{ flexShrink: 0 }}
+                          >
+                            {previewReference}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {settings.presentationShowDateTime ? (
+                          <div className="rounded-full border border-white/10 bg-black/30 px-3 py-1.5 text-[10px] text-white/90 backdrop-blur-md">
+                            {new Intl.DateTimeFormat(undefined, {
+                              weekday: "short",
+                              month: "short",
+                              day: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                            }).format(new Date())}
+                          </div>
+                        ) : null}
+                        {settings.presentationShowVerseLogo ? (
+                          <div className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
+                            Tamil Bible Premium
+                          </div>
+                        ) : null}
+                        {settings.presentationShowCustomLogo && settings.stageLogoImage ? (
+                          <img
+                            src={settings.stageLogoImage}
+                            alt="Presentation logo"
+                            className="h-8 w-auto object-contain drop-shadow-md"
+                          />
+                        ) : null}
+                      </div>
+                    </div>
+                    
+                    <div 
+                      ref={previewContainerRef} 
+                      className={`flex flex-1 flex-col overflow-hidden w-full min-h-0 ${
+                        settings.presentationVerticalAlign === "top" ? "justify-start pt-2" :
+                        settings.presentationVerticalAlign === "bottom" ? "justify-end pb-2" : "justify-center"
+                      }`}
+                    >
+                      <div ref={previewTextRef} className="shrink-0" style={{ fontSize: `${previewFontSize}px` }}>
+                        <PresentationPreviewText
+                          text={previewItem.text}
+                          twoLines={settings.presentationTwoLines}
+                          settings={settings}
+                          style={{
+                            lineHeight: settings.presentationLineHeight || (settings.presentationTwoLines ? 1.08 : 1.2),
                           textAlign: settings.presentationJustify,
                           textTransform: settings.presentationUppercase ? "uppercase" : "none",
                           textShadow: settings.presentationShadow ? "0 2px 10px rgba(0,0,0,0.75)" : "none",
@@ -1709,24 +2127,13 @@ export default function AdvancedPresentation() {
                   ) : null}
                 </div>
 
-                  <div className="mt-3 flex flex-wrap justify-end gap-2">
-                    {settings.presentationShowDateTime ? (
-                      <div className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
-                        Date / Time
-                      </div>
-                    ) : null}
-                    {settings.presentationShowVerseLogo ? (
-                      <div className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
-                        Tamil Bible Premium
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
+
+              </div>
+              )}
               </div>
             </div>
-
-            <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">{t.stagePreview || "Stage Preview"}</p>
+          ) : (
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div
                 className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-black"
                 style={{ background: stageBackground, backgroundSize: "cover", backgroundPosition: "center" }}
@@ -1747,35 +2154,14 @@ export default function AdvancedPresentation() {
                           settings.stageWindowView ? "justify-start" : "justify-center"
                         }`}
                       >
-                        {displayMode === "title" ? (
-                          <>
-                            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-300">Title</p>
-                            <p className="mt-3 text-2xl font-bold text-white">{settings.presentationTitle}</p>
-                            <p className="mt-3 text-sm leading-6 text-stone-200">{settings.presentationSubtitle}</p>
-                          </>
-                        ) : displayMode === "announcement" ? (
-                          <>
-                            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-300">Announcement</p>
-                            <p className="mt-3 text-2xl font-bold text-white">{settings.presentationAnnouncementTitle}</p>
-                            <p className="mt-3 text-sm leading-6 text-stone-200">{settings.presentationAnnouncementBody}</p>
-                          </>
-                        ) : displayMode === "logo" ? (
-                          <div className="flex h-full min-h-40 items-center justify-center">
-                            {settings.presentationShowCustomLogo && settings.stageLogoImage ? (
-                              <img src={settings.stageLogoImage} alt="Stage logo preview" className="max-h-32 max-w-full object-contain" />
-                            ) : (
-                              <div className="text-center">
-                                <p className="text-2xl font-bold text-white">{settings.presentationTitle}</p>
-                                <p className="mt-2 text-sm text-stone-200">{settings.presentationSubtitle}</p>
+                            {settings.stageShowDateTime && settings.stagePreset !== "horizontal" && (
+                              <div className="mb-2 flex justify-end">
+                                <div className="rounded-full border border-white/10 bg-black/30 px-3 py-1.5 text-[10px] text-white/90 backdrop-blur-md">
+                                  {new Date().toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })}
+                                </div>
                               </div>
                             )}
-                          </div>
-                        ) : displayMode === "black" ? (
-                          <div className="flex h-full min-h-40 items-center justify-center bg-black">
-                            <p className="text-sm uppercase tracking-[0.28em] text-stone-500">Black Screen</p>
-                          </div>
-                        ) : (
-                          <>
+
                             {previewReference && (
                               <p
                                 className="text-sm font-bold"
@@ -1814,8 +2200,6 @@ export default function AdvancedPresentation() {
                                 <p className={`text-sm font-bold ${settings.stageMessageVisible ? 'text-red-200' : 'text-stone-300'}`}>{settings.stageMessage}</p>
                               </div>
                             ) : null}
-                          </>
-                        )}
                       </div>
 
                       {settings.stagePreset === "horizontal" ? (
@@ -1851,8 +2235,8 @@ export default function AdvancedPresentation() {
                       ) : null}
                     </div>
                   </div>
-                </div>
-
+              </div>
+            )}
           </div>
         </AccordionSection>
       </div>

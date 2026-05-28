@@ -136,6 +136,7 @@ function PresentationText({ text, style, className = "", twoLines = false, inner
       {lines.map((line, index) => (
         <p
           key={`${line}-${index}`}
+          className="text-balance w-full"
           style={getLineStyle(index)}
         >
           {line}
@@ -239,7 +240,7 @@ function ClockBadge({ compact = false }) {
       }`}
     >
       {new Intl.DateTimeFormat(undefined, {
-        weekday: compact ? undefined : "short",
+        weekday: "short",
         month: "short",
         day: "numeric",
         hour: "numeric",
@@ -311,7 +312,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode, tim
     : null;
   const mainMaxFont = Math.max(Math.min(settings.presentationMaxFontSize || 90, 72), 28);
   const mainTextStyle = {
-    lineHeight: settings.presentationTwoLines ? 1.08 : 1.24,
+    lineHeight: settings.presentationLineHeight || (settings.presentationTwoLines ? 1.08 : 1.24),
     textAlign: settings.presentationJustify || "center",
     textTransform: settings.presentationUppercase ? "uppercase" : "none",
     textShadow: settings.presentationShadow ? "0 4px 18px rgba(0,0,0,0.52)" : "none",
@@ -326,7 +327,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode, tim
   };
   const stageMaxFont = Math.max(Math.min((settings.presentationMaxFontSize || 90) * (settings.stageSmallWindow ? 0.82 : 1), 140), 34);
   const stageTextStyle = {
-    lineHeight: settings.presentationTwoLines ? 1.05 : 1.2,
+    lineHeight: settings.presentationLineHeight || (settings.presentationTwoLines ? 1.05 : 1.2),
     textAlign: settings.presentationJustify || "center",
     textTransform: settings.presentationUppercase ? "uppercase" : "none",
     textShadow: settings.presentationShadow ? "0 4px 16px rgba(0,0,0,0.55)" : "none",
@@ -362,7 +363,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode, tim
 
       return (
         <div className="relative z-10 flex min-h-screen items-center justify-center px-8">
-          <div className="rounded-[2rem] border border-white/10 bg-black/35 px-16 py-12 backdrop-blur-md">
+          <div className={settings.presentationBox ? "rounded-[2rem] border border-white/10 bg-black/35 px-16 py-12 backdrop-blur-md" : "px-16 py-12"}>
             <div className="text-center">
               <p className="text-5xl font-bold text-white">{title}</p>
               <p className="mt-4 text-xl text-stone-300">{subtitle}</p>
@@ -375,12 +376,9 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode, tim
     if (displayMode === "title") {
       return (
         <div className="relative z-10 flex min-h-screen items-center justify-center px-8">
-          <div className="max-w-5xl text-center">
-            <p className="text-lg font-semibold uppercase tracking-[0.45em] text-stone-300">
-              Presentation
-            </p>
-            <h1 className="mt-6 text-6xl font-bold text-white md:text-8xl">{title}</h1>
-            <p className="mt-6 text-2xl leading-10 text-stone-200 md:text-3xl">{subtitle}</p>
+          <div className={`max-w-5xl text-center ${settings.presentationBox ? "rounded-[2rem] border border-white/10 bg-black/35 px-16 py-12 backdrop-blur-md" : ""}`}>
+            <h1 className="text-balance text-6xl font-bold text-white md:text-8xl">{title}</h1>
+            <p className="mt-6 text-balance text-2xl leading-10 text-stone-200 md:text-3xl">{subtitle}</p>
           </div>
         </div>
       );
@@ -389,12 +387,9 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode, tim
     if (displayMode === "announcement") {
       return (
         <div className="relative z-10 flex min-h-screen items-center justify-center px-8">
-          <div className="max-w-5xl rounded-[2rem] border border-white/10 bg-black/30 px-10 py-12 text-center backdrop-blur-md">
-            <p className="text-lg font-semibold uppercase tracking-[0.45em] text-stone-300">
-              Announcement
-            </p>
-            <h1 className="mt-6 text-5xl font-bold text-white md:text-7xl">{announcementTitle}</h1>
-            <p className="mt-6 text-2xl leading-10 text-stone-200 md:text-3xl">{announcementBody}</p>
+          <div className={`max-w-5xl text-center ${settings.presentationBox ? "rounded-[2rem] border border-white/10 bg-black/35 px-16 py-12 backdrop-blur-md" : ""}`}>
+            <h1 className="text-balance text-5xl font-bold text-white md:text-7xl">{announcementTitle}</h1>
+            <p className="mt-6 text-balance text-2xl leading-10 text-stone-200 md:text-3xl">{announcementBody}</p>
           </div>
         </div>
       );
