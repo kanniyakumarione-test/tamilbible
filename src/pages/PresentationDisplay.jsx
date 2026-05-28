@@ -250,7 +250,7 @@ function ClockBadge({ compact = false }) {
   );
 }
 
-function CountdownTimer({ targetTime, title, subtitle }) {
+function CountdownTimer({ targetTime, title, subtitle, styleType = "classic" }) {
   const [timeLeft, setTimeLeft] = useState(0);
 
   useEffect(() => {
@@ -269,6 +269,155 @@ function CountdownTimer({ targetTime, title, subtitle }) {
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
   
+  if (styleType === "cinematic") {
+    return (
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-8">
+        <div className="flex animate-pulse items-center gap-4 text-amber-500/80 mb-8">
+          <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-amber-500/50"></div>
+          <span className="text-sm font-bold uppercase tracking-[0.4em]">{title || "Starting Soon"}</span>
+          <div className="h-[1px] w-12 bg-gradient-to-l from-transparent to-amber-500/50"></div>
+        </div>
+        
+        <div className="relative">
+          <div className="absolute inset-0 blur-3xl bg-white/10 rounded-full scale-150"></div>
+          <div className="relative font-sans text-[9rem] md:text-[16rem] font-light leading-none tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-white to-stone-400 tabular-nums drop-shadow-2xl">
+            {m.toString().padStart(2, '0')}<span className="text-stone-600 opacity-50 mx-2 animate-pulse">:</span>{s.toString().padStart(2, '0')}
+          </div>
+        </div>
+        
+        <p className="mt-12 text-lg md:text-xl font-medium tracking-widest text-stone-400 opacity-80 uppercase">{subtitle || "Please take your seats"}</p>
+      </div>
+    );
+  }
+
+  if (styleType === "minimal") {
+    return (
+      <div className="relative z-10 flex min-h-screen items-center justify-center px-8">
+        <div className="relative border border-white/10 bg-black/40 backdrop-blur-xl rounded-[3rem] px-16 py-12 text-center shadow-2xl">
+          {title && <p className="mb-4 text-xs md:text-sm font-bold uppercase tracking-[0.3em] text-amber-400">{title}</p>}
+          <div className="font-sans text-[6rem] md:text-[9rem] font-black leading-none tracking-tighter text-white tabular-nums drop-shadow-md">
+            {m.toString().padStart(2, '0')}<span className="text-white/30">:</span>{s.toString().padStart(2, '0')}
+          </div>
+          {subtitle && <p className="mt-6 text-sm md:text-base font-semibold text-stone-400">{subtitle}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  if (styleType === "elegant") {
+    return (
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-8">
+        <div className="text-center bg-black/60 backdrop-blur-2xl px-20 py-16 rounded-[4rem] border border-amber-900/30 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
+          {title && <p className="mb-8 text-xl md:text-2xl font-serif italic tracking-[0.2em] text-amber-500">{title}</p>}
+          <div className="font-serif text-[7rem] md:text-[12rem] font-medium leading-none text-white drop-shadow-2xl flex items-center justify-center">
+            {m.toString().padStart(2, '0')}<span className="text-amber-600/50 mx-4 font-light">:</span>{s.toString().padStart(2, '0')}
+          </div>
+          {subtitle && <p className="mt-10 text-sm md:text-lg font-sans tracking-[0.4em] text-stone-400 uppercase">{subtitle}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  if (styleType === "neon") {
+    return (
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-8 bg-[#050510]">
+        <div className="text-center">
+          {title && <p className="mb-8 text-sm md:text-lg font-bold uppercase tracking-[0.5em] text-fuchsia-500 drop-shadow-[0_0_10px_rgba(217,70,239,0.8)]">{title}</p>}
+          <div className="font-mono text-[8rem] md:text-[14rem] font-bold leading-none tracking-wider text-cyan-300 tabular-nums drop-shadow-[0_0_30px_rgba(34,211,238,0.6)]">
+            {m.toString().padStart(2, '0')}<span className="text-fuchsia-500 animate-pulse">:</span>{s.toString().padStart(2, '0')}
+          </div>
+          {subtitle && <p className="mt-12 text-xs md:text-sm font-semibold tracking-[0.6em] text-cyan-500 uppercase drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]">{subtitle}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  if (styleType === "blocks") {
+    return (
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-8">
+        {title && <p className="mb-12 text-sm md:text-xl font-bold uppercase tracking-[0.4em] text-white/50">{title}</p>}
+        <div className="flex items-center gap-4 md:gap-8">
+          <div className="flex flex-col items-center bg-white/10 backdrop-blur-xl border-t border-white/20 rounded-3xl p-8 md:p-12 shadow-2xl">
+            <span className="font-mono text-[6rem] md:text-[12rem] font-black leading-none text-white">{m.toString().padStart(2, '0')}</span>
+            <span className="mt-4 text-xs md:text-sm font-bold uppercase tracking-widest text-amber-400">Minutes</span>
+          </div>
+          <div className="text-[4rem] md:text-[8rem] font-black text-white/20 animate-pulse">:</div>
+          <div className="flex flex-col items-center bg-white/10 backdrop-blur-xl border-t border-white/20 rounded-3xl p-8 md:p-12 shadow-2xl">
+            <span className="font-mono text-[6rem] md:text-[12rem] font-black leading-none text-white">{s.toString().padStart(2, '0')}</span>
+            <span className="mt-4 text-xs md:text-sm font-bold uppercase tracking-widest text-amber-400">Seconds</span>
+          </div>
+        </div>
+        {subtitle && <p className="mt-12 text-sm md:text-base font-semibold tracking-widest text-stone-300">{subtitle}</p>}
+      </div>
+    );
+  }
+
+  if (styleType === "rings") {
+    const progress = (s / 60) * 100;
+    return (
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-8">
+        <div className="relative flex items-center justify-center w-[400px] h-[400px] md:w-[600px] md:h-[600px]">
+          <svg className="absolute inset-0 w-full h-full -rotate-90 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]">
+            <circle cx="50%" cy="50%" r="48%" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4%" />
+            <circle cx="50%" cy="50%" r="48%" fill="none" stroke="#fbbf24" strokeWidth="4%" strokeDasharray="301.59" strokeDashoffset={301.59 - (progress / 100) * 301.59} strokeLinecap="round" className="transition-all duration-1000 ease-linear" pathLength="100" />
+          </svg>
+          <div className="absolute inset-0 border-[2px] border-dashed border-white/10 rounded-full animate-[spin_30s_linear_infinite]"></div>
+          
+          <div className="text-center z-10 flex flex-col items-center justify-center">
+            {title && <p className="mb-4 text-xs md:text-sm font-bold uppercase tracking-[0.3em] text-amber-400">{title}</p>}
+            <div className="font-sans text-[5rem] md:text-[8rem] font-bold leading-none tracking-tighter text-white tabular-nums">
+              {m.toString().padStart(2, '0')}<span className="text-white/30">:</span>{s.toString().padStart(2, '0')}
+            </div>
+            {subtitle && <p className="mt-4 text-[10px] md:text-xs font-semibold tracking-widest text-stone-400 uppercase max-w-[250px] md:max-w-[350px]">{subtitle}</p>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (styleType === "terminal") {
+    return (
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-8 bg-black font-mono">
+        <div className="w-full max-w-[800px] text-left">
+          {title && <p className="mb-6 text-xl md:text-3xl text-green-500">{`> ${title}`}</p>}
+          <div className="text-[7rem] md:text-[14rem] font-bold text-green-500 tabular-nums">
+            {m.toString().padStart(2, '0')}:{s.toString().padStart(2, '0')}<span className="animate-[pulse_1s_step-end_infinite]">_</span>
+          </div>
+          {subtitle && <p className="mt-6 text-lg md:text-2xl text-green-700">{`$ ${subtitle}`}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  if (styleType === "outline") {
+    return (
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-8 text-center">
+        {title && <p className="mb-6 text-xl md:text-3xl font-black uppercase tracking-[0.3em] text-white drop-shadow-md">{title}</p>}
+        <div className="text-[10rem] md:text-[18rem] font-black tracking-tighter tabular-nums drop-shadow-2xl" style={{ WebkitTextStroke: '6px white', color: 'transparent' }}>
+          {m.toString().padStart(2, '0')}:{s.toString().padStart(2, '0')}
+        </div>
+        {subtitle && <p className="mt-8 text-2xl md:text-4xl font-bold text-white/50">{subtitle}</p>}
+      </div>
+    );
+  }
+
+  if (styleType === "progressbar") {
+    const progress = (s / 60) * 100;
+    return (
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-8 text-center w-full">
+        <div className="text-[9rem] md:text-[15rem] font-black tracking-tight text-white tabular-nums drop-shadow-2xl">
+          {m.toString().padStart(2, '0')}:{s.toString().padStart(2, '0')}
+        </div>
+        <div className="mt-8 h-4 w-[60%] md:w-[40%] overflow-hidden rounded-full bg-white/10 shadow-inner">
+          <div className="h-full bg-amber-400 transition-all duration-1000 ease-linear shadow-[0_0_15px_rgba(251,191,36,0.8)]" style={{ width: `${progress}%` }}></div>
+        </div>
+        {title && <p className="mt-12 text-2xl md:text-4xl font-bold uppercase tracking-[0.4em] text-stone-300 drop-shadow-lg">{title}</p>}
+        {subtitle && <p className="mt-4 text-xl md:text-2xl font-bold tracking-widest text-stone-400 uppercase drop-shadow-md">{subtitle}</p>}
+      </div>
+    );
+  }
+
+  // Classic Style (Default)
   return (
     <div className="relative z-10 flex min-h-screen items-center justify-center px-8">
       <div className="text-center">
@@ -401,6 +550,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode, tim
           targetTime={timerTarget} 
           title={settings.presentationAnnouncementTitle || "Service begins in"} 
           subtitle={settings.presentationAnnouncementBody || "Please silence your mobile phones."} 
+          styleType={settings.timerStyle || "classic"}
         />
       );
     }

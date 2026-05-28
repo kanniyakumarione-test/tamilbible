@@ -81,7 +81,7 @@ function AccordionSection({ title, defaultOpen = true, children }) {
   );
 }
 
-function PreviewCountdownTimer({ targetTime, title, subtitle }) {
+function PreviewCountdownTimer({ targetTime, title, subtitle, styleType = "classic" }) {
   const [timeLeft, setTimeLeft] = useState(0);
 
   useEffect(() => {
@@ -100,6 +100,153 @@ function PreviewCountdownTimer({ targetTime, title, subtitle }) {
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
   
+  if (styleType === "cinematic") {
+    return (
+      <div className="relative z-10 flex h-full w-full flex-col items-center justify-center rounded-2xl px-5 py-4 text-center">
+        <div className="flex animate-pulse items-center gap-2 text-amber-500/80 mb-2">
+          <div className="h-[1px] w-6 bg-gradient-to-r from-transparent to-amber-500/50"></div>
+          <span className="text-[10px] font-bold uppercase tracking-[0.4em]">{title || "Starting Soon"}</span>
+          <div className="h-[1px] w-6 bg-gradient-to-l from-transparent to-amber-500/50"></div>
+        </div>
+        
+        <div className="relative">
+          <div className="absolute inset-0 blur-xl bg-white/10 rounded-full scale-150"></div>
+          <div className="relative font-sans text-6xl font-light leading-none tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-white to-stone-400 tabular-nums drop-shadow-2xl">
+            {m.toString().padStart(2, '0')}<span className="text-stone-600 opacity-50 mx-1 animate-pulse">:</span>{s.toString().padStart(2, '0')}
+          </div>
+        </div>
+        
+        <p className="mt-4 text-xs font-medium tracking-widest text-stone-400 opacity-80 uppercase">{subtitle || "Please take your seats"}</p>
+      </div>
+    );
+  }
+
+  if (styleType === "minimal") {
+    return (
+      <div className="relative z-10 flex h-full w-full items-center justify-center rounded-2xl px-5 py-4">
+        <div className="relative border border-white/10 bg-black/40 backdrop-blur-xl rounded-[2rem] px-8 py-6 text-center shadow-2xl">
+          {title && <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.3em] text-amber-400">{title}</p>}
+          <div className="font-sans text-5xl font-black leading-none tracking-tighter text-white tabular-nums drop-shadow-md">
+            {m.toString().padStart(2, '0')}<span className="text-white/30">:</span>{s.toString().padStart(2, '0')}
+          </div>
+          {subtitle && <p className="mt-3 text-xs font-semibold text-stone-400">{subtitle}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  if (styleType === "elegant") {
+    return (
+      <div className="relative z-10 flex h-full w-full flex-col items-center justify-center rounded-2xl px-5 py-4 text-center">
+        <div className="text-center bg-black/60 backdrop-blur-md px-10 py-6 rounded-[2rem] border border-amber-900/30 shadow-2xl">
+          {title && <p className="mb-3 text-xs font-serif italic tracking-[0.2em] text-amber-500">{title}</p>}
+          <div className="font-serif text-5xl font-medium leading-none text-white drop-shadow-2xl flex items-center justify-center">
+            {m.toString().padStart(2, '0')}<span className="text-amber-600/50 mx-2 font-light">:</span>{s.toString().padStart(2, '0')}
+          </div>
+          {subtitle && <p className="mt-4 text-[10px] font-sans tracking-[0.3em] text-stone-400 uppercase">{subtitle}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  if (styleType === "neon") {
+    return (
+      <div className="relative z-10 flex h-full w-full flex-col items-center justify-center rounded-2xl bg-[#050510] px-5 py-4 text-center">
+        {title && <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.4em] text-fuchsia-500 drop-shadow-[0_0_5px_rgba(217,70,239,0.8)]">{title}</p>}
+        <div className="font-mono text-6xl font-bold leading-none tracking-wider text-cyan-300 tabular-nums drop-shadow-[0_0_15px_rgba(34,211,238,0.6)]">
+          {m.toString().padStart(2, '0')}<span className="text-fuchsia-500 animate-pulse">:</span>{s.toString().padStart(2, '0')}
+        </div>
+        {subtitle && <p className="mt-4 text-[9px] font-semibold tracking-[0.4em] text-cyan-500 uppercase drop-shadow-[0_0_5px_rgba(6,182,212,0.8)]">{subtitle}</p>}
+      </div>
+    );
+  }
+
+  if (styleType === "blocks") {
+    return (
+      <div className="relative z-10 flex h-full w-full flex-col items-center justify-center rounded-2xl px-5 py-4">
+        {title && <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.3em] text-white/50">{title}</p>}
+        <div className="flex items-center gap-2">
+          <div className="flex flex-col items-center bg-white/10 backdrop-blur-md border-t border-white/20 rounded-xl p-3 shadow-lg">
+            <span className="font-mono text-4xl font-black leading-none text-white">{m.toString().padStart(2, '0')}</span>
+            <span className="mt-2 text-[8px] font-bold uppercase tracking-widest text-amber-400">Min</span>
+          </div>
+          <div className="text-2xl font-black text-white/20 animate-pulse">:</div>
+          <div className="flex flex-col items-center bg-white/10 backdrop-blur-md border-t border-white/20 rounded-xl p-3 shadow-lg">
+            <span className="font-mono text-4xl font-black leading-none text-white">{s.toString().padStart(2, '0')}</span>
+            <span className="mt-2 text-[8px] font-bold uppercase tracking-widest text-amber-400">Sec</span>
+          </div>
+        </div>
+        {subtitle && <p className="mt-4 text-[10px] font-semibold tracking-widest text-stone-300">{subtitle}</p>}
+      </div>
+    );
+  }
+
+  if (styleType === "rings") {
+    const progress = (s / 60) * 100;
+    return (
+      <div className="relative z-10 flex h-full w-full flex-col items-center justify-center rounded-2xl px-5 py-4">
+        <div className="relative flex items-center justify-center w-[200px] h-[200px]">
+          <svg className="absolute inset-0 w-full h-full -rotate-90 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]">
+            <circle cx="50%" cy="50%" r="48%" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4%" />
+            <circle cx="50%" cy="50%" r="48%" fill="none" stroke="#fbbf24" strokeWidth="4%" strokeDasharray="301.59" strokeDashoffset={301.59 - (progress / 100) * 301.59} strokeLinecap="round" className="transition-all duration-1000 ease-linear" pathLength="100" />
+          </svg>
+          <div className="absolute inset-0 border-[1.5px] border-dashed border-white/10 rounded-full animate-[spin_30s_linear_infinite]"></div>
+          
+          <div className="text-center z-10 flex flex-col items-center justify-center">
+            {title && <p className="mb-2 text-[8px] font-bold uppercase tracking-[0.2em] text-amber-400">{title}</p>}
+            <div className="font-sans text-3xl font-bold leading-none tracking-tighter text-white tabular-nums">
+              {m.toString().padStart(2, '0')}<span className="text-white/30">:</span>{s.toString().padStart(2, '0')}
+            </div>
+            {subtitle && <p className="mt-2 text-[7px] font-semibold tracking-widest text-stone-400 uppercase max-w-[120px]">{subtitle}</p>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (styleType === "terminal") {
+    return (
+      <div className="relative z-10 flex h-full w-full flex-col items-center justify-center rounded-2xl bg-black px-5 py-4 text-left font-mono">
+        <div className="w-full max-w-[200px]">
+          {title && <p className="mb-2 text-[10px] text-green-500">{`> ${title}`}</p>}
+          <div className="text-5xl font-bold text-green-500 tabular-nums">
+            {m.toString().padStart(2, '0')}:{s.toString().padStart(2, '0')}<span className="animate-[pulse_1s_step-end_infinite]">_</span>
+          </div>
+          {subtitle && <p className="mt-2 text-[8px] text-green-700">{`$ ${subtitle}`}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  if (styleType === "outline") {
+    return (
+      <div className="relative z-10 flex h-full w-full flex-col items-center justify-center rounded-2xl px-5 py-4 text-center">
+        {title && <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-white">{title}</p>}
+        <div className="text-7xl font-black tracking-tighter tabular-nums drop-shadow-2xl" style={{ WebkitTextStroke: '2px white', color: 'transparent' }}>
+          {m.toString().padStart(2, '0')}:{s.toString().padStart(2, '0')}
+        </div>
+        {subtitle && <p className="mt-2 text-[9px] font-bold text-white/50">{subtitle}</p>}
+      </div>
+    );
+  }
+
+  if (styleType === "progressbar") {
+    const progress = (s / 60) * 100;
+    return (
+      <div className="relative z-10 flex h-full w-full flex-col items-center justify-center rounded-2xl px-5 py-4 text-center">
+        <div className="text-6xl font-black tracking-tight text-white tabular-nums drop-shadow-md">
+          {m.toString().padStart(2, '0')}:{s.toString().padStart(2, '0')}
+        </div>
+        <div className="mt-4 h-1 w-[80%] overflow-hidden rounded-full bg-white/10">
+          <div className="h-full bg-amber-400 transition-all duration-1000 ease-linear" style={{ width: `${progress}%` }}></div>
+        </div>
+        {title && <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.3em] text-stone-300">{title}</p>}
+        {subtitle && <p className="mt-2 text-[9px] font-semibold tracking-widest text-stone-400 uppercase">{subtitle}</p>}
+      </div>
+    );
+  }
+
+  // Classic Style (Default)
   return (
     <div className="relative z-10 flex h-full w-full flex-col items-center justify-center rounded-2xl px-5 py-4 text-center">
       <p className="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-stone-300">
@@ -122,7 +269,7 @@ const SelectControl = memo(function SelectControl({ label, value, onChange, opti
   return (
     <>
       <div className="block">
-        <p className="mb-1.5 text-xs font-semibold text-stone-400">{label}</p>
+        {label && <p className="mb-1.5 text-xs font-semibold text-stone-400">{label}</p>}
         <div className="relative">
           <button
             type="button"
@@ -1252,16 +1399,40 @@ export default function AdvancedPresentation() {
                     Clear Text
                   </button>
                   
-                  <div className="flex items-center gap-1 rounded-xl bg-amber-500/10 p-1 pl-3">
-                    <input 
-                      type="number" 
-                      value={customTimerMinutes} 
-                      onChange={(e) => setCustomTimerMinutes(Number(e.target.value))}
-                      className="w-8 bg-transparent text-amber-400 font-bold outline-none text-center"
-                      min={1}
-                      max={99}
-                    />
-                    <span className="text-amber-500/50 text-xs font-semibold mr-1">m</span>
+                  <div className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-950/20 p-1.5 pl-4 shadow-inner">
+                    <div className="flex items-center gap-1.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-amber-500/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <input 
+                        type="number" 
+                        value={customTimerMinutes} 
+                        onChange={(e) => setCustomTimerMinutes(Number(e.target.value))}
+                        className="w-10 bg-black/40 rounded-md border border-amber-500/30 px-1 py-1 text-amber-400 font-bold outline-none text-center focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition"
+                        min={1}
+                        max={99}
+                      />
+                      <span className="text-amber-500/60 text-xs font-bold uppercase tracking-wider mr-2">min</span>
+                      
+                      <div className="w-40 mr-2">
+                        <SelectControl 
+                          value={settings.timerStyle || "classic"}
+                          onChange={(val) => updateSettings({ timerStyle: val })}
+                          options={[
+                            { value: "classic", label: "Classic" },
+                            { value: "cinematic", label: "Cinematic" },
+                            { value: "minimal", label: "Minimal" },
+                            { value: "elegant", label: "Elegant Serif" },
+                            { value: "neon", label: "Neon Glow" },
+                            { value: "blocks", label: "Split Blocks" },
+                            { value: "rings", label: "Spinning Rings" },
+                            { value: "terminal", label: "Retro Terminal" },
+                            { value: "outline", label: "Bold Outline" },
+                            { value: "progressbar", label: "Progress Bar" }
+                          ]}
+                        />
+                      </div>
+                    </div>
                     <button
                       type="button"
                       onClick={() => {
@@ -1270,12 +1441,26 @@ export default function AdvancedPresentation() {
                           toast.success("Timer stopped!");
                         } else {
                           setSermonDisplayMode("timer", Date.now() + customTimerMinutes * 60000 + 1000);
-                          toast.success(`${customTimerMinutes}-minute timer started!`);
+                          toast.success(`${customTimerMinutes}-minute countdown started!`);
                         }
                       }}
-                      className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${displayMode === "timer" ? "bg-amber-400 text-black shadow-lg shadow-amber-400/30" : "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"}`}
+                      className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold tracking-wide transition-all ${displayMode === "timer" ? "bg-amber-400 text-amber-950 shadow-[0_0_20px_rgba(251,191,36,0.4)] hover:bg-amber-300" : "bg-gradient-to-r from-amber-600/30 to-amber-500/20 text-amber-300 border border-amber-500/30 hover:border-amber-400/50 hover:from-amber-600/40 hover:to-amber-500/30 hover:shadow-lg hover:shadow-amber-500/20"}`}
                     >
-                      {displayMode === "timer" ? "Stop Timer" : "Start Timer"}
+                      {displayMode === "timer" ? (
+                        <>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
+                          </svg>
+                          Stop
+                        </>
+                      ) : (
+                        <>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                          </svg>
+                          Start Timer
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -1922,8 +2107,24 @@ export default function AdvancedPresentation() {
             </label>
 
             <div className="flex flex-wrap gap-3">
-              <button onClick={() => updateSettings({ stageMessageVisible: true })} className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15">{t.showMessage}</button>
-              <button onClick={() => updateSettings({ stageMessage: "", stageMessageVisible: false })} className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15">{t.clearMessage}</button>
+              <button 
+                onClick={() => {
+                  updateSettings({ stageMessageVisible: true });
+                  toast.success("Stage Message shown!");
+                }} 
+                className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15"
+              >
+                {t.showMessage}
+              </button>
+              <button 
+                onClick={() => {
+                  updateSettings({ stageMessage: "", stageMessageVisible: false });
+                  toast.success("Stage Message cleared!");
+                }} 
+                className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15"
+              >
+                {t.clearMessage}
+              </button>
             </div>
 
             <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
@@ -2003,6 +2204,7 @@ export default function AdvancedPresentation() {
                     targetTime={libraryData?.sermon?.timerTarget} 
                     title={settings.presentationAnnouncementTitle}
                     subtitle={settings.presentationAnnouncementBody}
+                    styleType={settings.timerStyle || "classic"}
                   />
                 ) : displayMode === "title" || displayMode === "announcement" || (!settings.presentationShowCustomLogo && displayMode === "logo") ? (
                   <div
@@ -2025,7 +2227,7 @@ export default function AdvancedPresentation() {
                       </>
                     )}
                   </div>
-                ) : (
+                ) : displayMode === "clear" ? null : (
                   <div
                     className={`relative z-10 flex w-full flex-1 min-h-0 flex-col justify-center rounded-2xl px-5 py-4 text-center ${settings.presentationBox ? "backdrop-blur-sm" : ""}`}
                     style={{
@@ -2156,7 +2358,7 @@ export default function AdvancedPresentation() {
                               </div>
                             )}
 
-                            {previewReference && (
+                            {displayMode !== "clear" && previewReference && (
                               <p
                                 className="text-sm font-bold"
                                 style={{ color: settings.stageTextColor2 || "#f8fafc" }}
@@ -2164,6 +2366,7 @@ export default function AdvancedPresentation() {
                                 {previewReference}
                               </p>
                             )}
+                            {displayMode !== "clear" && (
                             <div ref={stagePreviewContainerRef} className="flex-1 min-h-0 w-full flex flex-col justify-center">
                               <div ref={stagePreviewTextRef} className="mt-4" style={{ fontSize: `${stagePreviewFontSize}px` }}>
                                 <PresentationPreviewText
@@ -2186,6 +2389,7 @@ export default function AdvancedPresentation() {
                                 />
                               </div>
                             </div>
+                            )}
                             {settings.stagePreset !== "horizontal" && settings.stageMessage ? (
                               <div className={`mt-4 rounded-2xl border px-4 py-3 text-center ${settings.stageMessageVisible ? 'animate-pulse border-white/10 bg-red-500/20' : 'border-white/10 bg-white/5 opacity-70'}`}>
                                 {!settings.stageMessageVisible && (
