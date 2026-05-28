@@ -484,7 +484,7 @@ async function getPresentationScreens() {
 }
 
 async function openPresentationWindow(path, targetScreenValue, windowName) {
-  const features = ["noopener=yes", "noreferrer=yes", "popup=yes"];
+  const features = ["noopener=yes", "noreferrer=yes", "popup=yes", "location=no", "toolbar=no", "menubar=no", "status=no", "scrollbars=no"];
 
   if ("getScreenDetails" in window) {
     try {
@@ -1864,7 +1864,12 @@ export default function AdvancedPresentation() {
         </section>
 
         <div className="mt-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-2 mb-4">
-          <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-stone-400">Display Assignment</h2>
+          <div>
+            <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-stone-400">Display Assignment</h2>
+            <p className="mt-1.5 text-xs text-stone-500">
+              💡 <span className="font-semibold text-stone-400">Pro Tip:</span> Double-click anywhere on the live presentation window to toggle true Fullscreen mode!
+            </p>
+          </div>
           <button 
             type="button"
             onClick={async () => {

@@ -930,7 +930,24 @@ export default function PresentationDisplay() {
   }, []);
 
   useEffect(() => {
+    const handleResize = () => {
+      // If the window is resized to match the screen dimensions (maximized)
+      // Attempt to enter true fullscreen to hide the title bar.
+      if (
+        window.outerWidth >= window.screen.availWidth * 0.99 &&
+        window.outerHeight >= window.screen.availHeight * 0.99 &&
+        !document.fullscreenElement
+      ) {
+        document.documentElement.requestFullscreen().catch(() => {
+          // If the browser blocks it due to lack of user gesture, we fail silently.
+        });
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    
     return () => {
+      window.removeEventListener("resize", handleResize);
       if (fadeFrameRef.current) {
         window.cancelAnimationFrame(fadeFrameRef.current);
       }
@@ -943,7 +960,14 @@ export default function PresentationDisplay() {
   return (
     <div
       ref={displayRef}
-      className="relative flex h-screen w-screen flex-col overflow-hidden text-white"
+      onDoubleClick={() => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      }}
+      className="relative flex h-screen w-screen flex-col overflow-hidden text-white cursor-default"
       style={{
         background: displayMode === "black" ? "#000000" : background,
         backgroundSize: "cover",
