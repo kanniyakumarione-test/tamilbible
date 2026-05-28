@@ -713,16 +713,17 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode, tim
         }}
       >
         {activeItem ? (
-          <div key={activeItem.id} className={`flex-1 flex flex-col min-h-0 w-full ${
-            settings.presentationTransition === false ? "animate-none" :
-            settings.presentationTransition === true ? "animate-fade-in" :
-            `animate-${settings.presentationTransition || "fade-in"}`
-          }`}>
+          <div className="flex-1 flex flex-col min-h-0 w-full">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 {liveReference && (
                   <div
+                    key={`ref-${activeItem.id}`}
                     className={`inline-flex max-w-full items-center rounded-full px-4 py-2 ${
+                      settings.presentationTransition === false ? "animate-none" :
+                      settings.presentationTransition === true ? "animate-fade-in" :
+                      `animate-${settings.presentationTransition || "fade-in"}`
+                    } ${
                       settings.presentationHeaderBox ? "border border-white/10 bg-black/25" : ""
                     }`}
                   >
@@ -750,7 +751,14 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode, tim
               </div>
             </div>
 
-            <div className="mt-8 flex-1 min-h-0 flex flex-col">
+            <div 
+              key={`text-${activeItem.id}`}
+              className={`mt-8 flex-1 min-h-0 flex flex-col ${
+                settings.presentationTransition === false ? "animate-none" :
+                settings.presentationTransition === true ? "animate-fade-in" :
+                `animate-${settings.presentationTransition || "fade-in"}`
+              }`}
+            >
               <FitTextContainer
                 text={activeItem.text}
                 className="font-bold text-white"
