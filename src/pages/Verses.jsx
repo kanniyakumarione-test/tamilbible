@@ -52,6 +52,7 @@ import {
 import { openReader } from "../utils/openReader";
 import { getBookLabelFromMetadata } from "../utils/bibleData";
 import { pushPresentationSermonState } from "../utils/presentationBackend";
+import NotFound from "./NotFound";
 
 function loadImage(src) {
   return new Promise((resolve, reject) => {
@@ -470,6 +471,10 @@ export default function Verses() {
     chapter,
   };
   const chapterItemId = chapterItem.id;
+
+  if (!bookLoading && (!bookData || !chapterData)) {
+    return <NotFound />;
+  }
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);

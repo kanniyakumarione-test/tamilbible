@@ -17,6 +17,7 @@ import {
 import { getReaderFontFamily, getCustomGradientString } from "../utils/appearance";
 import MotionBackground from "../components/MotionBackground";
 import { getBookLabelFromMetadata } from "../utils/bibleData";
+import NotFound from "./NotFound";
 
 export default function Reader() {
   const { book, chapter, verse } = useParams();
@@ -66,7 +67,7 @@ export default function Reader() {
   const englishFontFamily = getReaderFontFamily(settings, "en");
   const primaryFontFamily = ["en", "ta-en"].includes(settings.language) ? englishFontFamily : tamilFontFamily;
 
-  const { bookData } = useBibleBook(decodedBook, language);
+  const { bookData, loading } = useBibleBook(decodedBook, language);
   const chapterData = bookData?.chapters.find(
     (ch) => String(ch.chapter) === String(chapter)
   );
@@ -104,6 +105,10 @@ export default function Reader() {
       text: verseData.text,
     };
   }, [decodedBook, chapter, verseData?.verse, verseData?.text, bookData?.book.tamil]);
+
+  if (!loading && (!bookData || !chapterData || !verseData)) {
+    return <NotFound />;
+  }
 
   useEffect(() => {
     let cancelled = false;

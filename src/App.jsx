@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation, Navigate } from "react-router-dom";
 import { Suspense, lazy, useEffect, useState } from "react";
 import { Toaster } from "react-hot-toast";
 
@@ -25,7 +25,7 @@ const AdvancedPresentation = lazy(() => import("./pages/AdvancedPresentation"));
 const Songs = lazy(() => import("./pages/Songs"));
 const Library = lazy(() => import("./pages/Library"));
 const SermonMode = lazy(() => import("./pages/SermonMode"));
-const SermonControl = lazy(() => import("./pages/SermonControl"));
+
 const PresentationDisplay = lazy(() => import("./pages/PresentationDisplay"));
 const PresentationRemote = lazy(() => import("./pages/PresentationRemote"));
 const Memorize = lazy(() => import("./pages/Memorize"));
@@ -93,7 +93,7 @@ function Layout() {
               <Route path="/presentation/:mode" element={<PresentationDisplay />} />
               <Route path="/presentation-remote" element={<PresentationRemote />} />
               <Route path="/sermon-mode" element={<SermonMode />} />
-              <Route path="/sermon-control" element={<SermonControl />} />
+
               <Route path="/memorize" element={<Memorize />} />
               <Route path="/sermon-builder" element={<SermonBuilder />} />
               <Route path="/:book" element={<Chapters />} />

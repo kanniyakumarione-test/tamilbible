@@ -1069,12 +1069,6 @@ export default function AdvancedPresentation() {
             >
               {t.openPhoneRemote || "Open Phone Remote"}
             </Link>
-            <Link
-              to="/sermon-control"
-              className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
-            >
-              {t.openSermonControl || "Open Sermon Control"}
-            </Link>
           </div>
         </section>
 

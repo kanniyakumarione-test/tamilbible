@@ -236,7 +236,6 @@ export default function SeoManager() {
     } else if (
       pathname.startsWith("/presentation/") ||
       pathname === "/presentation-remote" ||
-      pathname === "/sermon-control" ||
       pathname === "/advanced-presentation"
     ) {
       robots = "noindex, nofollow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";

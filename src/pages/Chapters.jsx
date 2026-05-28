@@ -4,6 +4,7 @@ import useBibleBook from "../hooks/useBibleBook";
 import { getUIText } from "../utils/uiText";
 import { getBookName } from "../utils/bibleContent";
 import { getBookLabelFromMetadata } from "../utils/bibleData";
+import NotFound from "./NotFound";
 
 export default function Chapters() {
   const { book } = useParams();
@@ -11,8 +12,12 @@ export default function Chapters() {
   const [settings] = useAppSettings();
   const t = getUIText(settings.language);
   const language = settings.language === "en" ? "en" : "ta";
-  const { bookData } = useBibleBook(decodedBook, language);
+  const { bookData, loading } = useBibleBook(decodedBook, language);
   const bookLabel = getBookName(bookData, settings.language) || getBookLabelFromMetadata(decodedBook, settings.language);
+
+  if (!loading && !bookData) {
+    return <NotFound />;
+  }
 
   return (
     <div className="app-shell pt-2 md:pt-4">
