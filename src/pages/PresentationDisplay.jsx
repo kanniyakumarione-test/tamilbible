@@ -760,7 +760,7 @@ function DisplayBody({ isStage, settings, activeItem, nextItem, displayMode, tim
               }`}
             >
               <FitTextContainer
-                text={activeItem.text}
+                text={activeItem.text?.replace(new RegExp(`^${activeItem.verse}\\s+`), '')}
                 className="font-bold text-white"
                 baseStyle={mainTextStyle}
                 maxFontSize={mainMaxFont}

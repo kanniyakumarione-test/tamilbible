@@ -1364,13 +1364,13 @@ export default function Verses() {
                           <div className="min-w-0 md:pr-4 md:border-r md:border-white/10">
                             <p className="text-base text-slate-100 md:text-lg">
                               <span className="mr-2 inline text-sm font-bold text-white md:text-base">{v.verse}.</span>
-                              <span className="whitespace-normal break-words">{v.text}</span>
+                              <span className="whitespace-normal break-words">{v.text.replace(new RegExp(`^${v.verse}\\s+`), '')}</span>
                             </p>
                           </div>
                           <div className="min-w-0">
                             <p className="text-base text-stone-300 md:text-lg leading-7 md:leading-[1.8]">
                               <span className="mr-2 inline text-sm font-bold text-stone-500 md:text-base">{v.verse}.</span>
-                              <span className="whitespace-normal break-words">{englishVerseText}</span>
+                              <span className="whitespace-normal break-words">{englishVerseText.replace(new RegExp(`^${v.verse}\\s+`), '')}</span>
                             </p>
                           </div>
                         </div>
@@ -1380,11 +1380,11 @@ export default function Verses() {
                             <span className="mr-2 inline text-sm font-bold text-white md:text-base">
                               {v.verse}.
                             </span>
-                            <span className="whitespace-normal break-words">{v.text}</span>
+                            <span className="whitespace-normal break-words">{v.text.replace(new RegExp(`^${v.verse}\\s+`), '')}</span>
                           </p>
                           {englishVerseText ? (
                             <p className="mt-3 break-words text-sm leading-7 text-stone-300 md:text-base">
-                              {englishVerseText}
+                              {englishVerseText.replace(new RegExp(`^${v.verse}\\s+`), '')}
                             </p>
                           ) : null}
                         </div>

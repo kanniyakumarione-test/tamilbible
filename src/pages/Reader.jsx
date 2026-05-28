@@ -385,6 +385,21 @@ export default function Reader() {
       }}
     >
       {settings.bgType === "motion" ? <MotionBackground variant={settings.motionBackground} /> : null}
+      <button 
+        onClick={() => {
+          if (document.fullscreenElement) {
+            document.exitFullscreen?.().catch(() => {});
+          }
+          navigate(location.state?.returnTo || chapterPath, { replace: true });
+        }}
+        className="absolute top-5 right-5 z-[60] rounded-full bg-black/20 p-2.5 text-white/40 backdrop-blur-md border border-white/5 transition-all hover:bg-black/60 hover:text-white sm:top-6 sm:right-6 sm:p-3"
+        aria-label="Close reader"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 sm:h-6 sm:w-6">
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
+      </button>
       <div
         className={`relative z-10 flex max-h-[calc(100vh-2rem)] w-full flex-col ${
           settings.showReaderBox === false
@@ -443,7 +458,7 @@ export default function Reader() {
                   }}
                   className="font-bold"
                 >
-                  {tamilVerseText}
+                  {tamilVerseText.replace(new RegExp(`^${verseData?.verse}\\s+`), '')}
                 </p>
                 <p
                   style={{
@@ -457,7 +472,7 @@ export default function Reader() {
                   }}
                   className="font-semibold"
                 >
-                  {englishVerseText}
+                  {englishVerseText.replace(new RegExp(`^${verseData?.verse}\\s+`), '')}
                 </p>
               </div>
             ) : (
@@ -473,7 +488,7 @@ export default function Reader() {
                   fade ? "opacity-100" : "opacity-0"
                 }`}
               >
-                {verseData?.text}
+                {verseData?.text?.replace(new RegExp(`^${verseData?.verse}\\s+`), '')}
               </p>
             )}
           </div>
