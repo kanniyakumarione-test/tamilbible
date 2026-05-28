@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import useLibraryData from "../hooks/useLibraryData";
 import useAppSettings from "../hooks/useAppSettings";
 import {
   addSermonQueueItem,
+  clearSermonQueue,
   removeSermonQueueItem,
   setActiveSermonItem,
   setSermonDisplayMode,
@@ -60,10 +62,10 @@ function PickerModal({ open, title, actionLabel, onClose, children }) {
     return null;
   }
 
-  return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-[2rem] border border-white/10 bg-[#000000] shadow-2xl shadow-black/40">
-        <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-5 backdrop-blur-sm">
+      <div className="flex w-full max-w-2xl max-h-[85vh] flex-col rounded-[2rem] border border-white/10 bg-[#000000] shadow-2xl shadow-black/40">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-400">
               Picker
@@ -73,14 +75,15 @@ function PickerModal({ open, title, actionLabel, onClose, children }) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-stone-200"
+            className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-stone-200 transition hover:bg-white/10"
           >
             {actionLabel || "Done"}
           </button>
         </div>
-        <div className="max-h-[70vh] overflow-y-auto p-5">{children}</div>
+        <div data-lenis-prevent="true" className="flex-1 overflow-y-auto p-5 custom-scroll">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -100,7 +103,9 @@ export default function PresentationRemote() {
   );
   const [selectedTestament, setSelectedTestament] = useState(initialTestament);
   const [pickerModal, setPickerModal] = useState(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [selectedBookData, setSelectedBookData] = useState(null);
+  const [englishBookData, setEnglishBookData] = useState(null);
   const visibleBooks = selectedTestament === "new" ? newBooks : oldBooks;
   const chapterOptions = useMemo(
     () =>
@@ -136,10 +141,20 @@ export default function PresentationRemote() {
     id: `${selectedBook}::${selectedChapterData.chapter}::${verse.verse}`,
     type: "verse",
     bookEnglish: selectedBook,
-    bookTamil: selectedBookData?.book.tamil || selectedBook,
+    bookTamil: selectedBookLabel || selectedBook,
     chapter: selectedChapterData.chapter,
     verse: verse.verse,
-    text: verse.text,
+    text: (() => {
+      let t = verse.text;
+      if (settings.language === "ta-en" && englishBookData && !t.includes('\n')) {
+        const engCh = englishBookData?.chapters?.find(c => String(c.chapter) === String(selectedChapterData.chapter));
+        const engV = engCh?.verses?.find(v => String(v.verse) === String(verse.verse));
+        if (engV?.text) {
+          t = `${t}\n${engV.text}`;
+        }
+      }
+      return t;
+    })(),
   });
 
   const handleShowVerse = (verse) => {
@@ -157,24 +172,64 @@ export default function PresentationRemote() {
 
   const handleSelectChapter = (chapterValue) => {
     setSelectedChapter(chapterValue);
-    setPickerModal("verse");
+    setPickerModal(null);
+  };
+
+  useEffect(() => {
+    if (activeItem && activeItem.type === "verse") {
+      if (activeItem.bookEnglish !== selectedBook) {
+        setSelectedBook(activeItem.bookEnglish);
+        setSelectedTestament(getBookMetadata(activeItem.bookEnglish)?.testament === "new" ? "new" : "old");
+      }
+      if (String(activeItem.chapter) !== String(selectedChapter)) {
+        setSelectedChapter(String(activeItem.chapter));
+      }
+    }
+  }, [activeItem?.id]); // Only trigger when activeItem ID changes
+
+  const handleNextAction = () => {
+    if (activeItem && activeItem.type === "verse" && activeItem.bookEnglish === selectedBook && String(activeItem.chapter) === String(selectedChapterData?.chapter)) {
+      const currentIndex = selectedVerses.findIndex(v => String(v.verse) === String(activeItem.verse));
+      if (currentIndex >= 0 && currentIndex < selectedVerses.length - 1) {
+        handleShowVerse(selectedVerses[currentIndex + 1]);
+        return;
+      }
+    }
+    showNextSermonItem();
+  };
+
+  const handlePreviousAction = () => {
+    if (activeItem && activeItem.type === "verse" && activeItem.bookEnglish === selectedBook && String(activeItem.chapter) === String(selectedChapterData?.chapter)) {
+      const currentIndex = selectedVerses.findIndex(v => String(v.verse) === String(activeItem.verse));
+      if (currentIndex > 0) {
+        handleShowVerse(selectedVerses[currentIndex - 1]);
+        return;
+      }
+    }
+    showPreviousSermonItem();
   };
 
   useEffect(() => {
     let cancelled = false;
 
-    void loadBibleBook(selectedBook, "ta").then((bookData) => {
-      if (cancelled) {
-        return;
-      }
-
+    void loadBibleBook(selectedBook, settings.language).then((bookData) => {
+      if (cancelled) return;
       setSelectedBookData(bookData);
     });
+
+    if (settings.language === "ta-en") {
+      void loadBibleBook(selectedBook, "en").then((engData) => {
+        if (cancelled) return;
+        setEnglishBookData(engData);
+      });
+    } else {
+      setEnglishBookData(null);
+    }
 
     return () => {
       cancelled = true;
     };
-  }, [selectedBook]);
+  }, [selectedBook, settings.language]);
 
   useEffect(() => {
     startRemotePresenceStream();
@@ -248,8 +303,8 @@ export default function PresentationRemote() {
 
         <section className="mb-6 app-surface rounded-[2rem] p-5">
           <div className="flex flex-wrap gap-3">
-            <RemoteButton onClick={() => showPreviousSermonItem()}>Previous</RemoteButton>
-            <RemoteButton onClick={() => showNextSermonItem()}>Next</RemoteButton>
+            <RemoteButton onClick={handlePreviousAction}>Previous</RemoteButton>
+            <RemoteButton onClick={handleNextAction}>Next</RemoteButton>
             <RemoteButton active={displayMode === "live"} onClick={() => setSermonDisplayMode("live")}>
               Live
             </RemoteButton>
@@ -331,10 +386,22 @@ export default function PresentationRemote() {
             </div>
           </div>
 
-          <div className="mt-5 grid grid-cols-3 gap-2">
-            <RemoteButton onClick={() => setPickerModal("book")}>Book</RemoteButton>
-            <RemoteButton onClick={() => setPickerModal("chapter")}>Chapter</RemoteButton>
-            <RemoteButton onClick={() => setPickerModal("verse")}>Verse</RemoteButton>
+          <div className="mt-5">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-stone-400">
+              Select Verse to Project
+            </p>
+            <div className="grid grid-cols-5 gap-2 sm:grid-cols-6 md:grid-cols-8">
+              {selectedVerses.map((verse) => (
+                <button
+                  key={verse.verse}
+                  type="button"
+                  onClick={() => handleShowVerse(verse)}
+                  className="flex h-12 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-sm font-semibold text-stone-200 transition hover:bg-white/[0.1] active:bg-white/20"
+                >
+                  {verse.verse}
+                </button>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -346,9 +413,20 @@ export default function PresentationRemote() {
               </p>
               <h2 className="mt-2 text-xl font-bold text-white">Tap to show live</h2>
             </div>
-            <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-stone-300">
-              {queue.length}
-            </span>
+            <div className="flex items-center gap-2">
+              {queue.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowClearConfirm(true)}
+                  className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-400"
+                >
+                  Clear All
+                </button>
+              )}
+              <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-stone-300">
+                {queue.length}
+              </span>
+            </div>
           </div>
 
           <div className="mt-5 space-y-3">
@@ -356,10 +434,10 @@ export default function PresentationRemote() {
               queue.map((item) => (
                 <div
                   key={item.id}
-                  className={`rounded-[1.5rem] border p-4 ${
+                  className={`rounded-[1.5rem] border p-4 transition-all ${
                     item.id === activeItem?.id
-                      ? "border-zinc-600/40 bg-zinc-700/10"
-                      : "border-white/10 bg-white/[0.03]"
+                      ? "border-green-500/40 bg-green-900/20 shadow-[0_0_15px_rgba(34,197,94,0.1)]"
+                      : "border-white/10 bg-white/[0.03] opacity-60 hover:opacity-100"
                   }`}
                 >
                   <div className="flex flex-col gap-3">
@@ -376,7 +454,14 @@ export default function PresentationRemote() {
                       </p>
                     </button>
                     <div className="flex flex-wrap gap-2">
-                      <RemoteButton onClick={() => setActiveSermonItem(item)}>Show</RemoteButton>
+                      {item.id === activeItem?.id ? (
+                        <div className="flex items-center rounded-xl bg-green-500/20 border border-green-500/30 px-4 py-2 text-xs font-bold text-green-400">
+                          <span className="mr-2 h-2 w-2 rounded-full bg-green-400 animate-pulse"></span>
+                          LIVE NOW
+                        </div>
+                      ) : (
+                        <RemoteButton onClick={() => setActiveSermonItem(item)}>Show</RemoteButton>
+                      )}
                       <RemoteButton onClick={() => removeSermonQueueItem(item.id)}>Remove</RemoteButton>
                     </div>
                   </div>
@@ -493,31 +578,36 @@ export default function PresentationRemote() {
         </div>
       </PickerModal>
 
-      <PickerModal
-        open={pickerModal === "verse"}
-        title={`Choose Verse - ${selectedBookLabel} ${selectedChapter}`}
-        onClose={() => setPickerModal(null)}
-      >
-        <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
-          {selectedVerses.map((verse) => {
-            const item = buildVerseItem(verse);
-            const isActive = item.id === activeItem?.id;
 
-            return (
-              <NumberGridButton
-                key={verse.verse}
-                active={isActive}
-                onClick={() => {
-                  handleShowVerse(verse);
-                  setPickerModal(null);
-                }}
+
+      {showClearConfirm && createPortal(
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/70 p-5 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-[2rem] border border-white/10 bg-[#000000] p-6 shadow-2xl shadow-black/40 text-center">
+            <h3 className="text-xl font-bold text-white mb-2">Clear Queue</h3>
+            <p className="text-sm text-stone-300 mb-8">Are you sure you want to remove all other items from the live queue? The currently active item will remain.</p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowClearConfirm(false)}
+                className="flex-1 rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/20"
               >
-                {item.verse}
-              </NumberGridButton>
-            );
-          })}
-        </div>
-      </PickerModal>
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  clearSermonQueue();
+                  setShowClearConfirm(false);
+                }}
+                className="flex-1 rounded-xl bg-red-500/20 px-4 py-3 text-sm font-semibold text-red-400 border border-red-500/30 transition hover:bg-red-500/30"
+              >
+                Clear All
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

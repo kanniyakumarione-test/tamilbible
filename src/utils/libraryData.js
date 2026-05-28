@@ -485,6 +485,12 @@ export function removeSermonQueueItem(itemId) {
   return setSermonQueue(queue, activeItem);
 }
 
+export function clearSermonQueue() {
+  const data = getLibraryData();
+  const activeItem = data.sermon.activeItem;
+  return setSermonQueue(activeItem ? [activeItem] : [], activeItem);
+}
+
 export function addSavedSong(songData) {
   const data = getLibraryData();
   const existingIndex = data.savedSongs.findIndex((s) => s.id === songData.id);

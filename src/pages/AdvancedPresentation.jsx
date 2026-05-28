@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { QRCode } from "react-qr-code";
 import toast from "react-hot-toast";
@@ -19,6 +20,7 @@ const TAMIL_SYMBOL_ROWS = [
 ];
 
 import {
+  clearSermonQueue,
   removeSermonQueueItem,
   setActiveSermonItem,
   setSermonDisplayMode,
@@ -938,6 +940,7 @@ export default function AdvancedPresentation() {
   const remoteNeedsPublicHost = !remoteOrigin || isLocalOnlyHost(new URL(remoteUrl).hostname);
   const [copiedRemoteUrl, setCopiedRemoteUrl] = useState(false);
   const [activePreviewTab, setActivePreviewTab] = useState("main");
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -1227,9 +1230,20 @@ export default function AdvancedPresentation() {
                 {activeItem ? (activeItem.isSong ? activeItem.bookTamil : `${activeItem.bookTamil} ${activeItem.chapter}:${activeItem.verse}`) : (t.noActiveVerse || "No active verse")}
               </h2>
             </div>
-            <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white">
-              {queue.length} queued
-            </span>
+            <div className="flex items-center gap-2">
+              {queue.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowClearConfirm(true)}
+                  className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-400 hover:bg-red-500/20 transition"
+                >
+                  Clear All
+                </button>
+              )}
+              <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white">
+                {queue.length} queued
+              </span>
+            </div>
           </div>
 
           <p className="mb-6 text-xs leading-5 text-stone-400">
@@ -1247,14 +1261,14 @@ export default function AdvancedPresentation() {
               queue.slice(0, 6).map((item) => (
                 <div
                   key={item.id}
-                  className={`rounded-[1.4rem] border p-4 ${
+                  className={`rounded-[1.4rem] border p-4 transition-all ${
                     item.id === activeItem?.id
-                      ? "border-zinc-600/40 bg-zinc-700/10"
-                      : "border-white/10 bg-white/[0.03]"
+                      ? "border-green-500/40 bg-green-900/20 shadow-[0_0_15px_rgba(34,197,94,0.1)]"
+                      : "border-white/10 bg-white/[0.03] opacity-60 hover:opacity-100"
                   }`}
                 >
                   <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                    <div>
+                    <div className="flex-1 pr-0 xl:pr-4">
                       <p className="text-base font-semibold text-white">
                         {item.isSong ? item.bookTamil : `${item.bookTamil} ${item.chapter}:${item.verse}`}
                       </p>
@@ -1262,18 +1276,25 @@ export default function AdvancedPresentation() {
                         {item.text}
                       </p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setActiveSermonItem(item)}
-                        className="rounded-xl bg-[#000000] px-4 py-2.5 text-sm font-semibold text-white"
-                      >
-                        Show Live
-                      </button>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {item.id === activeItem?.id ? (
+                        <div className="flex items-center rounded-xl bg-green-500/20 border border-green-500/30 px-4 py-2.5 text-sm font-bold text-green-400">
+                          <span className="mr-2 h-2.5 w-2.5 rounded-full bg-green-400 animate-pulse"></span>
+                          LIVE NOW
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setActiveSermonItem(item)}
+                          className="rounded-xl bg-[#000000] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-900"
+                        >
+                          Show Live
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => removeSermonQueueItem(item.id)}
-                        className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white"
+                        className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
                       >
                         Remove
                       </button>
@@ -2462,6 +2483,35 @@ export default function AdvancedPresentation() {
           </div>
         </AccordionSection>
       </div>
+      
+      {showClearConfirm && createPortal(
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/70 p-5 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-[2rem] border border-white/10 bg-[#000000] p-6 shadow-2xl shadow-black/40 text-center">
+            <h3 className="text-xl font-bold text-white mb-2">Clear Queue</h3>
+            <p className="text-sm text-stone-300 mb-8">Are you sure you want to remove all other items from the live queue? The currently active item will remain.</p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowClearConfirm(false)}
+                className="flex-1 rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/20"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  clearSermonQueue();
+                  setShowClearConfirm(false);
+                }}
+                className="flex-1 rounded-xl bg-red-500/20 px-4 py-3 text-sm font-semibold text-red-400 border border-red-500/30 transition hover:bg-red-500/30"
+              >
+                Clear All
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
