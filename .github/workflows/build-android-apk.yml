@@ -39,6 +39,11 @@ jobs:
           npm install -D @capacitor/cli@latest @capacitor/android@latest
           npx cap init "Tamil Bible Premium" "com.tamilbible.premium" --web-dir dist
           npx cap add android
+          mkdir -p assets
+          cp public/logo.png assets/icon.png
+          cp public/logo.png assets/splash.png
+          npm install -D @capacitor/assets
+          npx capacitor-assets generate --android
           npx cap sync android
 
       - name: Fix Kotlin Duplicate Classes

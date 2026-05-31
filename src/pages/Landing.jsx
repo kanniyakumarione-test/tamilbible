@@ -1,17 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function Landing() {
   const [scrolled, setScrolled] = useState(false);
+  const navigate = useNavigate();
   const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(window.navigator.userAgent);
 
   useEffect(() => {
+    // Skip landing page for Native Android (Capacitor) or Desktop (Electron)
+    if (window.Capacitor?.isNativePlatform?.() || (window.process && window.process.type)) {
+      navigate('/home');
+      return;
+    }
+
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-black text-white selection:bg-emerald-500/30 overflow-x-hidden font-sans">
