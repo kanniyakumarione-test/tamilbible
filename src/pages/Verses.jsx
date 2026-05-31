@@ -89,28 +89,36 @@ function drawCoverImage(ctx, image, width, height) {
 }
 
 function getWrappedLines(ctx, text, maxWidth) {
-  const words = text.split(/\s+/);
+  const paragraphs = text.split('\n');
   const lines = [];
-  let currentLine = "";
 
-  words.forEach((word) => {
-    const nextLine = currentLine ? `${currentLine} ${word}` : word;
-
-    if (ctx.measureText(nextLine).width <= maxWidth) {
-      currentLine = nextLine;
+  paragraphs.forEach(paragraph => {
+    if (paragraph.trim() === '') {
+      lines.push('');
       return;
     }
+    const words = paragraph.split(/\s+/);
+    let currentLine = "";
+
+    words.forEach((word) => {
+      const nextLine = currentLine ? `${currentLine} ${word}` : word;
+
+      if (ctx.measureText(nextLine).width <= maxWidth) {
+        currentLine = nextLine;
+        return;
+      }
+
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+
+      currentLine = word;
+    });
 
     if (currentLine) {
       lines.push(currentLine);
     }
-
-    currentLine = word;
   });
-
-  if (currentLine) {
-    lines.push(currentLine);
-  }
 
   return lines;
 }
@@ -382,15 +390,37 @@ export default function Verses() {
     ctx.lineWidth = 2;
     ctx.stroke();
 
+    const isEngMode = settings.language === "en";
+    const isBilingualMode = isBilingual;
+    const engVerseText = getEnglishVerseText(verse.verse);
+    
+    let shareBookLabel = `${bookLabel} ${chapter}:${verse.verse}`;
+    let shareVerseText = verse.text;
+
+    if (isEngMode) {
+      shareBookLabel = `${englishBookLabel} ${chapter}:${verse.verse}`;
+      shareVerseText = engVerseText || verse.text;
+    } else if (isBilingualMode && engVerseText) {
+      shareBookLabel = `${bookLabel} / ${englishBookLabel} ${chapter}:${verse.verse}`;
+      shareVerseText = `${verse.text}\n\n${engVerseText}`;
+    }
+
+    const fontNameMap = {
+      "noto-sans-tamil": '"Noto Sans Tamil", Arial',
+      "noto-serif-tamil": '"Noto Serif Tamil", serif',
+      "mukta-malar": '"Mukta Malar", Arial',
+      "tavmai": '"Tavmai", Arial',
+      "arima-madurai": '"Arima Madurai", Arial',
+      "system-sans": "Arial, sans-serif",
+    };
+    const canvasFont = fontNameMap[settings.tamilFontFamily] || "Arial";
+
     ctx.fillStyle = accent;
-    ctx.font = "600 26px Arial";
-    ctx.fillText(t.verse.toUpperCase(), cardX + 54, cardY + 74);
+    ctx.font = `700 42px ${canvasFont}`;
+    ctx.textAlign = "left";
+    ctx.fillText(shareBookLabel, cardX + 54, cardY + 84);
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "700 42px Arial";
-    ctx.fillText(`${bookLabel} ${chapter}:${verse.verse}`, cardX + 54, cardY + 144);
-
-    const textTop = cardY + 230;
+    const textTop = cardY + 170;
     const textBottom = cardY + cardHeight - 120;
     const availableHeight = textBottom - textTop;
     const textWidth = cardWidth - 108;
@@ -404,15 +434,19 @@ export default function Verses() {
       34,
       32,
       30,
+      28,
+      26,
+      24,
     ].filter((value, index, list) => list.indexOf(value) === index);
-    let chosenFontSize = 30;
-    let chosenLineHeight = 44;
+    
+    let chosenFontSize = 24;
+    let chosenLineHeight = 36;
     let wrappedLines = [];
 
     for (const fontSize of fontCandidates) {
-      ctx.font = `700 ${fontSize}px Arial`;
+      ctx.font = `700 ${fontSize}px ${canvasFont}`;
       const lineHeight = Math.round(fontSize * 1.34);
-      const lines = getWrappedLines(ctx, verse.text, textWidth);
+      const lines = getWrappedLines(ctx, shareVerseText, textWidth);
 
       if (lines.length * lineHeight <= availableHeight) {
         chosenFontSize = fontSize;
@@ -423,14 +457,19 @@ export default function Verses() {
     }
 
     if (!wrappedLines.length) {
-      ctx.font = "700 30px Arial";
-      wrappedLines = getWrappedLines(ctx, verse.text, textWidth);
+      ctx.font = `700 24px ${canvasFont}`;
+      wrappedLines = getWrappedLines(ctx, shareVerseText, textWidth);
     }
 
     ctx.fillStyle = "#f8fafc";
-    ctx.font = `700 ${chosenFontSize}px Arial`;
-    drawWrappedText(ctx, wrappedLines, cardX + 54, textTop, chosenLineHeight);
+    ctx.font = `700 ${chosenFontSize}px ${canvasFont}`;
+    
+    const alignX = settings.textAlign === "center" ? cardX + cardWidth / 2 : cardX + 54;
+    ctx.textAlign = settings.textAlign === "center" ? "center" : "left";
+    
+    drawWrappedText(ctx, wrappedLines, alignX, textTop, chosenLineHeight);
 
+    ctx.textAlign = "left";
     ctx.fillStyle = "rgba(226, 232, 240, 0.82)";
     ctx.font = "600 22px Arial";
     ctx.fillText(
@@ -846,27 +885,7 @@ export default function Verses() {
         { type: "image/png" }
       );
 
-      if (destination === "whatsapp" || destination === "telegram") {
-        const url =
-          destination === "whatsapp"
-            ? `https://wa.me/?text=${encodeURIComponent(shareText)}`
-            : `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(shareText)}`;
-        window.open(url, "_blank", "noopener,noreferrer");
-      }
-
-      if (
-        destination === "system" &&
-        navigator.share &&
-        (!navigator.canShare || navigator.canShare({ files: [shareFile] }))
-      ) {
-        await navigator.share({
-          title: `${bookLabel} ${chapter}:${verse.verse}`,
-          text: shareText,
-          files: [shareFile],
-        });
-        return;
-      }
-
+      // Always download the image on the web so the user gets a physical copy of the design
       const downloadUrl = URL.createObjectURL(shareBlob);
       const link = document.createElement("a");
       link.href = downloadUrl;
@@ -875,6 +894,15 @@ export default function Verses() {
       link.click();
       link.remove();
       URL.revokeObjectURL(downloadUrl);
+
+      if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [shareFile] }))) {
+        await navigator.share({
+          title: `${bookLabel} ${chapter}:${verse.verse}`,
+          text: shareText,
+          files: [shareFile],
+        });
+        return;
+      }
       return;
     } catch {
       if (destination === "system" && navigator.share) {
@@ -2089,29 +2117,9 @@ export default function Verses() {
                   await shareVerseCard(shareDesigner.verse, "system");
                   closeShareDesigner();
                 }}
-                className="rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md px-5 py-3 text-sm font-semibold text-white shadow-xl hover:bg-white/20 transition-all"
+                className="w-full rounded-2xl border border-white/20 bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-4 text-sm font-bold text-black shadow-xl hover:opacity-90 active:scale-95 transition-all"
               >
-                Share Image
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  await shareVerseCard(shareDesigner.verse, "whatsapp");
-                  closeShareDesigner();
-                }}
-                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10 transition-all"
-              >
-                WhatsApp
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  await shareVerseCard(shareDesigner.verse, "telegram");
-                  closeShareDesigner();
-                }}
-                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10 transition-all"
-              >
-                Telegram
+                {["en", "ta-en"].includes(settings.language) ? "Download & Share Image" : "பதிவிறக்கம் செய்து பகிரவும்"}
               </button>
             </div>
           </div>
