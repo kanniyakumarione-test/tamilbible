@@ -1626,17 +1626,6 @@ export default function Verses() {
               </p>
             ) : null}
 
-            {settings.pastorsMode && (
-              <div className="mt-5">
-                <button
-                  type="button"
-                  onClick={() => setCrossReferencesViewer(selectedVerse)}
-                  className="w-full rounded-2xl border border-fuchsia-500/30 bg-fuchsia-500/10 px-4 py-3 text-sm font-semibold text-fuchsia-100 shadow-lg"
-                >
-                  {["en", "ta-en"].includes(settings.language) ? "Related" : "தொடர்பு"}
-                </button>
-              </div>
-            )}
                 </>
               );
             })()}

@@ -559,12 +559,11 @@ export function getRecentPrayers(data = getLibraryData(), limit = 4) {
     .slice(0, limit);
 }
 
-export async function getVerseOfTheDay(language = "ta") {
+export async function getVerseOfTheDay(language = "ta", dateObj = new Date()) {
   const chapterIndex = await getChapterIndex();
   // Instead of loading all books, we just use the chapter index which only loads the metadata
   
-  const today = new Date();
-  const key = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+  const key = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
   let hash = 0;
   for (let i = 0; i < key.length; i += 1) {
     hash = (hash * 31 + key.charCodeAt(i)) % chapterIndex.length;

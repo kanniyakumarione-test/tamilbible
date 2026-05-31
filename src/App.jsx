@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes, useLocation, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { Suspense, lazy, useEffect, useState } from "react";
 import { Toaster } from "react-hot-toast";
 
@@ -13,6 +13,8 @@ import {
   getFontCss,
   getReaderFontFamily,
 } from "./utils/appearance";
+import { scheduleLocalNotifications } from "./utils/notifications";
+import { LocalNotifications } from "@capacitor/local-notifications";
 
 const Home = lazy(() => import("./pages/Home"));
 const Landing = lazy(() => import("./pages/Landing"));
@@ -55,6 +57,7 @@ function RouteLoadingScreen() {
 
 function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [settings] = useAppSettings();
   const isReader =
     location.pathname.startsWith("/reader") ||
@@ -67,6 +70,24 @@ function Layout() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
+
+  useEffect(() => {
+    // Schedule notifications if native
+    scheduleLocalNotifications();
+
+    // Listen for notification taps
+    if (window.Capacitor?.isNativePlatform?.()) {
+      const listener = LocalNotifications.addListener('localNotificationActionPerformed', (notificationAction) => {
+        const route = notificationAction.notification.extra?.route;
+        if (route) {
+          navigate(route);
+        }
+      });
+      return () => {
+        listener.then(l => l.remove()).catch(() => {});
+      };
+    }
+  }, [navigate]);
 
   useEffect(() => {
     const root = document.documentElement;

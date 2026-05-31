@@ -46,6 +46,7 @@
     }
   },
   "dependencies": {
+    "@capacitor/local-notifications": "^8.2.0",
     "@fontsource/anek-tamil": "^5.2.7",
     "@fontsource/anton": "^5.2.7",
     "@fontsource/arima-madurai": "^5.2.5",
