@@ -545,23 +545,25 @@ export default function Settings() {
                     </label>
                   </Panel>
 
-                  <Panel 
-                    title={isTamil ? "மேம்பட்ட திரையிடல்" : "Advanced Presentation"} 
-                    subtitle={isTamil ? "இரட்டை திரை மற்றும் லைவ் திரையிடல் கருவிகளை இயக்கு." : "Enable dual-screen live presentation tools for churches."} 
-                    isTamil={isTamil}
-                    className="hidden md:block"
-                  >
-                    <label className="flex cursor-pointer items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4 transition hover:bg-white/10">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold text-white block">
-                          {isTamil ? "திரையிடல் கருவிகளை இயக்கு" : "Enable Presentation Tools"}
-                        </span>
-                      </div>
-                      <div className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:ring-offset-2 focus:ring-offset-black" style={{ backgroundColor: draft.presentationMode ? "#10b981" : "#3f3f46" }} onClick={(e) => { e.preventDefault(); updateDraft({ presentationMode: !draft.presentationMode }); }}>
-                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${draft.presentationMode ? "translate-x-6" : "translate-x-1"}`} />
-                      </div>
-                    </label>
-                  </Panel>
+                  {typeof window !== 'undefined' && (window.navigator.userAgent.toLowerCase().includes('electron') || window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: twa)').matches || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
+                    <Panel 
+                      title={isTamil ? "மேம்பட்ட திரையிடல்" : "Advanced Presentation"} 
+                      subtitle={isTamil ? "இரட்டை திரை மற்றும் லைவ் திரையிடல் கருவிகளை இயக்கு." : "Enable dual-screen live presentation tools for churches."} 
+                      isTamil={isTamil}
+                      className="hidden md:block"
+                    >
+                      <label className="flex cursor-pointer items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4 transition hover:bg-white/10">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-white block">
+                            {isTamil ? "திரையிடல் கருவிகளை இயக்கு" : "Enable Presentation Tools"}
+                          </span>
+                        </div>
+                        <div className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:ring-offset-2 focus:ring-offset-black" style={{ backgroundColor: draft.presentationMode ? "#10b981" : "#3f3f46" }} onClick={(e) => { e.preventDefault(); updateDraft({ presentationMode: !draft.presentationMode }); }}>
+                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${draft.presentationMode ? "translate-x-6" : "translate-x-1"}`} />
+                        </div>
+                      </label>
+                    </Panel>
+                  )}
 
                   <Panel title={settingsPageText.panels.installApp.title} subtitle={settingsPageText.panels.installApp.subtitle} isTamil={isTamil}>
                     <div className="flex flex-col gap-3">

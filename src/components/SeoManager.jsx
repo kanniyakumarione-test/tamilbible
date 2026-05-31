@@ -75,7 +75,7 @@ export default function SeoManager() {
 
     let title = "Tamil Bible Premium";
     let description =
-      "Tamil Bible reading app with books, chapters, verses, Tanglish search, and mobile-friendly reading tools.";
+      "100% Offline Tamil Bible app and Church Presentation Software. Read, search in Tanglish, build sermons, and present verses seamlessly.";
     let type = "website";
     let canonicalUrl = toAbsoluteUrl(pathname);
     let robots = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
@@ -87,7 +87,7 @@ export default function SeoManager() {
     if (pathname === "/") {
       title = "Tamil Bible Premium | Tamil Bible Reading App";
       description =
-        "Read the Tamil Bible with chapter navigation, verse popups, Tanglish search, bookmarks, notes, and mobile-friendly reading.";
+        "Read the Tamil Bible (தமிழ் வேதாகமம்) completely offline. Features chapter navigation, Tanglish search, Sermon Builder, and Windows Church Presentation tools.";
     } else if (pathname === "/books") {
       title = `${t.books} | Tamil Bible Premium`;
       description =

@@ -97,7 +97,10 @@ function NavGlyph({ active, variant }) {
 }
 
 function isItemActive(pathname, to) {
-  return to === "/" ? pathname === "/" : pathname.startsWith(to);
+  if (to === "/" || to === "/home") {
+    return pathname === "/" || pathname === "/home";
+  }
+  return pathname.startsWith(to);
 }
 
 export default function TopNav() {
@@ -120,8 +123,11 @@ export default function TopNav() {
     setMobileMenuOpen(false);
   }, [pathname]);
 
+  const isDesktopApp = typeof window !== 'undefined' && (window.navigator.userAgent.toLowerCase().includes('electron') || window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: twa)').matches);
+  const homeRoute = isDesktopApp ? "/" : "/home";
+
   const items = [
-    { to: "/", label: t.home, glyph: "home" },
+    { to: homeRoute, label: t.home, glyph: "home" },
     { to: "/books", label: t.books, glyph: "books" },
     { to: "/search", label: t.search, glyph: "search" },
     { to: "/library", label: t.library || "Library", glyph: "library" },
@@ -153,7 +159,7 @@ export default function TopNav() {
       >
         {/* Left: Logo */}
         <div className="flex shrink-0">
-          <Link to="/" className="group flex items-center gap-3">
+          <Link to={homeRoute} className="group flex items-center gap-3">
             <div className="flex items-center justify-center rounded-xl overflow-hidden bg-white/5 border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.05)] transition-all group-hover:scale-105 h-10 w-10">
               <img src="/logo.png" alt="Tamil Bible" className="h-full w-full object-cover" />
             </div>
@@ -226,7 +232,7 @@ export default function TopNav() {
           }`}
         >
           {/* Mobile Logo */}
-          <Link to="/" className="group flex items-center gap-2.5 pl-2">
+          <Link to={homeRoute} className="group flex items-center gap-2.5 pl-2">
             <div className={`flex items-center justify-center rounded-xl overflow-hidden bg-white/5 border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.05)] transition-all ${scrolled ? "h-9 w-9" : "h-10 w-10"}`}>
               <img src="/logo.png" alt="Tamil Bible" className="h-full w-full object-cover" />
             </div>

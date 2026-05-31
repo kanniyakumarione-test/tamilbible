@@ -15,6 +15,7 @@ import {
 } from "./utils/appearance";
 
 const Home = lazy(() => import("./pages/Home"));
+const Landing = lazy(() => import("./pages/Landing"));
 const Books = lazy(() => import("./pages/Books"));
 const Chapters = lazy(() => import("./pages/Chapters"));
 const Verses = lazy(() => import("./pages/Verses"));
@@ -59,6 +60,13 @@ function Layout() {
     location.pathname.startsWith("/reader") ||
     location.pathname.startsWith("/sermon-mode") ||
     location.pathname.startsWith("/presentation/");
+    
+  const isDesktopApp = typeof window !== 'undefined' && (window.navigator.userAgent.toLowerCase().includes('electron') || window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: twa)').matches);
+  const isLandingPage = location.pathname === "/" && !isDesktopApp;
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -74,16 +82,17 @@ function Layout() {
   }, [settings]);
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-black">
       <SeoManager />
 
-      {!isReader && <TopNav />}
+      {!isReader && !isLandingPage && <TopNav />}
       
-      <main className={`flex-1 ${isReader ? "" : "pt-24 md:pt-28"}`}>
+      <main className={`flex-1 ${isReader || isLandingPage ? "" : "pt-24 md:pt-28"}`}>
         <Suspense fallback={<RouteLoadingScreen />}>
           <div key={isReader ? "reader-shell" : location.pathname} className={isReader ? "" : "app-page-transition"}>
             <Routes>
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={isDesktopApp ? <Home /> : <Landing />} />
+              <Route path="/home" element={<Home />} />
               <Route path="/books" element={<Books />} />
               <Route path="/search" element={<Search />} />
               <Route path="/settings" element={<Settings />} />
@@ -108,7 +117,7 @@ function Layout() {
         </Suspense>
       </main>
 
-      {!isReader && <Footer />}
+      {!isReader && !isLandingPage && <Footer />}
     </div>
   );
 }

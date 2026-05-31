@@ -188,10 +188,10 @@ export default function Home() {
               {t.homeIntro}
             </p>
 
-            <div className="mt-10 flex flex-wrap gap-3">
+            <div className="mt-10 flex flex-row flex-wrap items-center gap-4">
               <button
                 onClick={() => continueReading ? goToItem(continueReading) : navigate("/books")}
-                className="group relative flex items-center gap-2 overflow-hidden rounded-full bg-gradient-to-r from-zinc-800 to-black px-8 py-4 font-bold text-white shadow-[0_0_30px_rgba(255, 255, 255,0.3)] transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(255, 255, 255,0.5)] active:scale-95"
+                className="group relative flex items-center justify-center gap-3 overflow-hidden rounded-full bg-gradient-to-r from-zinc-800 to-black px-8 py-4 font-bold text-white shadow-[0_0_30px_rgba(255, 255, 255,0.3)] transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(255, 255, 255,0.5)] active:scale-95"
               >
                 <div className="absolute inset-0 bg-white/20 opacity-0 transition-opacity group-hover:opacity-100" />
                 <span className="relative z-10">{continueReading ? (["en", "ta-en"].includes(settings.language) ? "Resume Reading" : "தொடர்ந்து வாசிக்க") : (["en", "ta-en"].includes(settings.language) ? "Start Reading" : "வாசிக்கத் தொடங்கு")}</span>
@@ -199,18 +199,6 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
               </button>
-              
-              <a
-                href="https://github.com/kanniyakumarione-test/tamilbible/releases/download/v1.0.0/Tamil.Bible.Premium.Setup.1.0.0.exe"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group relative flex items-center gap-2 overflow-hidden rounded-full border border-white/10 bg-white/5 px-8 py-4 font-bold text-white transition-all hover:scale-105 hover:bg-white/10 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] active:scale-95"
-              >
-                <span className="relative z-10">{["en", "ta-en"].includes(settings.language) ? "Download for Windows" : "Windows செயலி"}</span>
-                <svg className="relative z-10 h-5 w-5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-              </a>
             </div>
           </div>
         </section>

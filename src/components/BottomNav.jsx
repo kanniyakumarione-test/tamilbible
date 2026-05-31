@@ -56,7 +56,10 @@ function DockGlyph({ active, variant }) {
 }
 
 function isItemActive(pathname, to) {
-  return to === "/" ? pathname === "/" : pathname.startsWith(to);
+  if (to === "/" || to === "/home") {
+    return pathname === "/" || pathname === "/home";
+  }
+  return pathname.startsWith(to);
 }
 
 function DesktopDock({ items, pathname }) {
@@ -167,8 +170,10 @@ export default function BottomNav() {
   const [settings] = useAppSettings();
   const t = getUIText(settings.language);
 
+  const isDesktopApp = typeof window !== 'undefined' && (window.navigator.userAgent.toLowerCase().includes('electron') || window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: twa)').matches);
+
   const items = [
-    { to: "/", label: t.home, glyph: "home" },
+    { to: isDesktopApp ? "/" : "/home", label: t.home, glyph: "home" },
     { to: "/books", label: t.books, glyph: "books" },
     { to: "/search", label: t.search, glyph: "search" },
     { to: "/settings", label: t.settings, glyph: "settings" },
