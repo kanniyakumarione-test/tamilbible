@@ -19,6 +19,7 @@ export const defaultSettings = {
   referencePosition: "top",
   keepScreenAwake: false,
   tamilKeyboardAutoOpen: true,
+  audioSpeed: 0.85,
   pastorsMode: false,
   presentationMode: false,
   enableMainPresentation: false,

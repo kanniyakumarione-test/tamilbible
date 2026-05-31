@@ -2,6 +2,9 @@ import { getCustomGradientString } from "../utils/appearance";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
 
 import booksList from "../data/Books.json";
 
@@ -812,6 +815,31 @@ export default function Verses() {
 
     try {
       const shareBlob = await createVerseShareImage(verse, design);
+      
+      if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
+        const base64Data = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = reject;
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(shareBlob);
+        });
+        
+        const fileName = `verse-${Date.now()}.png`;
+        const savedFile = await Filesystem.writeFile({
+          path: fileName,
+          data: base64Data.split(',')[1],
+          directory: Directory.Cache
+        });
+        
+        await Share.share({
+          title: `${bookLabel} ${chapter}:${verse.verse}`,
+          text: shareText,
+          url: savedFile.uri,
+          dialogTitle: 'Share Verse Image'
+        });
+        return;
+      }
+
       const shareFile = new File(
         [shareBlob],
         `${decodedBook}-${chapter}-${verse.verse}.png`,
@@ -925,7 +953,11 @@ export default function Verses() {
 
   const toggleAudioPlay = () => {
     if (isPlayingAudioRef.current) {
-      window.speechSynthesis.cancel();
+      if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
+        TextToSpeech.stop().catch(() => {});
+      } else {
+        window.speechSynthesis.cancel();
+      }
       setIsPlayingAudio(false);
       isPlayingAudioRef.current = false;
       setPlayingVerseId(null);
@@ -938,7 +970,43 @@ export default function Verses() {
     isPlayingAudioRef.current = true;
     let vIndex = 0;
 
-    const speakNext = () => {
+    const speakNextNative = async () => {
+      while (vIndex < chapterData.verses.length && isPlayingAudioRef.current) {
+        const v = chapterData.verses[vIndex];
+        setPlayingVerseId(v.verse);
+        const el = document.getElementById(`verse-${v.verse}`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        const isEnglishOnly = settings.language === "en";
+        let textToRead = v.text;
+        if (isEnglishOnly) {
+          textToRead = getEnglishVerseText(v.verse) || "";
+        } else if (isBilingual) {
+          textToRead = v.text; 
+        }
+
+        try {
+          await TextToSpeech.speak({
+            text: textToRead,
+            lang: isEnglishOnly ? 'en-US' : 'ta-IN',
+            rate: settings.audioSpeed || 0.85,
+            pitch: 1.0,
+            volume: 1.0,
+            category: 'ambient',
+          });
+        } catch (e) {
+          break; // Usually means it was interrupted/stopped
+        }
+        vIndex++;
+      }
+      if (isPlayingAudioRef.current) {
+        setIsPlayingAudio(false);
+        isPlayingAudioRef.current = false;
+        setPlayingVerseId(null);
+      }
+    };
+
+    const speakNextWeb = () => {
       if (!isPlayingAudioRef.current) {
         window.speechSynthesis.cancel();
         return;
@@ -965,12 +1033,11 @@ export default function Verses() {
         textToRead = v.text; 
       }
 
-      // Sometimes speech synthesis gets stuck, canceling before speaking helps
       window.speechSynthesis.cancel();
 
       const utterance = new SpeechSynthesisUtterance(textToRead);
       utterance.lang = isEnglishOnly ? "en-US" : "ta-IN";
-      utterance.rate = 0.85; // Slow down for better clarity and reverence
+      utterance.rate = settings.audioSpeed || 0.85; 
       
       const voices = window.speechSynthesis.getVoices();
       
@@ -992,12 +1059,10 @@ export default function Verses() {
 
       utterance.onend = () => {
         vIndex++;
-        speakNext();
+        speakNextWeb();
       };
       
       utterance.onerror = (e) => {
-        console.error("Speech Synthesis Error:", e);
-        // Only stop if it wasn't a manual cancellation
         if (isPlayingAudioRef.current) {
           setIsPlayingAudio(false);
           isPlayingAudioRef.current = false;
@@ -1008,10 +1073,14 @@ export default function Verses() {
       window.speechSynthesis.speak(utterance);
     };
 
-    if (window.speechSynthesis.getVoices().length === 0) {
-      window.speechSynthesis.onvoiceschanged = speakNext;
+    if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
+      speakNextNative();
     } else {
-      speakNext();
+      if (window.speechSynthesis.getVoices().length === 0) {
+        window.speechSynthesis.onvoiceschanged = speakNextWeb;
+      } else {
+        speakNextWeb();
+      }
     }
   };
 

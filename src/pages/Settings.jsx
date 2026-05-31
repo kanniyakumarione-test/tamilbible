@@ -460,6 +460,7 @@ export default function Settings() {
                       <StepControl label={t.fontSize} value={draft.fontSize} valueLabel={`${draft.fontSize}px`} min={18} max={42} step={1} onChange={(fontSize) => updateDraft({ fontSize })} />
                       <StepControl label={t.lineSpacing} value={draft.lineHeight} valueLabel={`${draft.lineHeight.toFixed(1)}x`} min={1.3} max={2.4} step={0.1} onChange={(lineHeight) => updateDraft({ lineHeight })} />
                       <StepControl label={t.readerWidth} value={draft.readerWidth} valueLabel={`${draft.readerWidth}px`} min={640} max={1200} step={20} onChange={(readerWidth) => updateDraft({ readerWidth })} />
+                      <StepControl label={isTamil ? "வாசிப்பு வேகம்" : "Audio Speed"} value={draft.audioSpeed || 0.85} valueLabel={`${(draft.audioSpeed || 0.85).toFixed(2)}x`} min={0.5} max={1.5} step={0.05} onChange={(audioSpeed) => updateDraft({ audioSpeed })} />
                       <StepControl label={t.cardOpacity} value={draft.cardOpacity} valueLabel={`${Math.round(draft.cardOpacity * 100)}%`} min={0.2} max={0.9} step={0.05} onChange={(cardOpacity) => updateDraft({ cardOpacity })} />
                     </div>
                     <div className="mt-3 grid gap-3 md:grid-cols-2">
