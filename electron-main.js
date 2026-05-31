@@ -1,4 +1,5 @@
-import { app, BrowserWindow, Menu, screen, powerSaveBlocker } from 'electron';
+import { app, BrowserWindow, Menu, screen, powerSaveBlocker, dialog } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -90,7 +91,26 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  createWindow();
+
+  // Automatically check for updates silently in the background
+  autoUpdater.checkForUpdatesAndNotify();
+});
+
+// When an update is fully downloaded, prompt the user to restart
+autoUpdater.on('update-downloaded', (info) => {
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'Update Ready',
+    message: 'A new version of Tamil Bible Premium has been downloaded in the background. The application will restart to install the update.',
+    buttons: ['Restart Now', 'Later']
+  }).then((result) => {
+    if (result.response === 0) {
+      autoUpdater.quitAndInstall();
+    }
+  });
+});
 
 app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') {

@@ -1,7 +1,7 @@
 {
   "name": "tamil-bible-app",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "main": "electron-main.js",
   "scripts": {
@@ -17,6 +17,13 @@
   "build": {
     "appId": "com.tamilbible.premium",
     "productName": "Tamil Bible Premium",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "kanniyakumarione-test",
+        "repo": "tamilbible"
+      }
+    ],
     "directories": {
       "output": "release"
     },
@@ -66,6 +73,7 @@
     "@fontsource/quicksand": "^5.2.10",
     "@fontsource/raleway": "^5.2.8",
     "@fontsource/tiro-tamil": "^5.2.8",
+    "electron-updater": "^6.8.3",
     "html2canvas": "^1.4.1",
     "lenis": "^1.3.19",
     "react": "^19.2.4",
