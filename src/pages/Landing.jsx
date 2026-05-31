@@ -54,31 +54,16 @@ export default function Landing() {
           <div className="flex items-center gap-4">
             <Link 
               to="/home"
-              className="hidden md:flex px-6 py-2.5 rounded-full border border-white/10 bg-white/5 text-white font-medium text-sm hover:bg-white/10 transition-colors"
+              className="px-6 py-2.5 rounded-full bg-white text-black font-bold text-sm hover:scale-105 transition-all"
             >
               Read Online
             </Link>
-            {isMobile ? (
-              <Link 
-                to="/home"
-                className="px-6 py-2.5 rounded-full bg-white text-black font-bold text-sm hover:scale-105 transition-all"
-              >
-                Read Online
-              </Link>
-            ) : (
-              <a 
-                href="https://github.com/kanniyakumarione-test/tamilbible/releases/download/v1.0.1/Tamil.Bible.Premium.Setup.1.0.1.exe"
-                className="px-6 py-2.5 rounded-full bg-white text-black font-bold text-sm hover:scale-105 transition-all"
-              >
-                Get the App
-              </a>
-            )}
           </div>
         </div>
       </nav>
 
       {/* 1. HERO SECTION */}
-      <section className="relative pt-32 pb-16 md:pt-56 md:pb-32 bg-black">
+      <section className="relative pt-28 pb-16 md:pt-40 md:pb-24 bg-black">
         {/* Subtle Accent Glows (Very Dark) */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[400px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/[0.03] to-transparent pointer-events-none" />
         
