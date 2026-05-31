@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
 const distDir = path.join(rootDir, "dist");
-const stateDir = path.join(__dirname, "data");
+const stateDir = process.env.STATE_DIR || path.join(__dirname, "data");
 const stateFile = path.join(stateDir, "presentation-state.json");
 
 const port = Number(process.env.PORT || 8787);

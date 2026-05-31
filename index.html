@@ -100,6 +100,12 @@
         <div class="loader-ring"></div>
         <div class="loader-text">Loading</div>
       </div>
+      <script>
+        if (window.location.pathname.includes('/presentation') || window.location.pathname.includes('/stage')) {
+          const loader = document.getElementById('initial-loader');
+          if (loader) loader.style.display = 'none';
+        }
+      </script>
     </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

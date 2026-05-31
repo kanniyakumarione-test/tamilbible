@@ -25,3 +25,8 @@ dist-ssr
 node_modules/
 .env
 .env.local
+
+# Desktop App Release Builds
+release/
+win-unpacked/
+backend/data/

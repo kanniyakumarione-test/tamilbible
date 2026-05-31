@@ -200,7 +200,17 @@ export default function Home() {
                 </svg>
               </button>
               
-
+              <a
+                href="https://drive.google.com/uc?export=download&id=1Jt8GP11grKaV2iZ6yv8j22RgMauhwYOD"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative flex items-center gap-2 overflow-hidden rounded-full border border-white/10 bg-white/5 px-8 py-4 font-bold text-white transition-all hover:scale-105 hover:bg-white/10 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] active:scale-95"
+              >
+                <span className="relative z-10">{["en", "ta-en"].includes(settings.language) ? "Download for Windows" : "Windows செயலி"}</span>
+                <svg className="relative z-10 h-5 w-5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              </a>
             </div>
           </div>
         </section>
