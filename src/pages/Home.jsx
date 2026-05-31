@@ -201,7 +201,7 @@ export default function Home() {
               </button>
               
               <a
-                href="https://github.com/kanniyakumarione-test/tamilbible/releases/download/v1.0.0/Tamil.Bible.Premium.Setup.0.0.0.exe"
+                href="https://github.com/kanniyakumarione-test/tamilbible/releases/download/v1.0.0/Tamil.Bible.Premium.Setup.1.0.0.exe"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group relative flex items-center gap-2 overflow-hidden rounded-full border border-white/10 bg-white/5 px-8 py-4 font-bold text-white transition-all hover:scale-105 hover:bg-white/10 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] active:scale-95"
