@@ -22,6 +22,8 @@ export const scheduleLocalNotifications = async () => {
       id: notifId++,
       title: "Reading Plan Reminder",
       body: "இன்றைய வேத வாசிப்பைத் தொடரவும் (Don't forget to read today's chapters!)",
+      largeBody: "இன்றைய வேத வாசிப்பைத் தொடரவும் (Don't forget to read today's chapters!)",
+      summaryText: "Daily Reminder",
       schedule: { on: { hour: 20, minute: 0 } }, // Every day at 8:00 PM
       extra: { route: '/home' },
     });
@@ -30,6 +32,8 @@ export const scheduleLocalNotifications = async () => {
       id: notifId++,
       title: "Sunday Sermon Builder Alert",
       body: "ஆலயத்திற்கு செல்கிறீர்களா? பிரசங்க குறிப்புகளை எடுக்க Sermon Builder ஐ திறக்கவும் (Heading to church?)",
+      largeBody: "ஆலயத்திற்கு செல்கிறீர்களா? பிரசங்க குறிப்புகளை எடுக்க Sermon Builder ஐ திறக்கவும் (Heading to church?)",
+      summaryText: "Sermon Builder",
       schedule: { on: { weekday: 1, hour: 5, minute: 30 } }, // Sunday at 5:30 AM
       extra: { route: '/sermon-builder' },
     });
@@ -38,6 +42,8 @@ export const scheduleLocalNotifications = async () => {
       id: notifId++,
       title: "Sunday Sermon Builder Alert",
       body: "ஆலயத்திற்கு செல்கிறீர்களா? பிரசங்க குறிப்புகளை எடுக்க Sermon Builder ஐ திறக்கவும் (Heading to church?)",
+      largeBody: "ஆலயத்திற்கு செல்கிறீர்களா? பிரசங்க குறிப்புகளை எடுக்க Sermon Builder ஐ திறக்கவும் (Heading to church?)",
+      summaryText: "Sermon Builder",
       schedule: { on: { weekday: 1, hour: 9, minute: 30 } }, // Sunday at 9:30 AM
       extra: { route: '/sermon-builder' },
     });
@@ -72,6 +78,8 @@ export const scheduleLocalNotifications = async () => {
       id: notifId++,
       title: "Nighttime Peace",
       body: "இன்றைய நாளை கர்த்தருடைய வார்த்தையோடு நிறைவு செய்வோம் (End your day with the Word of God).",
+      largeBody: "இன்றைய நாளை கர்த்தருடைய வார்த்தையோடு நிறைவு செய்வோம் (End your day with the Word of God).",
+      summaryText: "Daily Reminder",
       schedule: { on: { hour: 21, minute: 30 } }, // Daily at 9:30 PM
       extra: { route: `/Psalms/${Math.floor(Math.random() * 150) + 1}` },
     });
@@ -80,6 +88,8 @@ export const scheduleLocalNotifications = async () => {
       id: notifId++,
       title: "Mid-Week Refresh",
       body: "சிறிது நேரம் ஒதுக்கி வேதத்தை வாசியுங்கள் (Take a moment to pause and read the scripture).",
+      largeBody: "சிறிது நேரம் ஒதுக்கி வேதத்தை வாசியுங்கள் (Take a moment to pause and read the scripture).",
+      summaryText: "Weekly Reminder",
       schedule: { on: { weekday: 4, hour: 12, minute: 0 } }, // Wednesday at 12:00 PM (1=Sun, 4=Wed)
       extra: { route: getRandomUpliftingChapter() },
     });
@@ -88,6 +98,8 @@ export const scheduleLocalNotifications = async () => {
       id: notifId++,
       title: "Tomorrow is Sunday!",
       body: "நாளைய ஆராதனைக்கு உங்களை ஆயத்தப்படுத்துங்கள் (Prepare your heart for tomorrow's worship).",
+      largeBody: "நாளைய ஆராதனைக்கு உங்களை ஆயத்தப்படுத்துங்கள் (Prepare your heart for tomorrow's worship).",
+      summaryText: "Weekly Reminder",
       schedule: { on: { weekday: 7, hour: 20, minute: 0 } }, // Saturday at 8:00 PM (7=Sat)
       extra: { route: getRandomUpliftingChapter() },
     });
@@ -96,6 +108,8 @@ export const scheduleLocalNotifications = async () => {
       id: notifId++,
       title: "Memory Verse Challenge",
       body: "இந்த வார வசனத்தை மனப்பாடம் செய்தீர்களா? (Have you practiced your memory verses today?)",
+      largeBody: "இந்த வார வசனத்தை மனப்பாடம் செய்தீர்களா? (Have you practiced your memory verses today?)",
+      summaryText: "Weekly Reminder",
       schedule: { on: { weekday: 5, hour: 17, minute: 0 } }, // Thursday at 5:00 PM (5=Thu)
       extra: { route: '/memorize' },
     });
@@ -116,8 +130,10 @@ export const scheduleLocalNotifications = async () => {
         const verseTextPreview = verseData.text.length > 80 ? verseData.text.substring(0, 80) + '...' : verseData.text;
         notifications.push({
           id: notifId++,
-          title: `Verse of the Day - ${verseData.bookTamil} ${verseData.chapter}:${verseData.verse}`,
+          title: `${verseData.bookTamil} ${verseData.chapter}:${verseData.verse}`,
           body: verseTextPreview,
+          largeBody: verseData.text,
+          summaryText: "இன்றைய வசனம் (Verse of the Day)",
           schedule: { at: scheduleDate }, // Fires exactly at this specific date and time
           actionTypeId: "",
           extra: { route: '/home' },
