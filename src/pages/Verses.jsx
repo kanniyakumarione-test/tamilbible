@@ -873,7 +873,7 @@ export default function Verses() {
         await Share.share({
           title: `${bookLabel} ${chapter}:${verse.verse}`,
           text: shareText,
-          url: savedFile.uri,
+          files: [savedFile.uri],
           dialogTitle: 'Share Verse Image'
         });
         return;
