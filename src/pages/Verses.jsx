@@ -209,6 +209,62 @@ function ChapterNavigator({
   );
 }
 
+const CrossReferenceItem = ({ idx, refBook, refChap, refVerse, displayRefBook, navigate, setCrossReferencesViewer, setSelectedVerse, language }) => {
+  const [verseText, setVerseText] = useState("");
+  const [isHovered, setIsHovered] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isHovered && !verseText && !loading) {
+      setLoading(true);
+      fetch(`/data/${language === "en" ? "en" : "ta"}/${encodeURIComponent(refBook)}.json`)
+        .then(res => res.json())
+        .then(data => {
+          const chapter = data.chapters.find(c => String(c.chapter) === String(refChap));
+          const verse = chapter?.verses.find(v => String(v.verse) === String(refVerse));
+          setVerseText(verse?.text || "Verse text not found.");
+        })
+        .catch(() => setVerseText("Failed to load text."))
+        .finally(() => setLoading(false));
+    }
+  }, [isHovered, verseText, loading, refBook, refChap, refVerse, language]);
+
+  return (
+    <div className="relative group" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+      <button
+        onClick={() => {
+          setCrossReferencesViewer(null);
+          if (window.innerWidth < 768) setSelectedVerse(null);
+          navigate(`/${encodeURIComponent(refBook)}/${refChap}?verse=${refVerse}`);
+        }}
+        className="flex w-full items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-left transition hover:border-fuchsia-500/30 hover:bg-white/[0.04]"
+      >
+        <div>
+          <p className="text-sm font-bold text-fuchsia-100">{displayRefBook} {refChap}:{refVerse}</p>
+          <p className="mt-1 text-xs text-stone-400">
+            {["en", "ta-en"].includes(language) ? "Tap to open chapter" : "அதிகாரத்தை திறக்க அழுத்தவும்"}
+          </p>
+        </div>
+        <svg className="h-4 w-4 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+
+      {/* Hover Tooltip (Only visible on desktop/hover supported devices) */}
+      {isHovered && window.innerWidth >= 768 && (
+        <div className="absolute right-full top-1/2 z-[70] mr-4 w-64 -translate-y-1/2 rounded-xl border border-white/10 bg-zinc-900 p-4 shadow-2xl animate-in fade-in zoom-in-95 pointer-events-none">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-fuchsia-400">{displayRefBook} {refChap}:{refVerse}</p>
+          {loading ? (
+            <p className="text-sm text-stone-400 italic">Loading...</p>
+          ) : (
+            <p className="text-sm text-stone-200 leading-relaxed">{verseText}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function Verses() {
   const { book, chapter } = useParams();
   const navigate = useNavigate();
@@ -838,6 +894,20 @@ export default function Verses() {
     }${
       noteText ? `\n\nNote: ${noteText}` : ""
     }${prayerText ? `\n\nPrayer: ${prayerText}` : ""}`;
+
+    if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
+      try {
+        await Share.share({
+          title: `${bookLabel} ${chapter}:${verse.verse}`,
+          text: shareText,
+          dialogTitle: 'Share Verse'
+        });
+      } catch (err) {
+        console.error("Share error", err);
+      }
+      return;
+    }
+
     const design = shareDesigner
       ? {
           template: shareDesigner.template,
@@ -854,30 +924,6 @@ export default function Verses() {
 
     try {
       const shareBlob = await createVerseShareImage(verse, design);
-      
-      if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
-        const base64Data = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onerror = reject;
-          reader.onload = () => resolve(reader.result);
-          reader.readAsDataURL(shareBlob);
-        });
-        
-        const fileName = `verse-${Date.now()}.png`;
-        const savedFile = await Filesystem.writeFile({
-          path: fileName,
-          data: base64Data.split(',')[1],
-          directory: Directory.Cache
-        });
-        
-        await Share.share({
-          title: `${bookLabel} ${chapter}:${verse.verse}`,
-          text: shareText,
-          files: [savedFile.uri],
-          dialogTitle: 'Share Verse Image'
-        });
-        return;
-      }
 
       const shareFile = new File(
         [shareBlob],
@@ -1164,11 +1210,50 @@ export default function Verses() {
   const prevLabel = formatChapterTargetLabel(prevChapter, "Start");
   const nextLabel = formatChapterTargetLabel(nextChapter, "End");
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ignore if user is typing in an input or textarea
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      switch(e.key) {
+        case 'ArrowLeft':
+          if (prevChapter) navigate(prevChapter);
+          break;
+        case 'ArrowRight':
+          if (nextChapter) navigate(nextChapter);
+          break;
+        case ' ':
+          e.preventDefault();
+          toggleAudioPlay();
+          break;
+        case '/':
+          e.preventDefault();
+          const searchInput = document.getElementById('bookSearchInput');
+          if (searchInput) {
+            searchInput.focus();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+          break;
+        case 'Escape':
+          setSelectedVerse(null);
+          setNoteEditor(null);
+          setPrayerEditor(null);
+          setHighlightEditor(null);
+          setShareDesigner(null);
+          setChapterPickerOpen(false);
+          setCrossReferencesViewer(null);
+          break;
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [prevChapter, nextChapter, toggleAudioPlay]);
 
 
   if (!bookLoading && bookData && !chapterData) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] px-4 py-6 text-white">
+      <div className="min-h-screen px-4 py-6 text-white">
         <div className="mx-auto max-w-5xl rounded-[2rem] border border-zinc-500/20 bg-[#000000] p-6 shadow-2xl shadow-black/30">
           <h1 className="text-xl font-bold text-white">{bookLabel}</h1>
           <p className="mt-2 text-sm text-stone-300">
@@ -1180,7 +1265,7 @@ export default function Verses() {
   }
 
   return (
-    <div className="bg-[#0a0a0a] text-white">
+    <div className="text-white">
       <div className="md:flex">
         <aside data-lenis-prevent className="hidden w-[300px] shrink-0 border-r border-white/10 bg-[#000000] p-4 custom-scroll md:sticky md:top-28 md:flex md:h-[calc(100vh-7rem)] md:flex-col md:overflow-y-auto">
           <div className="mb-4 rounded-[1.75rem] border border-white/10  p-4">
@@ -1199,6 +1284,7 @@ export default function Verses() {
                 {t.books}
               </p>
               <input
+                id="bookSearchInput"
                 type="text"
                 value={bookQuery}
                 onChange={(e) => setBookQuery(e.target.value)}
@@ -2119,7 +2205,9 @@ export default function Verses() {
                 }}
                 className="w-full rounded-2xl border border-white/20 bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-4 text-sm font-bold text-black shadow-xl hover:opacity-90 active:scale-95 transition-all"
               >
-                {["en", "ta-en"].includes(settings.language) ? "Download & Share Image" : "பதிவிறக்கம் செய்து பகிரவும்"}
+                {typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.() 
+                  ? (["en", "ta-en"].includes(settings.language) ? "Share Verse" : "வசனத்தைப் பகிரவும்") 
+                  : (["en", "ta-en"].includes(settings.language) ? "Download & Share Image" : "பதிவிறக்கம் செய்து பகிரவும்")}
               </button>
             </div>
           </div>
@@ -2258,25 +2346,18 @@ export default function Verses() {
                         : refBook;
                       
                       return (
-                        <button
+                        <CrossReferenceItem 
                           key={idx}
-                          onClick={() => {
-                            setCrossReferencesViewer(null);
-                            if (window.innerWidth < 768) setSelectedVerse(null);
-                            navigate(`/${encodeURIComponent(refBook)}/${refChap}?verse=${refVerse}`);
-                          }}
-                          className="flex w-full items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-left transition hover:border-fuchsia-500/30 hover:bg-white/[0.04]"
-                        >
-                          <div>
-                            <p className="text-sm font-bold text-fuchsia-100">{displayRefBook} {refChap}:{refVerse}</p>
-                            <p className="mt-1 text-xs text-stone-400">
-                              {["en", "ta-en"].includes(settings.language) ? "Tap to open chapter" : "அதிகாரத்தை திறக்க அழுத்தவும்"}
-                            </p>
-                          </div>
-                          <svg className="h-4 w-4 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </button>
+                          idx={idx}
+                          refBook={refBook}
+                          refChap={refChap}
+                          refVerse={refVerse}
+                          displayRefBook={displayRefBook}
+                          navigate={navigate}
+                          setCrossReferencesViewer={setCrossReferencesViewer}
+                          setSelectedVerse={setSelectedVerse}
+                          language={settings.language}
+                        />
                       );
                     })}
                   </div>
