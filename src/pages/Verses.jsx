@@ -895,19 +895,6 @@ export default function Verses() {
       noteText ? `\n\nNote: ${noteText}` : ""
     }${prayerText ? `\n\nPrayer: ${prayerText}` : ""}`;
 
-    if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
-      try {
-        await Share.share({
-          title: `${bookLabel} ${chapter}:${verse.verse}`,
-          text: shareText,
-          dialogTitle: 'Share Verse'
-        });
-      } catch (err) {
-        console.error("Share error", err);
-      }
-      return;
-    }
-
     const design = shareDesigner
       ? {
           template: shareDesigner.template,
@@ -925,6 +912,36 @@ export default function Verses() {
     try {
       const shareBlob = await createVerseShareImage(verse, design);
 
+      // Capacitor Native Platform (APK / iOS)
+      if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
+        const reader = new FileReader();
+        reader.readAsDataURL(shareBlob);
+        reader.onloadend = async () => {
+          try {
+            // Capacitor needs pure base64 without the data:image/png URI scheme prefix
+            const base64data = reader.result.split(',')[1];
+            const fileName = `${decodedBook}-${chapter}-${verse.verse}-${Date.now()}.png`;
+
+            const savedFile = await Filesystem.writeFile({
+              path: fileName,
+              data: base64data,
+              directory: Directory.Cache
+            });
+
+            await Share.share({
+              title: `${bookLabel} ${chapter}:${verse.verse}`,
+              text: shareText,
+              url: savedFile.uri,
+              dialogTitle: 'Share Verse Card'
+            });
+          } catch (err) {
+            console.error("Capacitor Share error", err);
+          }
+        };
+        return;
+      }
+
+      // Standard Web Share Logic
       const shareFile = new File(
         [shareBlob],
         `${decodedBook}-${chapter}-${verse.verse}.png`,
@@ -951,6 +968,7 @@ export default function Verses() {
       }
       return;
     } catch {
+      // Fallback for older browsers
       if (destination === "system" && navigator.share) {
         try {
           await navigator.share({
@@ -958,8 +976,8 @@ export default function Verses() {
             text: shareText,
           });
           return;
-        } catch {
-          return;
+        } catch (e) {
+          console.error("Share failed", e);
         }
       }
     }
