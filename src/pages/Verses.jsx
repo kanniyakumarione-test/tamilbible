@@ -68,6 +68,8 @@ function loadImage(src) {
 
 function canvasToBlob(canvas) {
   return new Promise((resolve, reject) => {
+    // Exporting as highly optimized JPEG to prevent Capacitor Bridge crashes (TransactionTooLargeException)
+    // A 1080x1350 PNG can exceed 2MB, whereas an 85% JPEG is ~200KB.
     canvas.toBlob((blob) => {
       if (blob) {
         resolve(blob);
@@ -75,7 +77,7 @@ function canvasToBlob(canvas) {
       }
 
       reject(new Error("Unable to export image"));
-    }, "image/png");
+    }, "image/jpeg", 0.85);
   });
 }
 
@@ -918,9 +920,9 @@ export default function Verses() {
         reader.readAsDataURL(shareBlob);
         reader.onloadend = async () => {
           try {
-            // Capacitor needs pure base64 without the data:image/png URI scheme prefix
+            // Capacitor needs pure base64 without the data:image/jpeg URI scheme prefix
             const base64data = reader.result.split(',')[1];
-            const fileName = `${decodedBook}-${chapter}-${verse.verse}-${Date.now()}.png`;
+            const fileName = `${decodedBook}-${chapter}-${verse.verse}-${Date.now()}.jpg`;
 
             const savedFile = await Filesystem.writeFile({
               path: fileName,
@@ -944,15 +946,15 @@ export default function Verses() {
       // Standard Web Share Logic
       const shareFile = new File(
         [shareBlob],
-        `${decodedBook}-${chapter}-${verse.verse}.png`,
-        { type: "image/png" }
+        `${decodedBook}-${chapter}-${verse.verse}.jpg`,
+        { type: "image/jpeg" }
       );
 
       // Always download the image on the web so the user gets a physical copy of the design
       const downloadUrl = URL.createObjectURL(shareBlob);
       const link = document.createElement("a");
       link.href = downloadUrl;
-      link.download = `${decodedBook}-${chapter}-${verse.verse}.png`;
+      link.download = `${decodedBook}-${chapter}-${verse.verse}.jpg`;
       document.body.appendChild(link);
       link.click();
       link.remove();
