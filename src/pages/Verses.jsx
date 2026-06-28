@@ -911,37 +911,51 @@ export default function Verses() {
         }
       : {};
 
-    try {
-      const shareBlob = await createVerseShareImage(verse, design);
+    // Capacitor Native Platform (APK / iOS) - Alternative 2 Implementation
+    if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
+      if (destination === "save") {
+        try {
+          const shareBlob = await createVerseShareImage(verse, design);
+          const reader = new FileReader();
+          reader.readAsDataURL(shareBlob);
+          reader.onloadend = async () => {
+            try {
+              const base64data = reader.result.split(',')[1];
+              const fileName = `TamilBible-${decodedBook}-${chapter}-${verse.verse}-${Date.now()}.jpg`;
 
-      // Capacitor Native Platform (APK / iOS)
-      if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
-        const reader = new FileReader();
-        reader.readAsDataURL(shareBlob);
-        reader.onloadend = async () => {
-          try {
-            // Capacitor needs pure base64 without the data:image/jpeg URI scheme prefix
-            const base64data = reader.result.split(',')[1];
-            const fileName = `${decodedBook}-${chapter}-${verse.verse}-${Date.now()}.jpg`;
-
-            const savedFile = await Filesystem.writeFile({
-              path: fileName,
-              data: base64data,
-              directory: Directory.Cache
-            });
-
-            await Share.share({
-              title: `${bookLabel} ${chapter}:${verse.verse}`,
-              text: shareText,
-              files: [savedFile.uri],
-              dialogTitle: 'Share Verse Card'
-            });
-          } catch (err) {
-            console.error("Capacitor Share error", err);
-          }
-        };
+              await Filesystem.writeFile({
+                path: fileName,
+                data: base64data,
+                directory: Directory.Documents
+              });
+              toast.success(["en", "ta-en"].includes(settings.language) ? "Image saved to Documents folder!" : "படம் Documents கோப்புறையில் சேமிக்கப்பட்டது!");
+            } catch (err) {
+              console.error("Capacitor Save error", err);
+              toast.error("Failed to save image");
+            }
+          };
+        } catch (err) {
+          console.error("Image generation error", err);
+          toast.error("Failed to generate image");
+        }
         return;
       }
+
+      // Default share (text only) - 100% Guaranteed no crash
+      try {
+        await Share.share({
+          title: `${bookLabel} ${chapter}:${verse.verse}`,
+          text: shareText,
+          dialogTitle: 'Share Verse'
+        });
+      } catch (err) {
+        console.error("Capacitor Share error", err);
+      }
+      return;
+    }
+
+    try {
+      const shareBlob = await createVerseShareImage(verse, design);
 
       // Standard Web Share Logic
       const shareFile = new File(
@@ -2216,7 +2230,19 @@ export default function Verses() {
 
             </div>
 
-            <div className="mt-5 flex flex-wrap gap-3">
+            <div className="mt-5 flex flex-col gap-3">
+              {typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.() && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await shareVerseCard(shareDesigner.verse, "save");
+                    closeShareDesigner();
+                  }}
+                  className="w-full rounded-2xl border border-white/20 bg-gradient-to-r from-blue-500 to-indigo-500 px-5 py-4 text-sm font-bold text-white shadow-xl hover:opacity-90 active:scale-95 transition-all"
+                >
+                  {(["en", "ta-en"].includes(settings.language) ? "Save Image to Device" : "படத்தை சாதனத்தில் சேமிக்கவும்")}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={async () => {
@@ -2226,7 +2252,7 @@ export default function Verses() {
                 className="w-full rounded-2xl border border-white/20 bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-4 text-sm font-bold text-black shadow-xl hover:opacity-90 active:scale-95 transition-all"
               >
                 {typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.() 
-                  ? (["en", "ta-en"].includes(settings.language) ? "Share Verse" : "வசனத்தைப் பகிரவும்") 
+                  ? (["en", "ta-en"].includes(settings.language) ? "Share Verse Text" : "வசனத்தை மட்டும் பகிரவும்") 
                   : (["en", "ta-en"].includes(settings.language) ? "Download & Share Image" : "பதிவிறக்கம் செய்து பகிரவும்")}
               </button>
             </div>
