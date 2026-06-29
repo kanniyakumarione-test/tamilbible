@@ -277,6 +277,7 @@ export default function Verses() {
   const [prayerEditor, setPrayerEditor] = useState(null);
   const [highlightEditor, setHighlightEditor] = useState(null);
   const [shareDesigner, setShareDesigner] = useState(null);
+  const [shareDesignerPreview, setShareDesignerPreview] = useState(null);
   const [sermonSuccess, setSermonSuccess] = useState("");
   const [copiedSuccess, setCopiedSuccess] = useState("");
   const [chapterPickerOpen, setChapterPickerOpen] = useState(false);
@@ -931,17 +932,22 @@ export default function Verses() {
         link.click();
         link.remove();
         URL.revokeObjectURL(downloadUrl);
-      }
 
-      if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [shareFile] }))) {
-        await navigator.share({
-          title: `${bookLabel} ${chapter}:${verse.verse}`,
-          text: shareText,
-          files: [shareFile],
-        });
+        if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [shareFile] }))) {
+          await navigator.share({
+            title: `${bookLabel} ${chapter}:${verse.verse}`,
+            text: shareText,
+            files: [shareFile],
+          });
+          return;
+        }
+        return;
+      } else {
+        // Native Capacitor Fallback (100% crash proof): Just show the image in a modal!
+        const previewUrl = URL.createObjectURL(shareBlob);
+        setShareDesignerPreview({ url: previewUrl, text: shareText });
         return;
       }
-      return;
     } catch {
       // Fallback for older browsers
       if (destination === "system" && navigator.share) {
@@ -2358,6 +2364,41 @@ export default function Verses() {
           </div>
         </div>
       ) : null}
+
+      {shareDesignerPreview && (
+        <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center bg-black/95 p-6 backdrop-blur-md">
+          <p className="text-white mb-6 text-center text-sm font-bold uppercase tracking-widest text-emerald-400 animate-pulse">
+            {["en", "ta-en"].includes(settings.language) ? "Long press image to Share or Save" : "பகிர அல்லது சேமிக்க படத்தை அழுத்திப் பிடிக்கவும்"}
+          </p>
+          <img 
+            src={shareDesignerPreview.url} 
+            alt="Verse Preview" 
+            className="w-full max-w-sm rounded-[2rem] shadow-2xl shadow-emerald-500/20 border border-white/20 select-none"
+            style={{ WebkitTouchCallout: "default" }}
+          />
+          <div className="mt-8 flex flex-col gap-3 w-full max-w-sm">
+            <button
+              onClick={async () => {
+                try {
+                  await Share.share({ text: shareDesignerPreview.text, dialogTitle: 'Share Verse' });
+                } catch (e) { console.error(e); }
+              }}
+              className="w-full rounded-2xl border border-white/20 bg-white/10 px-5 py-4 font-bold text-white shadow-xl backdrop-blur-md transition-all hover:bg-white/20 active:scale-95"
+            >
+              {["en", "ta-en"].includes(settings.language) ? "Share Text Instead" : "வசனத்தை மட்டும் பகிரவும்"}
+            </button>
+            <button
+              onClick={() => {
+                URL.revokeObjectURL(shareDesignerPreview.url);
+                setShareDesignerPreview(null);
+              }}
+              className="w-full rounded-2xl border border-white/10 bg-transparent px-5 py-4 font-bold text-zinc-400 transition-all hover:text-white hover:bg-white/5 active:scale-95"
+            >
+              {t.close}
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );
