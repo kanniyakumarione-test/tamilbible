@@ -861,7 +861,31 @@ export default function Verses() {
     setChapterPickerOpen(false);
   };
 
-  const openShareDesigner = (verse) => {
+  const openShareDesigner = async (verse) => {
+    // For APK (Native Capacitor): Skip the designer and share text directly
+    if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
+      const englishVerseText = isBilingual ? getEnglishVerseText(verse.verse) : "";
+      const noteText = libraryData.notes[getVerseId(decodedBook, chapter, verse.verse)]?.text;
+      const prayerText = libraryData.prayers[getVerseId(decodedBook, chapter, verse.verse)]?.text;
+      
+      const shareText = `${bookLabel} ${chapter}:${verse.verse}\n\n${verse.text}${
+        englishVerseText ? `\n\n${englishBookLabel} ${chapter}:${verse.verse}\n${englishVerseText}` : ""
+      }${
+        noteText ? `\n\nNote: ${noteText}` : ""
+      }${prayerText ? `\n\nPrayer: ${prayerText}` : ""}`;
+
+      try {
+        await Share.share({
+          title: `${bookLabel} ${chapter}:${verse.verse}`,
+          text: shareText,
+          dialogTitle: 'Share Verse'
+        });
+      } catch (err) {
+        console.error("Capacitor Share error", err);
+      }
+      return;
+    }
+
     setShareDesigner({
       verse,
       template: "classic",
@@ -2378,7 +2402,7 @@ export default function Verses() {
           onTouchStart={(e) => e.stopPropagation()}
         >
           <p className="text-white mb-6 text-center text-sm font-bold uppercase tracking-widest text-emerald-400">
-            {["en", "ta-en"].includes(settings.language) ? "Verse Image Preview" : "வசனப் பட முன்னோட்டம்"}
+            {["en", "ta-en"].includes(settings.language) ? "Take a screenshot to save" : "சேமிக்க ஸ்கிரீன்ஷாட் எடுக்கவும்"}
           </p>
           <img 
             src={shareDesignerPreview.url} 
@@ -2387,41 +2411,6 @@ export default function Verses() {
             style={{ WebkitTouchCallout: "default", pointerEvents: "auto" }}
           />
           <div className="mt-8 flex flex-col gap-3 w-full max-w-sm">
-            <button
-              onPointerDown={(e) => e.stopPropagation()}
-              onTouchStart={(e) => e.stopPropagation()}
-              onClick={async (e) => {
-                e.stopPropagation();
-                try {
-                  if (Filesystem.checkPermissions) {
-                    const check = await Filesystem.checkPermissions();
-                    if (check.publicStorage !== 'granted' && check.publicStorage !== 'granted-without-prompt') {
-                      const req = await Filesystem.requestPermissions();
-                      if (req.publicStorage !== 'granted') {
-                        toast.error("Storage permission required to save image.");
-                        return;
-                      }
-                    }
-                  }
-                  
-                  const fileName = `TamilBible-${Date.now()}.jpg`;
-                  await Filesystem.writeFile({
-                    path: fileName,
-                    data: shareDesignerPreview.base64,
-                    directory: Directory.Documents
-                  });
-                  toast.success("Saved to Documents folder!");
-                  URL.revokeObjectURL(shareDesignerPreview.url);
-                  setShareDesignerPreview(null);
-                } catch (err) {
-                  console.error(err);
-                  toast.error("Failed to save. Storage restricted.");
-                }
-              }}
-              className="w-full rounded-2xl border border-white/20 bg-gradient-to-r from-blue-500 to-indigo-500 px-5 py-4 font-bold text-white shadow-xl backdrop-blur-md transition-all hover:opacity-90 active:scale-95"
-            >
-              {["en", "ta-en"].includes(settings.language) ? "Download Image to Device" : "படத்தை சாதனத்தில் சேமிக்கவும்"}
-            </button>
             <button
               onPointerDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
