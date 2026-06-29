@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
+import toast from 'react-hot-toast';
 
 import booksList from "../data/Books.json";
 
@@ -943,9 +944,14 @@ export default function Verses() {
         }
         return;
       } else {
-        // Native Capacitor Fallback (100% crash proof): Just show the image in a modal!
-        const previewUrl = URL.createObjectURL(shareBlob);
-        setShareDesignerPreview({ url: previewUrl, text: shareText });
+        // Native Capacitor Fallback (100% crash proof): Provide base64 for saving
+        const reader = new FileReader();
+        reader.readAsDataURL(shareBlob);
+        reader.onloadend = () => {
+          const base64data = reader.result.split(',')[1];
+          const previewUrl = URL.createObjectURL(shareBlob);
+          setShareDesignerPreview({ url: previewUrl, text: shareText, base64: base64data });
+        };
         return;
       }
     } catch {
@@ -2366,29 +2372,74 @@ export default function Verses() {
       ) : null}
 
       {shareDesignerPreview && (
-        <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center bg-black/95 p-6 backdrop-blur-md">
-          <p className="text-white mb-6 text-center text-sm font-bold uppercase tracking-widest text-emerald-400 animate-pulse">
-            {["en", "ta-en"].includes(settings.language) ? "Long press image to Share or Save" : "பகிர அல்லது சேமிக்க படத்தை அழுத்திப் பிடிக்கவும்"}
+        <div 
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 p-6 backdrop-blur-md"
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+        >
+          <p className="text-white mb-6 text-center text-sm font-bold uppercase tracking-widest text-emerald-400">
+            {["en", "ta-en"].includes(settings.language) ? "Verse Image Preview" : "வசனப் பட முன்னோட்டம்"}
           </p>
           <img 
             src={shareDesignerPreview.url} 
             alt="Verse Preview" 
             className="w-full max-w-sm rounded-[2rem] shadow-2xl shadow-emerald-500/20 border border-white/20 select-none"
-            style={{ WebkitTouchCallout: "default" }}
+            style={{ WebkitTouchCallout: "default", pointerEvents: "auto" }}
           />
           <div className="mt-8 flex flex-col gap-3 w-full max-w-sm">
             <button
-              onClick={async () => {
+              onPointerDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              onClick={async (e) => {
+                e.stopPropagation();
+                try {
+                  if (Filesystem.checkPermissions) {
+                    const check = await Filesystem.checkPermissions();
+                    if (check.publicStorage !== 'granted' && check.publicStorage !== 'granted-without-prompt') {
+                      const req = await Filesystem.requestPermissions();
+                      if (req.publicStorage !== 'granted') {
+                        toast.error("Storage permission required to save image.");
+                        return;
+                      }
+                    }
+                  }
+                  
+                  const fileName = `TamilBible-${Date.now()}.jpg`;
+                  await Filesystem.writeFile({
+                    path: fileName,
+                    data: shareDesignerPreview.base64,
+                    directory: Directory.Documents
+                  });
+                  toast.success("Saved to Documents folder!");
+                  URL.revokeObjectURL(shareDesignerPreview.url);
+                  setShareDesignerPreview(null);
+                } catch (err) {
+                  console.error(err);
+                  toast.error("Failed to save. Storage restricted.");
+                }
+              }}
+              className="w-full rounded-2xl border border-white/20 bg-gradient-to-r from-blue-500 to-indigo-500 px-5 py-4 font-bold text-white shadow-xl backdrop-blur-md transition-all hover:opacity-90 active:scale-95"
+            >
+              {["en", "ta-en"].includes(settings.language) ? "Download Image to Device" : "படத்தை சாதனத்தில் சேமிக்கவும்"}
+            </button>
+            <button
+              onPointerDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              onClick={async (e) => {
+                e.stopPropagation();
                 try {
                   await Share.share({ text: shareDesignerPreview.text, dialogTitle: 'Share Verse' });
-                } catch (e) { console.error(e); }
+                } catch (err) { console.error(err); }
               }}
               className="w-full rounded-2xl border border-white/20 bg-white/10 px-5 py-4 font-bold text-white shadow-xl backdrop-blur-md transition-all hover:bg-white/20 active:scale-95"
             >
               {["en", "ta-en"].includes(settings.language) ? "Share Text Instead" : "வசனத்தை மட்டும் பகிரவும்"}
             </button>
             <button
-              onClick={() => {
+              onPointerDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
                 URL.revokeObjectURL(shareDesignerPreview.url);
                 setShareDesignerPreview(null);
               }}
