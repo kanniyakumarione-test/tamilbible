@@ -1,4 +1,4 @@
-import { NextResponse } from '@vercel/edge';
+
 
 export const config = {
   matcher: '/((?!api|assets|bg|data|manifest|favicon|.*\\..*).*)',
@@ -91,11 +91,11 @@ export default async function middleware(req) {
   try {
     const response = await fetch(indexUrl);
     if (!response.ok) {
-      return NextResponse.next();
+      return new Response(null, { headers: { 'x-middleware-next': '1' } });
     }
     html = await response.text();
   } catch (error) {
-    return NextResponse.next();
+    return new Response(null, { headers: { 'x-middleware-next': '1' } });
   }
 
   // Parse route to determine title and description
