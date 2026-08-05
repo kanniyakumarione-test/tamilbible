@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { blogPosts } from '../data/blogPosts';
 
 export default function Landing() {
   const [scrolled, setScrolled] = useState(false);
@@ -534,7 +535,46 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* 8. FAQ SECTION */}
+      {/* 8. BLOG / ARTICLES SECTION */}
+      <section className="py-20 md:py-32 border-t border-white/5 bg-black">
+        <div className="max-w-[1400px] mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-black mb-6 tracking-tight text-white">Latest <span className="text-blue-400">Articles</span></h2>
+            <p className="text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed">
+              Read news, guides, and tips on how to get the most out of Tamil Bible Premium.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-[1200px] mx-auto">
+            {blogPosts.map((post) => (
+              <Link
+                key={post.slug}
+                to={`/blog/${post.slug}`}
+                className="group flex flex-col rounded-2xl border border-white/5 bg-white/[0.02] p-6 transition-all hover:border-white/20 hover:bg-white/[0.04] hover:-translate-y-1"
+              >
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="rounded-full bg-blue-500/10 text-blue-400 px-3 py-1 text-[10px] font-bold tracking-wider uppercase">
+                    Guide
+                  </span>
+                  <span className="text-[11px] text-zinc-500 font-medium">{post.date}</span>
+                </div>
+                <h3 className="mb-3 text-lg font-bold text-white transition-colors group-hover:text-blue-400 leading-tight">
+                  {post.title}
+                </h3>
+                <p className="mb-6 flex-1 text-sm text-zinc-400 leading-relaxed line-clamp-2">
+                  {post.excerpt}
+                </p>
+                <div className="mt-auto flex items-center text-xs font-bold text-white group-hover:text-blue-400 transition-colors">
+                  Read Article 
+                  <span className="ml-1.5 transition-transform group-hover:translate-x-1">→</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 9. FAQ SECTION */}
       <section id="faq" className="py-20 md:py-32 border-t border-white/5 bg-black">
         <div className="max-w-[1000px] mx-auto px-6 text-center">
           <h2 className="text-4xl md:text-5xl font-black mb-10 md:mb-16 tracking-tight text-white">Frequently Asked Questions</h2>

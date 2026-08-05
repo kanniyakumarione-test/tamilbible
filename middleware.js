@@ -73,6 +73,39 @@ const booksData = [
   {"english":"Revelation","tamil":"வெளிப்படுத்தின விசேஷம்"}
 ];
 
+const blogPosts = [
+  {
+    slug: "how-to-study-tamil-bible-offline",
+    title: "தமிழ் வேதாகமத்தை ஆஃப்லைனில் படிப்பது எப்படி? (How to study Offline)",
+    excerpt: "இன்டர்நெட் (Internet) இல்லாமல் உங்கள் மொபைல் மற்றும் கம்ப்யூட்டரில் முழு தமிழ் வேதாகமத்தையும் வாசிப்பதற்கான வழிகாட்டி.",
+  },
+  {
+    slug: "best-tamil-bible-presentation-software-for-church",
+    title: "சபைகளில் தமிழ் வேதாகம வசனங்களை திரையிடுவது எப்படி?",
+    excerpt: "சர்ச் ஆராதனையின் போது தமிழ் மற்றும் ஆங்கில வசனங்களை ஒரே நேரத்தில் புரொஜெக்டரில் (Projector) காண்பிப்பதற்கான சிறந்த மென்பொருள்.",
+  },
+  {
+    slug: "tanglish-search-tamil-bible",
+    title: "Tanglish Search: தமிழில் தட்டச்சு செய்யாமல் வேதாகமத்தை தேடுவது எப்படி?",
+    excerpt: "தமிழ் கீபோர்டு (Tamil Keyboard) இல்லாமலேயே, Tanglish-ல் டைப் செய்து வசனங்களை நொடிப்பொழுதில் தேடும் வசதி.",
+  },
+  {
+    slug: "how-to-prepare-sermons-digitally",
+    title: "பிரசங்கங்களை (Sermons) டிஜிட்டல் முறையில் தயாரிப்பது எப்படி?",
+    excerpt: "போதகர்கள் மற்றும் ஊழியர்கள் தங்கள் பிரசங்கங்களை எளிதாக தயாரிப்பதற்கான Sermon Builder பற்றிய முழுமையான வழிகாட்டி.",
+  },
+  {
+    slug: "how-to-memorize-tamil-bible-verses",
+    title: "வேதாகம வசனங்களை எளிதாக மனப்பாடம் செய்வது எப்படி?",
+    excerpt: "வேதாகம வசனங்களை உங்கள் மனதிலிறுத்த உதவும் எளிய வழிமுறைகள் மற்றும் பிரத்யேக மென்பொருள் வசதிகள்.",
+  },
+  {
+    slug: "benefits-of-dark-mode-bible-reading",
+    title: "Dark Mode-ல் வேதாகமம் வாசிப்பதன் நன்மைகள்",
+    excerpt: "உங்கள் கண்களை பாதிக்காமல் இரவு நேரங்களில் வேதாகமத்தை வாசிப்பதற்கான நவீன Dark Mode வடிவமைப்பு.",
+  }
+];
+
 function getTamilName(englishName) {
   const decoded = decodeURIComponent(englishName);
   const book = booksData.find(b => b.english.toLowerCase() === decoded.toLowerCase());
@@ -122,6 +155,18 @@ export default async function middleware(req) {
     const verse = parts[3] || '';
     title = `${bookTamil} ${chapter}:${verse} | Tamil Bible Premium`;
     description = `Read ${bookTamil} ${chapter}:${verse} in the Tamil Bible.`;
+  } else if (parts[0] === 'blog') {
+    if (parts.length === 1) {
+      title = "Blog | Tamil Bible Premium";
+      description = "Read news, updates, and helpful articles about using Tamil Bible Premium.";
+    } else {
+      const slug = parts[1];
+      const post = blogPosts.find((p) => p.slug === slug);
+      if (post) {
+        title = `${post.title} | Tamil Bible Premium`;
+        description = post.excerpt;
+      }
+    }
   } else if (parts.length === 2 && !['presentation', 'api'].includes(parts[0])) {
     // /Genesis/1
     const bookTamil = getTamilName(parts[0]);

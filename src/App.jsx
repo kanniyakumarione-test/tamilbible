@@ -37,6 +37,7 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const AboutUs = lazy(() => import("./pages/AboutUs"));
 const Terms = lazy(() => import("./pages/Terms"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
 
 import Footer from "./components/Footer";
 
@@ -65,7 +66,7 @@ function Layout() {
     location.pathname.startsWith("/presentation/");
     
   const isDesktopApp = typeof window !== 'undefined' && (window.navigator.userAgent.toLowerCase().includes('electron') || window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: twa)').matches);
-  const isLandingPage = location.pathname === "/" && !isDesktopApp;
+  const isLandingPage = (location.pathname === "/" && !isDesktopApp) || location.pathname.startsWith("/blog/");
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -126,6 +127,7 @@ function Layout() {
 
               <Route path="/memorize" element={<Memorize />} />
               <Route path="/sermon-builder" element={<SermonBuilder />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/:book" element={<Chapters />} />
               <Route path="/:book/:chapter" element={<Verses />} />
               <Route path="/reader/:book/:chapter/:verse" element={<Reader />} />

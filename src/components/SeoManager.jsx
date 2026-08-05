@@ -8,6 +8,7 @@ import {
   getBookLabelFromMetadata,
   loadBibleBook,
 } from "../utils/bibleData";
+import { blogPosts } from "../data/blogPosts";
 
 function upsertMeta(selector, attributes) {
   let element = document.head.querySelector(selector);
@@ -148,6 +149,35 @@ export default function SeoManager() {
         name: "Privacy Policy",
         item: canonicalUrl,
       });
+    } else if (pathname === "/blog") {
+      title = "Blog | Tamil Bible Premium";
+      description = "Read news, updates, and helpful articles about using Tamil Bible Premium.";
+      breadcrumbItems.push({
+        "@type": "ListItem",
+        position: 2,
+        name: "Blog",
+        item: canonicalUrl,
+      });
+    } else if (pathname.startsWith("/blog/")) {
+      const slug = pathname.replace("/blog/", "");
+      const post = blogPosts.find((p) => p.slug === slug);
+      title = post ? `${post.title} | Tamil Bible Premium` : "Blog | Tamil Bible Premium";
+      description = post ? post.excerpt : "Read this article on Tamil Bible Premium.";
+      type = "article";
+      breadcrumbItems.push(
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "Blog",
+          item: toAbsoluteUrl("/blog"),
+        },
+        {
+          "@type": "ListItem",
+          position: 3,
+          name: post ? post.title : "Article",
+          item: canonicalUrl,
+        }
+      );
     } else if (!bookMatch && !chapterMatch && !readerMatch && pathname !== "/") {
       title = "Page Not Found | Tamil Bible Premium";
       robots = "noindex, follow";
