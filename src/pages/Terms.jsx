@@ -33,7 +33,7 @@ export default function Terms() {
 
             <h2 className="mt-8 text-xl font-bold text-white">4. Contact</h2>
             <p>
-              If you have any questions or concerns regarding these Terms of Service, please contact us at <strong>kanniyakumarione@gmail.com</strong>.
+              If you have any questions or concerns regarding these Terms of Service, please contact us at <strong>softgenzservices@gmail.com</strong>.
             </p>
           </div>
         </section>

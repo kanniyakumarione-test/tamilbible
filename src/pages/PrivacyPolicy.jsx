@@ -46,7 +46,7 @@ export default function PrivacyPolicy() {
             <section>
               <h2 className="text-xl font-semibold text-white">5. Contact Us</h2>
               <p className="mt-3">
-                If you have any questions about this Privacy Policy, please contact us at kanniyakumarione@gmail.com.
+                If you have any questions about this Privacy Policy, please contact us at softgenzservices@gmail.com.
               </p>
             </section>
           </div>

@@ -29,7 +29,7 @@ export default function AboutUs() {
 
             <h2 className="mt-8 text-xl font-bold text-white">Contact Us</h2>
             <p>
-              We value your feedback, suggestions, and bug reports. You can reach out to us at any time by emailing <strong>kanniyakumarione@gmail.com</strong>.
+              We value your feedback, suggestions, and bug reports. You can reach out to us at any time by emailing <strong>softgenzservices@gmail.com</strong>.
             </p>
           </div>
         </section>
