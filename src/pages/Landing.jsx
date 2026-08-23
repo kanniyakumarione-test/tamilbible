@@ -651,12 +651,15 @@ export default function Landing() {
       </section>
 
       {/* 10. FOOTER */}
-      <footer className="border-t border-white/5 bg-black py-6">
+      <footer className="border-t border-white/5 bg-black py-8">
         <div className="max-w-[1400px] mx-auto px-6 flex flex-col items-center justify-center gap-2 text-center">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden bg-white/5 border border-white/10 opacity-70">
             <img src="/logo.png" alt="Tamil Bible Logo" className="h-full w-full object-cover" />
           </div>
           <p className="text-zinc-600 text-xs font-medium">© {new Date().getFullYear()} Tamil Bible Premium. All rights reserved.</p>
+          <a href="https://softgenz.kanniyakumarione.com" target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-zinc-400 hover:text-white hover:bg-white/10 transition-colors uppercase tracking-widest">
+            Digital Experience by <span className="text-amber-500">SoftGenz</span>
+          </a>
         </div>
       </footer>
 
