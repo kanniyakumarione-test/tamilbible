@@ -22,10 +22,10 @@ export default function Footer() {
             </p>
             <div className="mt-6 flex items-center gap-4">
               <a
-                href="mailto:kanniyakumarione@gmail.com"
+                href="mailto:softgenzservices@gmail.com"
                 className="text-xs font-medium text-stone-300 hover:text-white"
               >
-                kanniyakumarione@gmail.com
+                softgenzservices@gmail.com
               </a>
             </div>
           </div>
