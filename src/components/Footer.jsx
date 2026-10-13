@@ -46,8 +46,23 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link to="/memorize" className="text-sm text-stone-400 hover:text-zinc-200">
+                  {["en", "ta-en"].includes(settings.language) ? "Memorize Verses" : "வசனங்களை மனப்பாடம் செய்ய"}
+                </Link>
+              </li>
+              <li>
+                <Link to="/sermon-builder" className="text-sm text-stone-400 hover:text-zinc-200">
+                  {["en", "ta-en"].includes(settings.language) ? "Sermon Builder" : "பிரசங்க குறிப்புகள்"}
+                </Link>
+              </li>
+              <li>
                 <Link to="/search" className="text-sm text-stone-400 hover:text-zinc-200">
                   {t.search}
+                </Link>
+              </li>
+              <li>
+                <Link to="/blog/how-to-study-tamil-bible-offline" className="text-sm text-stone-400 hover:text-zinc-200">
+                  {["en", "ta-en"].includes(settings.language) ? "Bible Study Guide" : "வேதாகம வழிகாட்டிகள்"}
                 </Link>
               </li>
               <li>
