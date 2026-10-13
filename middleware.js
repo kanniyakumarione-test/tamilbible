@@ -132,33 +132,40 @@ export default async function middleware(req) {
   }
 
   // Parse route to determine title and description
-  let title = "Tamil Bible Premium | Tamil Bible Reading App";
-  let description = "100% Offline Tamil Bible reading app and Windows church presentation software. Search verses, prepare sermons, and display live.";
+  let title = "Tamil Bible Premium | தமிழ் வேதாகமம் - வாசிப்பு & தேடல்";
+  let description = "100% Offline Tamil Bible reading app and Windows church presentation software. Search verses in Tanglish, read Old & New Testaments, and display live.";
+  let robots = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
+  let canonicalUrl = `https://tamilbible.kanniyakumarione.com${pathname}`;
   
   const parts = pathname.split('/').filter(Boolean);
   
   if (parts.length === 0) {
     // Home page
+    title = "Tamil Bible Premium | தமிழ் வேதாகமம் - வாசிப்பு, தேடல் & சர்ச் சாப்ட்வேர்";
+    description = "முழு தமிழ் வேதாகமம் (Holy Bible in Tamil) ஆஃப்லைனில் வாசியுங்கள். Tanglish Search, பாடல் புத்தகம், பிரசங்க குறிப்புகள் & சர்ச் புரொஜெக்டர் வசதிகளுடன்.";
   } else if (parts[0] === 'books') {
-    title = "Books | Tamil Bible Premium";
-    description = "Browse Tamil Bible books, choose Old Testament or New Testament, and open chapters quickly.";
-  } else if (parts[0] === 'search') {
-    title = "Search | Tamil Bible Premium";
-  } else if (parts[0] === 'settings') {
-    title = "Settings | Tamil Bible Premium";
-  } else if (parts[0] === 'sermon-mode') {
-    title = "Sermon Mode | Tamil Bible Premium";
+    title = "வேதாகம புத்தகங்கள் (66 Books) | Tamil Bible Premium";
+    description = "பழைய ஏற்பாடு மற்றும் புதிய ஏற்பாட்டின் 66 தமிழ் வேதாகம புத்தகங்களின் பட்டியல். எளிதாக தேர்ந்தெடுத்து அதிகாரங்களை வாசியுங்கள்.";
+  } else if (parts[0] === 'memorize') {
+    title = "வேதாகம வசனங்களை மனப்பாடம் செய்யுங்கள் | Memorize Bible Verses";
+    description = "முக்கியமான தமிழ் வேதாகம வசனங்களை எளிதாக நினைவில் நிறுத்த உதவும் பிரத்யேக Memorize Tool.";
+  } else if (parts[0] === 'sermon-builder') {
+    title = "பிரசங்க குறிப்புகள் தயாரிப்பாளர் | Sermon Builder Tool";
+    description = "போதகர்கள் மற்றும் ஊழியர்கள் தங்கள் பிரசங்கங்களை வசன குறிப்புகளோடு எளிதாக தயார் செய்ய உதவும் கருவி.";
+  } else if (['presentation', 'presentation-remote', 'advanced-presentation', 'sermon-control'].includes(parts[0])) {
+    robots = "noindex, nofollow";
   } else if (parts[0] === 'reader' && parts.length >= 3) {
     // /reader/Genesis/1/1
     const bookTamil = getTamilName(parts[1]);
     const chapter = parts[2];
     const verse = parts[3] || '';
-    title = `${bookTamil} ${chapter}:${verse} | Tamil Bible Premium`;
-    description = `Read ${bookTamil} ${chapter}:${verse} in the Tamil Bible.`;
+    const bookDecoded = decodeURIComponent(parts[1]);
+    title = `${bookTamil} ${chapter}:${verse} (${bookDecoded} ${chapter}:${verse}) - தமிழ் வேதாகமம் | Tamil Bible`;
+    description = `பரிசுத்த வேதாகமம் ${bookTamil} ${chapter}:${verse} வசனத்தை தமிழ் மற்றும் ஆங்கிலத்தில் வாசியுங்கள்.`;
   } else if (parts[0] === 'blog') {
     if (parts.length === 1) {
-      title = "Blog | Tamil Bible Premium";
-      description = "Read news, updates, and helpful articles about using Tamil Bible Premium.";
+      title = "வலைப்பதிவு & வழிகாட்டிகள் (Blog) | Tamil Bible Premium";
+      description = "தமிழ் வேதாகமத்தை ஆஃப்லைனில் படிப்பது, சர்ச் புரொஜெக்ஷன், மற்றும் Tanglish Search பற்றிய பயனுள்ள கட்டுரைகள்.";
     } else {
       const slug = parts[1];
       const post = blogPosts.find((p) => p.slug === slug);
@@ -171,13 +178,15 @@ export default async function middleware(req) {
     // /Genesis/1
     const bookTamil = getTamilName(parts[0]);
     const chapter = parts[1];
-    title = `${bookTamil} ${chapter} | Tamil Bible Premium`;
-    description = `Read ${bookTamil} chapter ${chapter} in the Tamil Bible.`;
+    const bookDecoded = decodeURIComponent(parts[0]);
+    title = `${bookTamil} ${chapter} அதிகாரம் (${bookDecoded} ${chapter}) - தமிழ் வேதாகமம் | Tamil Bible`;
+    description = `பரிசுத்த வேதாகமம் ${bookTamil} ${chapter} ஆம் அதிகாரம் முழு வசனங்கள். தமிழ் & ஆங்கிலத்தில் ஆன்லைனிலும் ஆஃப்லைனிலும் வாசியுங்கள்.`;
   } else if (parts.length === 1 && !['presentation', 'api', 'presentation-remote', 'advanced-presentation', 'privacy', 'about', 'terms'].includes(parts[0])) {
     // /Genesis
     const bookTamil = getTamilName(parts[0]);
-    title = `${bookTamil} | Tamil Bible Premium`;
-    description = `Browse ${bookTamil} in the Tamil Bible.`;
+    const bookDecoded = decodeURIComponent(parts[0]);
+    title = `${bookTamil} புத்தகம் (${bookDecoded}) - தமிழ் வேதாகமம் | Tamil Bible`;
+    description = `பரிசுத்த வேதாகமம் ${bookTamil} (${bookDecoded}) புத்தகத்தில் உள்ள அனைத்து அதிகாரங்களையும் வாசியுங்கள்.`;
   }
 
   // Replace tags in HTML
@@ -207,9 +216,23 @@ export default async function middleware(req) {
     `<meta name="twitter:description" content="${description}" />`
   );
 
+  // Replace robots
+  html = html.replace(
+    /<meta\s+name="robots"\s+content="[^"]*"\s*\/>/,
+    `<meta name="robots" content="${robots}" />`
+  );
+
+  // Add or update canonical link tag
+  if (html.includes('<link rel="canonical"')) {
+    html = html.replace(/<link rel="canonical" href="[^"]*" \/>/, `<link rel="canonical" href="${canonicalUrl}" />`);
+  } else {
+    html = html.replace('</head>', `  <link rel="canonical" href="${canonicalUrl}" />\n  </head>`);
+  }
+
   return new Response(html, {
     headers: {
-      'content-type': 'text/html;charset=UTF-8'
+      'content-type': 'text/html;charset=UTF-8',
+      'x-robots-tag': robots
     }
   });
 }

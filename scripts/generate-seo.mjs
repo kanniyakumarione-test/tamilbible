@@ -31,7 +31,23 @@ const routes = new Set([
   "/privacy",
   "/about",
   "/terms",
+  "/memorize",
+  "/sermon-builder",
 ]);
+
+// Include all blog posts
+const blogSlugs = [
+  "how-to-study-tamil-bible-offline",
+  "best-tamil-bible-presentation-software-for-church",
+  "tanglish-search-tamil-bible",
+  "how-to-prepare-sermons-digitally",
+  "how-to-memorize-tamil-bible-verses",
+  "benefits-of-dark-mode-bible-reading"
+];
+
+for (const slug of blogSlugs) {
+  routes.add(`/blog/${slug}`);
+}
 
 for (const book of books) {
   const englishName = book.book.english.trim();
@@ -70,15 +86,17 @@ ${[...routes]
     (route) => `  <url>
     <loc>${toAbsoluteUrl(route)}</loc>
     <lastmod>${now}</lastmod>
-    <changefreq>${route === "/" ? "weekly" : "monthly"}</changefreq>
+    <changefreq>${route === "/" ? "daily" : route.startsWith("/blog/") ? "weekly" : "monthly"}</changefreq>
     <priority>${
       route === "/"
         ? "1.0"
+        : route.startsWith("/blog/")
+        ? "0.9"
         : route === "/books"
         ? "0.9"
-        : !route.startsWith("/reader/")
+        : route.split("/").filter(Boolean).length === 2
         ? "0.8"
-        : "0.5"
+        : "0.7"
     }</priority>
   </url>`
   )

@@ -178,12 +178,14 @@ export default function SeoManager() {
           item: canonicalUrl,
         }
       );
-    } else if (!bookMatch && !chapterMatch && !readerMatch && pathname !== "/") {
-      title = "Page Not Found | Tamil Bible Premium";
-      robots = "noindex, follow";
-    }
-
-    if (readerMatch?.params) {
+    } else if (
+      pathname.startsWith("/presentation/") ||
+      pathname === "/presentation-remote" ||
+      pathname === "/advanced-presentation" ||
+      pathname === "/sermon-control"
+    ) {
+      robots = "noindex, nofollow";
+    } else if (readerMatch?.params) {
       const bookEnglish = decodeURIComponent(readerMatch.params.book);
       const chapter = readerMatch.params.chapter;
       const verse = readerMatch.params.verse;
@@ -193,13 +195,13 @@ export default function SeoManager() {
       const bookTamil = normalizeText(bookData?.book?.tamil || getBookLabelFromMetadata(bookEnglish, "ta") || bookEnglish);
       const verseText = normalizeText(verseData?.text);
 
-      title = `${bookTamil} ${chapter}:${verse} | Tamil Bible Premium`;
+      title = `${bookTamil} ${chapter}:${verse} (${bookEnglish} ${chapter}:${verse}) - தமிழ் வேதாகமம் | Tamil Bible`;
       description = verseText
-        ? `${bookTamil} ${chapter}:${verse} - ${verseText.slice(0, 150)}`
-        : `Read ${bookTamil} ${chapter}:${verse} in the Tamil Bible.`;
+        ? `${bookTamil} ${chapter}:${verse} - "${verseText.slice(0, 160)}" - பரிசுத்த வேதாகமம் தமிழ் மற்றும் ஆங்கில வசனங்கள்.`
+        : `பரிசுத்த வேதாகமம் ${bookTamil} ${chapter}:${verse} வசனத்தை வாசியுங்கள்.`;
       type = "article";
       canonicalUrl = toAbsoluteUrl(`/${encodeURIComponent(bookEnglish)}/${chapter}`);
-      robots = "noindex, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
+      robots = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
       breadcrumbItems.push(
         {
           "@type": "ListItem",
@@ -228,11 +230,13 @@ export default function SeoManager() {
       const bookTamil = normalizeText(bookData?.book?.tamil || getBookLabelFromMetadata(bookEnglish, "ta") || bookEnglish);
       const verseCount = chapterData?.verses?.length || 0;
 
-      title = `${bookTamil} ${chapter} | Tamil Bible Premium`;
+      // High-CTR search optimized title & description (Tamil + English)
+      title = `${bookTamil} ${chapter} அதிகாரம் (${bookEnglish} ${chapter}) - தமிழ் வேதாகமம் | Tamil Bible`;
       description = verseCount
-        ? `Read ${bookTamil} chapter ${chapter} with ${verseCount} verses in the Tamil Bible.`
-        : `Read ${bookTamil} chapter ${chapter} in the Tamil Bible.`;
+        ? `பரிசுத்த வேதாகமம் ${bookTamil} ${chapter} ஆம் அதிகாரம் (முழு ${verseCount} வசனங்கள்). தமிழ் & KJV ஆங்கில வேதாகமம் ஆன்லைனிலும் ஆஃப்லைனிலும் வாசியுங்கள்.`
+        : `பரிசுத்த வேதாகமம் ${bookTamil} ${chapter} ஆம் அதிகாரத்தை வாசியுங்கள்.`;
       type = "article";
+      robots = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
       breadcrumbItems.push(
         {
           "@type": "ListItem",
@@ -253,22 +257,20 @@ export default function SeoManager() {
       const bookTamil = normalizeText(bookData?.book?.tamil || getBookLabelFromMetadata(bookEnglish, "ta") || bookEnglish);
       const chapterCount = bookData?.chapters?.length || 0;
 
-      title = `${bookTamil} | Tamil Bible Premium`;
+      title = `${bookTamil} புத்தகம் (${bookEnglish}) - தமிழ் வேதாகமம் | Tamil Bible`;
       description = chapterCount
-        ? `Browse ${bookTamil} in the Tamil Bible with ${chapterCount} chapters.`
-        : `Browse ${bookTamil} in the Tamil Bible.`;
+        ? `பரிசுத்த வேதாகமம் ${bookTamil} (${bookEnglish}) புத்தகத்தில் உள்ள அனைத்து ${chapterCount} அதிகாரங்களையும் ஆன்லைனில் வாசியுங்கள்.`
+        : `பரிசுத்த வேதாகமம் ${bookTamil} புத்தகம் வாசிப்பு.`;
+      robots = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
       breadcrumbItems.push({
         "@type": "ListItem",
         position: 2,
         name: bookTamil,
         item: canonicalUrl,
       });
-    } else if (
-      pathname.startsWith("/presentation/") ||
-      pathname === "/presentation-remote" ||
-      pathname === "/advanced-presentation"
-    ) {
-      robots = "noindex, nofollow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
+    } else {
+      title = "Tamil Bible Premium | தமிழ் வேதாகமம்";
+      robots = "noindex, follow";
     }
 
       const nextSeo = {
